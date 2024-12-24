@@ -1,6 +1,6 @@
 # OpenStack 실습 데모 페이지 with Quarto
 
-Quarto를 이용한 OpenStack Korea Community 웹사이트 프로젝트입니다.
+Quarto를 이용한 OpenStack Korea Community 의 Book 컨텐츠 프로젝트입니다.
 
 ## 프로젝트 구조
 
