@@ -1,0 +1,28 @@
+/*-- scss:defaults --*/
+$primary: #ED1944;      // 메인 색상 (Openstack 브랜드 레드)
+$font-family-base: 'Noto Sans KR', sans-serif;
+$body-bg: #ffffff;
+$body-color: #2c3e50;
+$link-color: #3498db;
+$navbar-bg: $primary; 
+
+/*-- scss:rules --*/
+.footer {
+    width: 100%;
+    background-color: rgba($primary, 0.9);
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.9rem;
+    margin-top: 2rem;
+}
+
+.footer a {
+    color: white;
+    text-decoration: underline;
+}
+
+// 푸터 위의 컨텐츠가 가려지지 않도록 본문에 여백 추가
+main {
+    margin-bottom: 80px;
+} 
