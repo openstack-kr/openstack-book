@@ -22,7 +22,7 @@ website:
         file: community.qmd
     right:
       - icon: github
-        href: https://github.com/openstack-kr
+        href: https://github.com/openstack-kr/openstack-book
         aria-label: "GitHub 저장소"
       - icon: facebook
         href: https://www.facebook.com/groups/openstack-kr
