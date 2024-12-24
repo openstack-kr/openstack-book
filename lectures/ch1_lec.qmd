@@ -1,0 +1,30 @@
+---
+title: "1장. 오픈스택 개요"
+---
+
+
+## 학습 목표
+- 클라우드 컴퓨팅의 기본 개념 이해
+- 오픈스택 프로젝트의 역사와 현황 파악
+- 주요 컴포넌트와 아키텍처 이해
+
+## 학습 내용
+### 1.1 클라우드 컴퓨팅 소개
+- 클라우드 컴퓨팅 정의
+- 클라우드 서비스 모델 (IaaS, PaaS, SaaS)
+- 클라우드 배포 모델
+
+### 1.2 오픈스택 프로젝트 이해
+- 오픈스택 역사
+- 릴리스 주기와 버전
+- 커뮤니티 구조
+
+### 1.3 주요 컴포넌트
+- Nova (Compute)
+- Neutron (Networking)
+- Swift (Object Storage)
+- Cinder (Block Storage)
+
+## 참고 자료
+- [강의 슬라이드](/materials/ch1-overview.pdf)
+- [실습 가이드](/guides/basic.html) 

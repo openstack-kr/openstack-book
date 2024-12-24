@@ -1,149 +1,171 @@
 [
   {
+    "objectID": "lectures/ch2_lec.html",
+    "href": "lectures/ch2_lec.html",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "",
+    "text": "이 강의에서는 오픈스택을 설치하는 두 가지 주요 방법을 다룹니다:",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#강의-구성",
+    "href": "lectures/ch2_lec.html#강의-구성",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "강의 구성",
+    "text": "강의 구성\n\n2-1장. DevStack으로 구성하기\n\n개발 및 테스트 환경에 적합\n단일 노드 구성\n빠른 설치와 테스트\n\n2-2장. Kolla-Ansible로 구성하기\n\n프로덕션 환경에 적합\n멀티 노드 구성\n컨테이너 기반 배포",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#준비사항",
+    "href": "lectures/ch2_lec.html#준비사항",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "준비사항",
+    "text": "준비사항\n\nLinux 기본 명령어 이해\n가상화 개념 이해\n네트워크 기본 지식",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#참고-자료",
+    "href": "lectures/ch2_lec.html#참고-자료",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "참고 자료",
+    "text": "참고 자료\n\n환경 설정 가이드\n문제 해결 가이드",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html",
+    "href": "lectures/ch2/ch2_2_lec.html",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "Kolla-Ansible의 아키텍처 이해\n멀티노드 환경 구성\n고가용성 설정 방법 습득\n\n\n\n\n\n\n\n컨테이너 기반 배포 개념\nKolla-Ansible 아키텍처\n구성 요소 설명\n\n\n\n\n\n호스트 시스템 요구사항\n네트워크 구성\nAnsible 설정\n\n\n\n\n\n인벤토리 구성\n글로벌 설정\n배포 실행과 검증\n\n\n\n\n\n\n강의 슬라이드\n실습 가이드"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html#학습-목표",
+    "href": "lectures/ch2/ch2_2_lec.html#학습-목표",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "Kolla-Ansible의 아키텍처 이해\n멀티노드 환경 구성\n고가용성 설정 방법 습득"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html#학습-내용",
+    "href": "lectures/ch2/ch2_2_lec.html#학습-내용",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "컨테이너 기반 배포 개념\nKolla-Ansible 아키텍처\n구성 요소 설명\n\n\n\n\n\n호스트 시스템 요구사항\n네트워크 구성\nAnsible 설정\n\n\n\n\n\n인벤토리 구성\n글로벌 설정\n배포 실행과 검증"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html#실습-자료",
+    "href": "lectures/ch2/ch2_2_lec.html#실습-자료",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "강의 슬라이드\n실습 가이드"
+  },
+  {
     "objectID": "lectures/index.html",
     "href": "lectures/index.html",
     "title": "오픈스택 강의 자료",
     "section": "",
-    "text": "강의 슬라이드\n학습 내용:\n\n클라우드 컴퓨팅 개요\n오픈스택 역사와 발전\n주요 컴포넌트 소개\n기본 아키텍처 이해\n\n\n\n\n\n\n강의 슬라이드\n학습 내용:\n\nNova (Compute)\nNeutron (Networking)\nSwift (Object Storage)\nCinder (Block Storage)\n\n\n\n\n\n\n\n\n\n강의 슬라이드\n학습 내용:\n\n모니터링과 로깅\n백업과 복구\n성능 최적화\n문제 해결 방법론\n\n\n\n\n\n\n강의 슬라이드\n학습 내용:\n\nHA 아키텍처 설계\n클러스터 구성\n장애 복구 전략\n\n\n\n\n\n\n모든 강의 자료는 GitHub 저장소에서 다운로드 받을 수 있습니다.\n\n\n\n유튜브 채널에�� 다음 강의들을 시청하실 수 있습니다:\n\n오픈스택 설치 가이드\nNova로 가상머신 생성하기\n네트워크 구성 실습"
-  },
-  {
-    "objectID": "lectures/index.html#초급-과정",
-    "href": "lectures/index.html#초급-과정",
-    "title": "오픈스택 강의 자료",
-    "section": "",
-    "text": "강의 슬라이드\n학습 내용:\n\n클라우드 컴퓨팅 개요\n오픈스택 역사와 발전\n주요 컴포넌트 소개\n기본 아키텍처 이해\n\n\n\n\n\n\n강의 슬라이드\n학습 내용:\n\nNova (Compute)\nNeutron (Networking)\nSwift (Object Storage)\nCinder (Block Storage)"
-  },
-  {
-    "objectID": "lectures/index.html#중급-과정",
-    "href": "lectures/index.html#중급-과정",
-    "title": "오픈스택 강의 자료",
-    "section": "",
-    "text": "강의 슬라이드\n학습 내용:\n\n모니터링과 로깅\n백업과 복구\n성능 최적화\n문제 해결 방법론\n\n\n\n\n\n\n강의 슬라이드\n학습 내용:\n\nHA 아키텍처 설계\n클러스터 구성\n장애 복구 전략"
-  },
-  {
-    "objectID": "lectures/index.html#자료-다운로드",
-    "href": "lectures/index.html#자료-다운로드",
-    "title": "오픈스택 강의 자료",
-    "section": "",
-    "text": "모든 강의 자료는 GitHub 저장소에서 다운로드 받을 수 있습니다."
-  },
-  {
-    "objectID": "lectures/index.html#영상-강의",
-    "href": "lectures/index.html#영상-강의",
-    "title": "오픈스택 강의 자료",
-    "section": "",
-    "text": "유튜브 채널에�� 다음 강의들을 시청하실 수 있습니다:\n\n오픈스택 설치 가이드\nNova로 가상머신 생성하기\n네트워크 구성 실습"
-  },
-  {
-    "objectID": "guides/advanced.html",
-    "href": "guides/advanced.html",
-    "title": "오픈스택 고급 실습 가이드",
-    "section": "",
-    "text": "다음 명령어로 컨트롤러 노드를 구성합니다:\npcs cluster setup --name openstack-cluster controller1 controller2 controller3\npcs cluster start --all\npcs cluster enable --all\n\n\n\npcs resource create virtual_ip ocf:heartbeat:IPaddr2 \\\n    params ip=192.168.1.10 cidr_netmask=24 \\\n    op monitor interval=10s\n\n\n\n\n\n\n먼저 필요한 패키지를 설치합니다:\nsudo apt-get update\nsudo apt-get install -y kubelet kubeadm kubectl\n\n\n\ngit clone https://opendev.org/openstack/openstack-helm\ncd openstack-helm\n./tools/deployment/developer/common/010-deploy-k8s.sh\n\n\n\n\n\n\nNova 설정 파일을 다음과 같이 수정합니다:\n[DEFAULT]\ncpu_allocation_ratio = 16.0\nram_allocation_ratio = 1.5\ndisk_allocation_ratio = 1.0\n\n\n\n[DEFAULT]\nglobal_physnet_mtu = 9000\n\n[agent]\ntunnel_types = vxlan\nl2_population = True\n\n\n\n\n\n\nhelm install prometheus prometheus-community/kube-prometheus-stack \\\n    --namespace monitoring \\\n    --create-namespace\n\n\n\n\n\n\nMariaDB 백업 스크립트:\n#!/bin/bash\nBACKUP_DIR=\"/backup/mysql\"\nDATE=$(date +%Y%m%d)\nmysqldump --all-databases &gt; $BACKUP_DIR/backup-$DATE.sql\n\n\n\n\n\nAPI 통합 가이드를 참조하세요\n트러블슈팅 가이드에서 문제 해결 방법을 확인하세요"
-  },
-  {
-    "objectID": "guides/advanced.html#고가용성-구성",
-    "href": "guides/advanced.html#고가용성-구성",
-    "title": "오픈스택 고급 실습 가이드",
-    "section": "",
-    "text": "다음 명령어로 컨트롤러 노드를 구성합니다:\npcs cluster setup --name openstack-cluster controller1 controller2 controller3\npcs cluster start --all\npcs cluster enable --all\n\n\n\npcs resource create virtual_ip ocf:heartbeat:IPaddr2 \\\n    params ip=192.168.1.10 cidr_netmask=24 \\\n    op monitor interval=10s"
-  },
-  {
-    "objectID": "guides/advanced.html#컨테이너-통합",
-    "href": "guides/advanced.html#컨테이너-통합",
-    "title": "오픈스택 고급 실습 가이드",
-    "section": "",
-    "text": "먼저 필요한 패키지를 설치합니다:\nsudo apt-get update\nsudo apt-get install -y kubelet kubeadm kubectl\n\n\n\ngit clone https://opendev.org/openstack/openstack-helm\ncd openstack-helm\n./tools/deployment/developer/common/010-deploy-k8s.sh"
-  },
-  {
-    "objectID": "guides/advanced.html#성능-최적화",
-    "href": "guides/advanced.html#성능-최적화",
-    "title": "오픈스택 고급 실습 가이드",
-    "section": "",
-    "text": "Nova 설정 파일을 다음과 같이 수정합니다:\n[DEFAULT]\ncpu_allocation_ratio = 16.0\nram_allocation_ratio = 1.5\ndisk_allocation_ratio = 1.0\n\n\n\n[DEFAULT]\nglobal_physnet_mtu = 9000\n\n[agent]\ntunnel_types = vxlan\nl2_population = True"
-  },
-  {
-    "objectID": "guides/advanced.html#모니터링-구성",
-    "href": "guides/advanced.html#모니터링-구성",
-    "title": "오픈스택 고급 실습 가이드",
-    "section": "",
-    "text": "helm install prometheus prometheus-community/kube-prometheus-stack \\\n    --namespace monitoring \\\n    --create-namespace"
-  },
-  {
-    "objectID": "guides/advanced.html#백업-및-복구",
-    "href": "guides/advanced.html#백업-및-복구",
-    "title": "오픈스택 고급 실습 가이드",
-    "section": "",
-    "text": "MariaDB 백업 스크립트:\n#!/bin/bash\nBACKUP_DIR=\"/backup/mysql\"\nDATE=$(date +%Y%m%d)\nmysqldump --all-databases &gt; $BACKUP_DIR/backup-$DATE.sql"
-  },
-  {
-    "objectID": "guides/advanced.html#다음-단계",
-    "href": "guides/advanced.html#다음-단계",
-    "title": "오픈스택 고급 실습 가이드",
-    "section": "",
-    "text": "API 통합 가이드를 참조하세요\n트러블슈팅 가이드에서 문제 해결 방법을 확인하세요"
+    "text": "강의 목록\n\n1장. 오픈스택 개요\n2장. 오픈스택 설치 가이드\n\n2-1장. DevStack으로 구성하기\n2-2장. Kolla-Ansible로 구성하기",
+    "crumbs": [
+      "목록",
+      "목차"
+    ]
   },
   {
     "objectID": "index.html",
     "href": "index.html",
     "title": "OpenStack Korea Community",
     "section": "",
-    "text": "OpenStack Korea Community에 오신 것을 환영합니다. 이 사이트는 오픈스택을 배우고 실습하는데 필요한 다양한 자료들을 제공합니다.\n\n\n\n\n\n초보자를 위한 기본 실습 가이드\n고급 사용자를 위한 심화 실습 가이드\n문제 해결 및 트러블슈팅 가이드\n\n\n\n\n\n오픈스택 아키텍처 개요\n컴포넌트별 상세 설명\n실제 구축 사례 연구\n\n\n\n\n\n정기 밋업 일정\n스터디 그룹 활동\n컨퍼런스 및 세미나 정보\n\n\n\n\n\n\n기본 실습 가이드를 통해 오픈스택의 기초를 배워보세요.\n커뮤니티 페이지에서 다른 멤버들과 소통하세요.\nSlack에 참여하여 실시간 도움을 받으세요."
+    "text": "OpenStack Korea Community에 오신 것을 환영합니다. 이 사이트는 오픈스택을 학습하는데 필요한 다양한 강의 자료들을 제공합니다.\n\n\n\n\n\n오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\nDevStack 설치 가이드\n\n개발 및 테스트 환경 구성\n단일 노드 설치 방법\n\nKolla-Ansible 설치 가이드\n\n프로덕션 환경 구성\n멀티 노드 클러스터 구축\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
   },
   {
     "objectID": "index.html#주요-콘텐츠",
     "href": "index.html#주요-콘텐츠",
     "title": "OpenStack Korea Community",
     "section": "",
-    "text": "초보자를 위한 기본 실습 가이드\n고급 사용자를 위한 심화 실습 가이드\n문제 해결 및 트러블슈팅 가이드\n\n\n\n\n\n오픈스택 아키텍처 개요\n컴포넌트별 상세 설명\n실제 구축 사례 연구\n\n\n\n\n\n정기 밋업 일정\n스터디 그룹 활동\n컨퍼런스 및 세미나 정보"
+    "text": "오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\nDevStack 설치 가이드\n\n개발 및 테스트 환경 구성\n단일 노드 설치 방법\n\nKolla-Ansible 설치 가이드\n\n프로덕션 환경 구성\n멀티 노드 클러스터 구축\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
   },
   {
-    "objectID": "index.html#시작하기",
-    "href": "index.html#시작하기",
-    "title": "OpenStack Korea Community",
+    "objectID": "lectures/ch2/ch2_1_lec.html",
+    "href": "lectures/ch2/ch2_1_lec.html",
+    "title": "2-1장. DevStack으로 구성하기",
     "section": "",
-    "text": "기본 실습 가이드를 통해 오픈스택의 기초를 배워보세요.\n커뮤니티 페이지에서 다른 멤버들과 소통하세요.\nSlack에 참여하여 실시간 도움을 받으세요."
+    "text": "DevStack의 특징과 용도 이해\n단계별 설치 과정 실습\n기본 구성 테스트"
   },
   {
-    "objectID": "guides/basic.html",
-    "href": "guides/basic.html",
-    "title": "오픈스택 기본 실습 가이드",
+    "objectID": "lectures/ch2/ch2_1_lec.html#학습-목표",
+    "href": "lectures/ch2/ch2_1_lec.html#학습-목표",
+    "title": "2-1장. DevStack으로 구성하기",
     "section": "",
-    "text": "CPU: 4코어 이상\n메모리: 8GB 이상\n저장공간: 100GB 이상\n운영체제: Ubuntu 22.04 LTS\n\n\n\n\n다음 패키지들을 설치해야 합니다:\nsudo apt update\nsudo apt install -y python3-pip git curl\n\n\n\n\n\n\nDevStack 저장소를 클론하고 설치를 준비합니다:\ngit clone https://opendev.org/openstack/devstack\ncd devstack\n\n\n\n기본 설정 파일을 생성합니다:\n[[local|localrc]]\nADMIN_PASSWORD=secret\nDATABASE_PASSWORD=$ADMIN_PASSWORD\nRABBIT_PASSWORD=$ADMIN_PASSWORD\nSERVICE_PASSWORD=$ADMIN_PASSWORD\n\n\n\n설치 스크립트를 실행합니다:\n./stack.sh\n\n\n\n\n\n\n관리자 인증 정보를 설정합니다:\nsource openrc admin\n\n\n\n이미지 목록 확인:\nopenstack image list\n네트워크 목록 확인:\nopenstack network list\n인스턴스 목록 확인:\nopenstack server list\n\n\n\n\nUbuntu 이미지 다운로드:\n\nwget https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img\n\n이미지 등록:\n\nopenstack image create \"ubuntu-20.04\" \\\n  --disk-format qcow2 \\\n  --container-format bare \\\n  --file focal-server-cloudimg-amd64.img\n\nVM 생성:\n\nopenstack server create --flavor m1.small \\\n  --image ubuntu-20.04 \\\n  --network private \\\n  my-first-vm\n\n\n\n\n\n\n\n설치 실패 시\n\n로그 확인: /opt/stack/logs/\n메모리 부족 여부 확인\n네트워크 연결 상태 확인\n\n인스턴스 생성 실패\n\n할당량 확인\n네트워크 설정 확인\n이미지 상태 확인\n\n\n\n\n\n\n\n고급 실습 가이드로 이동하여 더 심화된 내용을 학습하세요.\n커뮤니티에서 도움을 받으세요.\n강의 자료로 이론적 배경을 보완하세요."
+    "text": "DevStack의 특징과 용도 이해\n단계별 설치 과정 실습\n기본 구성 테스트"
   },
   {
-    "objectID": "guides/basic.html#환경-준비",
-    "href": "guides/basic.html#환경-준비",
-    "title": "오픈스택 기본 실습 가이드",
-    "section": "",
-    "text": "CPU: 4코어 이상\n메모리: 8GB 이상\n저장공간: 100GB 이상\n운영체제: Ubuntu 22.04 LTS\n\n\n\n\n다음 패키지들을 설치해야 합니다:\nsudo apt update\nsudo apt install -y python3-pip git curl"
+    "objectID": "lectures/ch2/ch2_1_lec.html#학습-내용",
+    "href": "lectures/ch2/ch2_1_lec.html#학습-내용",
+    "title": "2-1장. DevStack으로 구성하기",
+    "section": "학습 내용",
+    "text": "학습 내용\n\n2.1.1 DevStack 소개\n\nDevStack 개요\n사용 목적과 제한사항\n시스템 요구사항\n\n\n\n2.1.2 설치 준비\n\n운영체제 설정\n필수 패키지 설치\n네트워크 구성\n\n\n\n2.1.3 설치 과정\n\nlocal.conf 구성\nstack.sh 실행\n설치 검증"
   },
   {
-    "objectID": "guides/basic.html#devstack-설치",
-    "href": "guides/basic.html#devstack-설치",
-    "title": "오픈스택 기본 실습 가이드",
-    "section": "",
-    "text": "DevStack 저장소를 클론하고 설치를 준비합니다:\ngit clone https://opendev.org/openstack/devstack\ncd devstack\n\n\n\n기본 설정 파일을 생성합니다:\n[[local|localrc]]\nADMIN_PASSWORD=secret\nDATABASE_PASSWORD=$ADMIN_PASSWORD\nRABBIT_PASSWORD=$ADMIN_PASSWORD\nSERVICE_PASSWORD=$ADMIN_PASSWORD\n\n\n\n설치 스크립트를 실행합니다:\n./stack.sh"
+    "objectID": "lectures/ch2/ch2_1_lec.html#실습-자료",
+    "href": "lectures/ch2/ch2_1_lec.html#실습-자료",
+    "title": "2-1장. DevStack으로 구성하기",
+    "section": "실습 자료",
+    "text": "실습 자료\n\n강의 슬라이드\n실습 가이드"
   },
   {
-    "objectID": "guides/basic.html#기본-사용법",
-    "href": "guides/basic.html#기본-사용법",
-    "title": "오픈스택 기본 실습 가이드",
+    "objectID": "lectures/ch1_lec.html",
+    "href": "lectures/ch1_lec.html",
+    "title": "1장. 오픈스택 개요",
     "section": "",
-    "text": "관리자 인증 정보를 설정합니다:\nsource openrc admin\n\n\n\n이미지 목록 확인:\nopenstack image list\n네트워크 목록 확인:\nopenstack network list\n인스턴스 목록 확인:\nopenstack server list\n\n\n\n\nUbuntu 이미지 다운로드:\n\nwget https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img\n\n이미지 등록:\n\nopenstack image create \"ubuntu-20.04\" \\\n  --disk-format qcow2 \\\n  --container-format bare \\\n  --file focal-server-cloudimg-amd64.img\n\nVM 생성:\n\nopenstack server create --flavor m1.small \\\n  --image ubuntu-20.04 \\\n  --network private \\\n  my-first-vm"
+    "text": "클라우드 컴퓨팅의 기본 개념 이해\n오픈스택 프로젝트의 역사와 현황 파악\n주요 컴포넌트와 아키텍처 이해",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
   },
   {
-    "objectID": "guides/basic.html#문제-해결",
-    "href": "guides/basic.html#문제-해결",
-    "title": "오픈스택 기본 실습 가이드",
+    "objectID": "lectures/ch1_lec.html#학습-목표",
+    "href": "lectures/ch1_lec.html#학습-목표",
+    "title": "1장. 오픈스택 개요",
     "section": "",
-    "text": "설치 실패 시\n\n로그 확인: /opt/stack/logs/\n메모리 부족 여부 확인\n네트워크 연결 상태 확인\n\n인스턴스 생성 실패\n\n할당량 확인\n네트워크 설정 확인\n이미지 상태 확인"
+    "text": "클라우드 컴퓨팅의 기본 개념 이해\n오픈스택 프로젝트의 역사와 현황 파악\n주요 컴포넌트와 아키텍처 이해",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
   },
   {
-    "objectID": "guides/basic.html#다음-단계",
-    "href": "guides/basic.html#다음-단계",
-    "title": "오픈스택 기본 실습 가이드",
-    "section": "",
-    "text": "고급 실습 가이드로 이동하여 더 심화된 내용을 학습하세요.\n커뮤니티에서 도움을 받으세요.\n강의 자료로 이론적 배경을 보완하세요."
+    "objectID": "lectures/ch1_lec.html#학습-내용",
+    "href": "lectures/ch1_lec.html#학습-내용",
+    "title": "1장. 오픈스택 개요",
+    "section": "학습 내용",
+    "text": "학습 내용\n\n1.1 클라우드 컴퓨팅 소개\n\n클라우드 컴퓨팅 정의\n클라우드 서비스 모델 (IaaS, PaaS, SaaS)\n클라우드 배포 모델\n\n\n\n1.2 오픈스택 프로젝트 이해\n\n오픈스택 역사\n릴리스 주기와 버전\n커뮤니티 구조\n\n\n\n1.3 주요 컴포넌트\n\nNova (Compute)\nNeutron (Networking)\nSwift (Object Storage)\nCinder (Block Storage)",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
+  },
+  {
+    "objectID": "lectures/ch1_lec.html#참고-자료",
+    "href": "lectures/ch1_lec.html#참고-자료",
+    "title": "1장. 오픈스택 개요",
+    "section": "참고 자료",
+    "text": "참고 자료\n\n강의 슬라이드\n실습 가이드",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
   }
 ]

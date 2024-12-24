@@ -1,0 +1,30 @@
+---
+title: "2-2장. Kolla-Ansible로 구성하기"
+---
+
+# 2-2장. Kolla-Ansible로 구성하기
+
+## 학습 목표
+- Kolla-Ansible의 아키텍처 이해
+- 멀티노드 환경 구성
+- 고가용성 설정 방법 습득
+
+## 학습 내용
+### 2.2.1 Kolla-Ansible 소개
+- 컨테이너 기반 배포 개념
+- Kolla-Ansible 아키텍처
+- 구성 요소 설명
+
+### 2.2.2 설치 준비
+- 호스트 시스템 요구사항
+- 네트워크 구성
+- Ansible 설정
+
+### 2.2.3 배포 과정
+- 인벤토리 구성
+- 글로벌 설정
+- 배포 실행과 검증
+
+## 실습 자료
+- [강의 슬라이드](/materials/ch2-2-kolla-ansible.pdf)
+- [실습 가이드](/guides/advanced.html) 

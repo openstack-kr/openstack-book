@@ -2,23 +2,23 @@
 
 Quarto를 이용한 OpenStack Korea Community 의 Book 컨텐츠 프로젝트입니다.
 
-## 프로젝트 구조
+## Quarto를 이용한 Book 프로젝트 구조
 
 ```
 .
 ├── _quarto.yml     # Quarto 설정 파일
 ├── index.qmd       # 메인 페이지
-├── guides/         # 실습 가이드
-│   ├── basic.qmd   # 기본 실습
-│   └── advanced.qmd # 고급 실습
 ├── lectures/       # 강의 자료
-│   └── index.qmd
+│   ├── short_lec.qmd   # 단편 강의자료
+│   ├──  long_lec/       # 장편 강의자료
+│   │  └── long_lec1.qmd # 장편 강의자료 속편
+│   └── long_lec.qmd    # 장편 강의자료 메인페이지 (소개, 속편 링크 가이드)
 ├── community.qmd   # 커뮤니티 페이지
 ├── styles.css      # 커스텀 스타일
 └── docs/          # 빌드된 사이트 (자동 생성)
 ```
 
-## 시작하기
+## 기여 시작하기
 
 1. Quarto 설치
 
@@ -34,17 +34,11 @@ wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.6.0/quarto-1.
 sudo dpkg -i quarto-1.6.0-linux-amd64.deb
 ```
 
-2. 의존성 설치
+## 강의 및 실습 가이드 기여 방법
 
-```
-npm install
-```
+### Github Issue 생성
 
-## 페이지 작성 가이드
-
-### 새 페이지 추가
-
-1. `.qmd` 파일 생성
+1. .qmd 파일 생성하기
 
 ```
 ---
@@ -64,28 +58,11 @@ website:
         file: path/to/new.qmd
 ```
 
-### 실습 가이드 작성
-
-실습 가이드는 `guides/` 디렉토리에 작성합니다. 기본 템플릿:
-
-```
----
-title: "실습 제목"
----
-
-# 개요
-
-## 준비사항
-
-## 실습 단계
-
-## 문제해결
-```
 
 ### 강의 자료 추가
 
-1. PDF 파일을 `materials/` 디렉토리에 저장
-2. `lectures/index.qmd`에 링크 추가
+1. PDF 파일을 `media/pdf/` 디렉토리에 저장
+2. `lectures/<lecutre>.qmd`에 링크 추가
 
 ## 사이트 빌드 및 배포
 
@@ -118,12 +95,6 @@ format:
     lang: ko
 ```
 
-## 기여하기
-
-1. 이 저장소를 Fork합니다
-2. 새로운 브랜치를 생성합니다
-3. 변경사항을 커밋합니다
-4. Pull Request를 생성합니다
 
 ## 문서 스타일 가이드
 

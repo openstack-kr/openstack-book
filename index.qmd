@@ -4,27 +4,25 @@ title: "OpenStack Korea Community"
 
 # 환영합니다!
 
-OpenStack Korea Community에 오신 것을 환영합니다. 이 사이트는 오픈스택을 배우고 실습하는데 필요한 다양한 자료들을 제공합니다.
+OpenStack Korea Community에 오신 것을 환영합니다. 이 사이트는 오픈스택을 학습하는데 필요한 다양한 강의 자료들을 제공합니다.
 
 ## 주요 콘텐츠
 
-### 📚 실습 가이드
-- 초보자를 위한 기본 실습 가이드
-- 고급 사용자를 위한 심화 실습 가이드
-- 문제 해결 및 트러블슈팅 가이드
+### 🎓 기초 학습
+- [오픈스택 개요](lectures/ch1_lec.qmd)
+  - 클라우드 컴퓨팅의 기본 개념
+  - 오픈스택 프로젝트 소개
+  - 주요 컴포넌트 설명
 
-### 🎓 강의 자료
-- 오픈스택 아키텍처 개요
-- 컴포넌트별 상세 설명
-- 실제 구축 사례 연구
+### ⚙️ 설치 가이드
+- [DevStack 설치 가이드](lectures/ch2/ch2_1_lec.qmd)
+  - 개발 및 테스트 환경 구성
+  - 단일 노드 설치 방법
+- [Kolla-Ansible 설치 가이드](lectures/ch2/ch2_2_lec.qmd)
+  - 프로덕션 환경 구성
+  - 멀티 노드 클러스터 구축
 
 ### 👥 커뮤니티 활동
-- 정기 밋업 일정
-- 스터디 그룹 활동
-- 컨퍼런스 및 세미나 정보
+- [Discord](https://discord.gg/3ZzKMJKtPg)에서 실시간 대화에 참여하세요
+- [커뮤니티 포럼](https://forum.openinfra-kr.org/)에서 질문하고 답변하세요
 
-## 시작하기
-
-1. [기본 실습 가이드](guides/basic.qmd)를 통해 오픈스택의 기초를 배워보세요.
-2. [커뮤니티 페이지](community.qmd)에서 다른 멤버들과 소통하세요.
-3. [Slack](https://openstack-kr.slack.com)에 참여하여 실시간 도움을 받으세요.

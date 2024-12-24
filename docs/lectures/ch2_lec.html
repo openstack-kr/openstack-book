@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>오픈스택 강의 자료 – OpenInfra Korea User Group</title>
+<title>2장. 오픈스택 설치 가이드 – OpenInfra Korea User Group</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -118,7 +118,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../lectures/index.html">목차</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../lectures/ch2_lec.html">2장. 오픈스택 설치 가이드</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="검색" onclick="window.quartoOpenSearch();">
@@ -149,7 +149,7 @@ ul.task-list li input[type="checkbox"] {
       <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../lectures/index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../lectures/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">목차</span></a>
   </div>
 </li>
@@ -161,7 +161,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../lectures/ch2_lec.html" class="sidebar-item-text sidebar-link">
+  <a href="../lectures/ch2_lec.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">2장. 오픈스택 설치 가이드</span></a>
   </div>
 </li>
@@ -177,16 +177,18 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">목차</h2>
    
   <ul>
-  <li><a href="#강의-목록" id="toc-강의-목록" class="nav-link active" data-scroll-target="#강의-목록">강의 목록</a></li>
+  <li><a href="#강의-구성" id="toc-강의-구성" class="nav-link active" data-scroll-target="#강의-구성">강의 구성</a></li>
+  <li><a href="#준비사항" id="toc-준비사항" class="nav-link" data-scroll-target="#준비사항">준비사항</a></li>
+  <li><a href="#참고-자료" id="toc-참고-자료" class="nav-link" data-scroll-target="#참고-자료">참고 자료</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../lectures/index.html">목차</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../lectures/ch2_lec.html">2장. 오픈스택 설치 가이드</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">오픈스택 강의 자료</h1>
+<h1 class="title">2장. 오픈스택 설치 가이드</h1>
 </div>
 
 
@@ -203,15 +205,37 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="강의-목록" class="level1">
-<h1>강의 목록</h1>
+<p>이 강의에서는 오픈스택을 설치하는 두 가지 주요 방법을 다룹니다:</p>
+<section id="강의-구성" class="level2">
+<h2 class="anchored" data-anchor-id="강의-구성">강의 구성</h2>
+<ol type="1">
+<li><a href="../lectures/ch2/ch2_1_lec.html">2-1장. DevStack으로 구성하기</a>
 <ul>
-<li><a href="../lectures/ch1_lec.html">1장. 오픈스택 개요</a></li>
-<li><a href="../lectures/ch2_lec.html">2장. 오픈스택 설치 가이드</a>
-<ul>
-<li><a href="../lectures/ch2/ch2_1_lec.html">2-1장. DevStack으로 구성하기</a></li>
-<li><a href="../lectures/ch2/ch2_2_lec.html">2-2장. Kolla-Ansible로 구성하기</a></li>
+<li>개발 및 테스트 환경에 적합</li>
+<li>단일 노드 구성</li>
+<li>빠른 설치와 테스트</li>
 </ul></li>
+<li><a href="../lectures/ch2/ch2_2_lec.html">2-2장. Kolla-Ansible로 구성하기</a>
+<ul>
+<li>프로덕션 환경에 적합</li>
+<li>멀티 노드 구성</li>
+<li>컨테이너 기반 배포</li>
+</ul></li>
+</ol>
+</section>
+<section id="준비사항" class="level2">
+<h2 class="anchored" data-anchor-id="준비사항">준비사항</h2>
+<ul>
+<li>Linux 기본 명령어 이해</li>
+<li>가상화 개념 이해</li>
+<li>네트워크 기본 지식</li>
+</ul>
+</section>
+<section id="참고-자료" class="level2">
+<h2 class="anchored" data-anchor-id="참고-자료">참고 자료</h2>
+<ul>
+<li><a href="../guides/basic.html">환경 설정 가이드</a></li>
+<li><a href="../guides/advanced.html">문제 해결 가이드</a></li>
 </ul>
 
 

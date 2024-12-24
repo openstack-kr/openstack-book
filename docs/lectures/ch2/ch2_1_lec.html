@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>오픈스택 강의 자료 – OpenInfra Korea User Group</title>
+<title>2-1장. DevStack으로 구성하기 – OpenInfra Korea User Group</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-e26003cea8cd680ca0c55a263523d882.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-1392c789127e94e9759dd2ce84a8c637.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e26003cea8cd680ca0c55a263523d882.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-1392c789127e94e9759dd2ce84a8c637.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -77,7 +77,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="../index.html">
+    <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">OpenInfra Korea User Group</span>
     </a>
   </div>
@@ -118,7 +118,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../lectures/index.html">목차</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">2-1장. DevStack으로 구성하기</li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="검색" onclick="window.quartoOpenSearch();">
@@ -149,19 +149,19 @@ ul.task-list li input[type="checkbox"] {
       <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../lectures/index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../lectures/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">목차</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../lectures/ch1_lec.html" class="sidebar-item-text sidebar-link">
+  <a href="../../lectures/ch1_lec.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">1장. 오픈스택 개요</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../lectures/ch2_lec.html" class="sidebar-item-text sidebar-link">
+  <a href="../../lectures/ch2_lec.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">2장. 오픈스택 설치 가이드</span></a>
   </div>
 </li>
@@ -177,16 +177,23 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">목차</h2>
    
   <ul>
-  <li><a href="#강의-목록" id="toc-강의-목록" class="nav-link active" data-scroll-target="#강의-목록">강의 목록</a></li>
+  <li><a href="#학습-목표" id="toc-학습-목표" class="nav-link active" data-scroll-target="#학습-목표">학습 목표</a></li>
+  <li><a href="#학습-내용" id="toc-학습-내용" class="nav-link" data-scroll-target="#학습-내용">학습 내용</a>
+  <ul class="collapse">
+  <li><a href="#devstack-소개" id="toc-devstack-소개" class="nav-link" data-scroll-target="#devstack-소개">2.1.1 DevStack 소개</a></li>
+  <li><a href="#설치-준비" id="toc-설치-준비" class="nav-link" data-scroll-target="#설치-준비">2.1.2 설치 준비</a></li>
+  <li><a href="#설치-과정" id="toc-설치-과정" class="nav-link" data-scroll-target="#설치-과정">2.1.3 설치 과정</a></li>
+  </ul></li>
+  <li><a href="#실습-자료" id="toc-실습-자료" class="nav-link" data-scroll-target="#실습-자료">실습 자료</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../lectures/index.html">목차</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">오픈스택 강의 자료</h1>
+<h1 class="title">2-1장. DevStack으로 구성하기</h1>
 </div>
 
 
@@ -203,15 +210,46 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="강의-목록" class="level1">
-<h1>강의 목록</h1>
+<section id="학습-목표" class="level2">
+<h2 class="anchored" data-anchor-id="학습-목표">학습 목표</h2>
 <ul>
-<li><a href="../lectures/ch1_lec.html">1장. 오픈스택 개요</a></li>
-<li><a href="../lectures/ch2_lec.html">2장. 오픈스택 설치 가이드</a>
+<li>DevStack의 특징과 용도 이해</li>
+<li>단계별 설치 과정 실습</li>
+<li>기본 구성 테스트</li>
+</ul>
+</section>
+<section id="학습-내용" class="level2">
+<h2 class="anchored" data-anchor-id="학습-내용">학습 내용</h2>
+<section id="devstack-소개" class="level3">
+<h3 class="anchored" data-anchor-id="devstack-소개">2.1.1 DevStack 소개</h3>
 <ul>
-<li><a href="../lectures/ch2/ch2_1_lec.html">2-1장. DevStack으로 구성하기</a></li>
-<li><a href="../lectures/ch2/ch2_2_lec.html">2-2장. Kolla-Ansible로 구성하기</a></li>
-</ul></li>
+<li>DevStack 개요</li>
+<li>사용 목적과 제한사항</li>
+<li>시스템 요구사항</li>
+</ul>
+</section>
+<section id="설치-준비" class="level3">
+<h3 class="anchored" data-anchor-id="설치-준비">2.1.2 설치 준비</h3>
+<ul>
+<li>운영체제 설정</li>
+<li>필수 패키지 설치</li>
+<li>네트워크 구성</li>
+</ul>
+</section>
+<section id="설치-과정" class="level3">
+<h3 class="anchored" data-anchor-id="설치-과정">2.1.3 설치 과정</h3>
+<ul>
+<li>local.conf 구성</li>
+<li>stack.sh 실행</li>
+<li>설치 검증</li>
+</ul>
+</section>
+</section>
+<section id="실습-자료" class="level2">
+<h2 class="anchored" data-anchor-id="실습-자료">실습 자료</h2>
+<ul>
+<li><a href="../../materials/ch2-1-devstack.pdf">강의 슬라이드</a></li>
+<li><a href="../../guides/basic.html#devstack-설치">실습 가이드</a></li>
 </ul>
 
 

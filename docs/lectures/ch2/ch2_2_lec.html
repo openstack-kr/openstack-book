@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>오픈스택 고급 실습 가이드 – OpenStack Korea Community</title>
+<title>2-2장. Kolla-Ansible로 구성하기 – OpenInfra Korea User Group</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-e26003cea8cd680ca0c55a263523d882.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-77986266f7ba6f6c8d07b4e45cea89d2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e26003cea8cd680ca0c55a263523d882.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-1392c789127e94e9759dd2ce84a8c637.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -70,15 +70,15 @@ ul.task-list li input[type="checkbox"] {
 
 </head>
 
-<body class="nav-fixed">
+<body class="nav-sidebar docked nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="../index.html">
-    <span class="navbar-title">OpenStack Korea Community</span>
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">OpenInfra Korea User Group</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="검색"></div>
@@ -86,53 +86,24 @@ ul.task-list li input[type="checkbox"] {
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
-            <ul class="navbar-nav navbar-nav-scroll me-auto">
-  <li class="nav-item">
-    <a class="nav-link" href="../index.html"> 
-<span class="menu-text">홈</span></a>
-  </li>  
-  <li class="nav-item dropdown ">
-    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-" role="link" data-bs-toggle="dropdown" aria-expanded="false">
- <span class="menu-text">실습 가이드</span>
-    </a>
-    <ul class="dropdown-menu" aria-labelledby="nav-menu-">    
-        <li>
-    <a class="dropdown-item" href="../guides/basic.html">
- <span class="dropdown-text">기본 실습</span></a>
-  </li>  
-        <li>
-    <a class="dropdown-item" href="../guides/advanced.html">
- <span class="dropdown-text">고급 실습</span></a>
-  </li>  
-    </ul>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" href="../lectures/index.html"> 
-<span class="menu-text">강의 자료</span></a>
-  </li>  
-  <li class="nav-item">
-    <a class="nav-link" href="../community.qmd"> 
-<span class="menu-text">커뮤니티</span></a>
-  </li>  
-</ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/openstack-kr"> <i class="bi bi-github" role="img" aria-label="GitHub 저장소">
+    <a class="nav-link" href="https://github.com/openstack-kr/openstack-book"> <i class="bi bi-github" role="img">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
   <li class="nav-item compact">
-    <a class="nav-link" href="https://www.facebook.com/groups/openstack-kr"> <i class="bi bi-facebook" role="img" aria-label="Facebook 그룹">
+    <a class="nav-link" href="https://www.facebook.com/groups/openstack-kr"> <i class="bi bi-facebook" role="img">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
   <li class="nav-item compact">
-    <a class="nav-link" href="https://discord.gg/3ZzKMJKtPg"> <i class="bi bi-discord" role="img" aria-label="Discord 채널">
+    <a class="nav-link" href="https://discord.gg/3ZzKMJKtPg"> <i class="bi bi-discord" role="img">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
   <li class="nav-item compact">
-    <a class="nav-link" href="https://discord.gg/3ZzKMJKtPg"> <i class="bi bi-chat-square-text" role="img" aria-label="커뮤니티 포럼">
+    <a class="nav-link" href="https://forum.openinfra-kr.org/"> <i class="bi bi-chat-square-text" role="img">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -142,42 +113,80 @@ ul.task-list li input[type="checkbox"] {
 </div>
       </div> <!-- /container-fluid -->
     </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">2-2장. Kolla-Ansible로 구성하기</li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="검색" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="검색"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#" role="navigation" aria-expanded="true">
+ <span class="menu-text">목록</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">목차</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/ch1_lec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">1장. 오픈스택 개요</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/ch2_lec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">2장. 오픈스택 설치 가이드</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active">
     <h2 id="toc-title">목차</h2>
    
   <ul>
-  <li><a href="#오픈스택-고급-실습-가이드" id="toc-오픈스택-고급-실습-가이드" class="nav-link active" data-scroll-target="#오픈스택-고급-실습-가이드">오픈스택 고급 실습 가이드</a>
+  <li><a href="#장.-kolla-ansible로-구성하기" id="toc-장.-kolla-ansible로-구성하기" class="nav-link active" data-scroll-target="#장.-kolla-ansible로-구성하기">2-2장. Kolla-Ansible로 구성하기</a>
   <ul class="collapse">
-  <li><a href="#고가용성-구성" id="toc-고가용성-구성" class="nav-link" data-scroll-target="#고가용성-구성">1. 고가용성 구성</a>
+  <li><a href="#학습-목표" id="toc-학습-목표" class="nav-link" data-scroll-target="#학습-목표">학습 목표</a></li>
+  <li><a href="#학습-내용" id="toc-학습-내용" class="nav-link" data-scroll-target="#학습-내용">학습 내용</a>
   <ul class="collapse">
-  <li><a href="#컨트롤러-노드-이중화" id="toc-컨트롤러-노드-이중화" class="nav-link" data-scroll-target="#컨트롤러-노드-이중화">1.1 컨트롤러 노드 이중화</a></li>
-  <li><a href="#pacemaker-리소스-설정" id="toc-pacemaker-리소스-설정" class="nav-link" data-scroll-target="#pacemaker-리소스-설정">1.2 Pacemaker 리소스 설정</a></li>
+  <li><a href="#kolla-ansible-소개" id="toc-kolla-ansible-소개" class="nav-link" data-scroll-target="#kolla-ansible-소개">2.2.1 Kolla-Ansible 소개</a></li>
+  <li><a href="#설치-준비" id="toc-설치-준비" class="nav-link" data-scroll-target="#설치-준비">2.2.2 설치 준비</a></li>
+  <li><a href="#배포-과정" id="toc-배포-과정" class="nav-link" data-scroll-target="#배포-과정">2.2.3 배포 과정</a></li>
   </ul></li>
-  <li><a href="#컨테이너-통합" id="toc-컨테이너-통합" class="nav-link" data-scroll-target="#컨테이너-통합">2. 컨테이너 통합</a>
-  <ul class="collapse">
-  <li><a href="#kubernetes-설치" id="toc-kubernetes-설치" class="nav-link" data-scroll-target="#kubernetes-설치">2.1 Kubernetes 설치</a></li>
-  <li><a href="#openstack-helm-배포" id="toc-openstack-helm-배포" class="nav-link" data-scroll-target="#openstack-helm-배포">2.2 OpenStack-Helm 배포</a></li>
-  </ul></li>
-  <li><a href="#성능-최적화" id="toc-성능-최적화" class="nav-link" data-scroll-target="#성능-최적화">3. 성능 최적화</a>
-  <ul class="collapse">
-  <li><a href="#nova-컴퓨트-최적화" id="toc-nova-컴퓨트-최적화" class="nav-link" data-scroll-target="#nova-컴퓨트-최적화">3.1 Nova 컴퓨트 최적화</a></li>
-  <li><a href="#neutron-네트워크-최적화" id="toc-neutron-네트워크-최적화" class="nav-link" data-scroll-target="#neutron-네트워크-최적화">3.2 Neutron 네트워크 최적화</a></li>
-  </ul></li>
-  <li><a href="#모니터링-구성" id="toc-모니터링-구성" class="nav-link" data-scroll-target="#모니터링-구성">4. 모니터링 구성</a>
-  <ul class="collapse">
-  <li><a href="#prometheus-설치" id="toc-prometheus-설치" class="nav-link" data-scroll-target="#prometheus-설치">4.1 Prometheus 설치</a></li>
-  </ul></li>
-  <li><a href="#백업-및-복구" id="toc-백업-및-복구" class="nav-link" data-scroll-target="#백업-및-복구">5. 백업 및 복구</a>
-  <ul class="collapse">
-  <li><a href="#데이터베이스-백업" id="toc-데이터베이스-백업" class="nav-link" data-scroll-target="#데이터베이스-백업">5.1 데이터베이스 백업</a></li>
-  </ul></li>
-  <li><a href="#다음-단계" id="toc-다음-단계" class="nav-link" data-scroll-target="#다음-단계">다음 단계</a></li>
+  <li><a href="#실습-자료" id="toc-실습-자료" class="nav-link" data-scroll-target="#실습-자료">실습 자료</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -187,7 +196,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">오픈스택 고급 실습 가이드</h1>
+<h1 class="title">2-2장. Kolla-Ansible로 구성하기</h1>
 </div>
 
 
@@ -204,84 +213,48 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="오픈스택-고급-실습-가이드" class="level1">
-<h1>오픈스택 고급 실습 가이드</h1>
-<section id="고가용성-구성" class="level2">
-<h2 class="anchored" data-anchor-id="고가용성-구성">1. 고가용성 구성</h2>
-<section id="컨트롤러-노드-이중화" class="level3">
-<h3 class="anchored" data-anchor-id="컨트롤러-노드-이중화">1.1 컨트롤러 노드 이중화</h3>
-<p>다음 명령어로 컨트롤러 노드를 구성합니다:</p>
-<pre><code>pcs cluster setup --name openstack-cluster controller1 controller2 controller3
-pcs cluster start --all
-pcs cluster enable --all</code></pre>
-</section>
-<section id="pacemaker-리소스-설정" class="level3">
-<h3 class="anchored" data-anchor-id="pacemaker-리소스-설정">1.2 Pacemaker 리소스 설정</h3>
-<pre><code>pcs resource create virtual_ip ocf:heartbeat:IPaddr2 \
-    params ip=192.168.1.10 cidr_netmask=24 \
-    op monitor interval=10s</code></pre>
-</section>
-</section>
-<section id="컨테이너-통합" class="level2">
-<h2 class="anchored" data-anchor-id="컨테이너-통합">2. 컨테이너 통합</h2>
-<section id="kubernetes-설치" class="level3">
-<h3 class="anchored" data-anchor-id="kubernetes-설치">2.1 Kubernetes 설치</h3>
-<p>먼저 필요한 패키지를 설치합니다:</p>
-<pre><code>sudo apt-get update
-sudo apt-get install -y kubelet kubeadm kubectl</code></pre>
-</section>
-<section id="openstack-helm-배포" class="level3">
-<h3 class="anchored" data-anchor-id="openstack-helm-배포">2.2 OpenStack-Helm 배포</h3>
-<pre><code>git clone https://opendev.org/openstack/openstack-helm
-cd openstack-helm
-./tools/deployment/developer/common/010-deploy-k8s.sh</code></pre>
-</section>
-</section>
-<section id="성능-최적화" class="level2">
-<h2 class="anchored" data-anchor-id="성능-최적화">3. 성능 최적화</h2>
-<section id="nova-컴퓨트-최적화" class="level3">
-<h3 class="anchored" data-anchor-id="nova-컴퓨트-최적화">3.1 Nova 컴퓨트 최적화</h3>
-<p>Nova 설정 파일을 다음과 같이 수정합니다:</p>
-<pre><code>[DEFAULT]
-cpu_allocation_ratio = 16.0
-ram_allocation_ratio = 1.5
-disk_allocation_ratio = 1.0</code></pre>
-</section>
-<section id="neutron-네트워크-최적화" class="level3">
-<h3 class="anchored" data-anchor-id="neutron-네트워크-최적화">3.2 Neutron 네트워크 최적화</h3>
-<pre><code>[DEFAULT]
-global_physnet_mtu = 9000
-
-[agent]
-tunnel_types = vxlan
-l2_population = True</code></pre>
-</section>
-</section>
-<section id="모니터링-구성" class="level2">
-<h2 class="anchored" data-anchor-id="모니터링-구성">4. 모니터링 구성</h2>
-<section id="prometheus-설치" class="level3">
-<h3 class="anchored" data-anchor-id="prometheus-설치">4.1 Prometheus 설치</h3>
-<pre><code>helm install prometheus prometheus-community/kube-prometheus-stack \
-    --namespace monitoring \
-    --create-namespace</code></pre>
-</section>
-</section>
-<section id="백업-및-복구" class="level2">
-<h2 class="anchored" data-anchor-id="백업-및-복구">5. 백업 및 복구</h2>
-<section id="데이터베이스-백업" class="level3">
-<h3 class="anchored" data-anchor-id="데이터베이스-백업">5.1 데이터베이스 백업</h3>
-<p>MariaDB 백업 스크립트:</p>
-<pre><code>#!/bin/bash
-BACKUP_DIR="/backup/mysql"
-DATE=$(date +%Y%m%d)
-mysqldump --all-databases &gt; $BACKUP_DIR/backup-$DATE.sql</code></pre>
-</section>
-</section>
-<section id="다음-단계" class="level2">
-<h2 class="anchored" data-anchor-id="다음-단계">다음 단계</h2>
+<section id="장.-kolla-ansible로-구성하기" class="level1">
+<h1>2-2장. Kolla-Ansible로 구성하기</h1>
+<section id="학습-목표" class="level2">
+<h2 class="anchored" data-anchor-id="학습-목표">학습 목표</h2>
 <ul>
-<li><a href="api-integration.qmd">API 통합 가이드</a>를 참조하세요</li>
-<li><a href="troubleshooting.qmd">트러블슈팅 가이드</a>에서 문제 해결 방법을 확인하세요</li>
+<li>Kolla-Ansible의 아키텍처 이해</li>
+<li>멀티노드 환경 구성</li>
+<li>고가용성 설정 방법 습득</li>
+</ul>
+</section>
+<section id="학습-내용" class="level2">
+<h2 class="anchored" data-anchor-id="학습-내용">학습 내용</h2>
+<section id="kolla-ansible-소개" class="level3">
+<h3 class="anchored" data-anchor-id="kolla-ansible-소개">2.2.1 Kolla-Ansible 소개</h3>
+<ul>
+<li>컨테이너 기반 배포 개념</li>
+<li>Kolla-Ansible 아키텍처</li>
+<li>구성 요소 설명</li>
+</ul>
+</section>
+<section id="설치-준비" class="level3">
+<h3 class="anchored" data-anchor-id="설치-준비">2.2.2 설치 준비</h3>
+<ul>
+<li>호스트 시스템 요구사항</li>
+<li>네트워크 구성</li>
+<li>Ansible 설정</li>
+</ul>
+</section>
+<section id="배포-과정" class="level3">
+<h3 class="anchored" data-anchor-id="배포-과정">2.2.3 배포 과정</h3>
+<ul>
+<li>인벤토리 구성</li>
+<li>글로벌 설정</li>
+<li>배포 실행과 검증</li>
+</ul>
+</section>
+</section>
+<section id="실습-자료" class="level2">
+<h2 class="anchored" data-anchor-id="실습-자료">실습 자료</h2>
+<ul>
+<li><a href="../../materials/ch2-2-kolla-ansible.pdf">강의 슬라이드</a></li>
+<li><a href="../../guides/advanced.html">실습 가이드</a></li>
 </ul>
 
 

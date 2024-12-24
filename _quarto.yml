@@ -3,37 +3,31 @@ project:
   output-dir: docs
 
 website:
-  title: "OpenStack Korea Community"
+  title: "OpenInfra Korea User Group"
   navbar:
     background: primary
     search: true
-    left:
-      - text: "홈"
-        file: index.qmd
-      - text: "실습 가이드"
-        menu:
-          - text: "기본 실습"
-            file: guides/basic.qmd
-          - text: "고급 실습"
-            file: guides/advanced.qmd
-      - text: "강의 자료"
-        file: lectures/index.qmd
-      - text: "커뮤니티"
-        file: community.qmd
     right:
       - icon: github
         href: https://github.com/openstack-kr/openstack-book
-        aria-label: "GitHub 저장소"
       - icon: facebook
         href: https://www.facebook.com/groups/openstack-kr
-        aria-label: "Facebook 그룹"
       - icon: discord
         href: https://discord.gg/3ZzKMJKtPg
-        aria-label: "Discord 채널"
       - icon: chat-square-text
-        href: https://discord.gg/3ZzKMJKtPg
-        aria-label: "커뮤니티 포럼"
-      
+        href: https://forum.openinfra-kr.org/
+  sidebar:
+    style: docked
+    search: true
+    contents:
+      - text: "목록"
+        contents:
+        - text: "목차"
+          file: lectures/index.qmd
+        - text: "1장. 오픈스택 개요"
+          file: lectures/ch1_lec.qmd
+        - text: "2장. 오픈스택 설치 가이드"
+          file: lectures/ch2_lec.qmd
 
 format:
   html:
