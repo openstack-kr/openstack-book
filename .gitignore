@@ -1,5 +1,5 @@
 /.quarto/
-/docs/
+/docs/*
 
 /tools/imports/**/*.zip
 
