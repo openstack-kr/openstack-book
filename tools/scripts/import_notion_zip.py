@@ -80,6 +80,25 @@ CHAPTER_PATTERNS = {
 }
 
 
+def auto_link_bare_urls(text: str) -> str:
+    """본문에서 단독으로 있는 URL 라인을 [URL](URL) 형태의 하이퍼링크로 변환."""
+    lines = text.split('\n')
+    new_lines: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        # 이미 마크다운 링크/이미지인 경우는 건너뜀
+        if stripped.startswith('[') or stripped.startswith('!['):
+            new_lines.append(line)
+            continue
+        # 한 줄 전체가 순수 URL이면 링크로 감쌈
+        if re.match(r'^https?://\S+$', stripped):
+            url = stripped
+            new_lines.append(line.replace(stripped, f'[{url}]({url})'))
+        else:
+            new_lines.append(line)
+    return '\n'.join(new_lines)
+
+
 def _update_index_qmd(lectures_dir: Path, chapter: str, article_slug: str, title: str):
     """index.qmd에 지정 챕터 하위로 링크 추가 (top-level 아님)"""
     index_path = lectures_dir / 'index.qmd'
@@ -144,16 +163,43 @@ def add_yaml_frontmatter(content: str, title: str, description: str = '') -> str
     lines = content.strip().split('\n')
     start = 0
     for i, line in enumerate(lines):
-        if re.match(r'^(범주|시리즈|작성시간|참여자):', line.strip()):
+        # 노션에서 내려오는 메타 정보(범주, 시리즈, 작성시간, 참여자 등)는 본문에서 제외
+        if re.match(r'^(범주|시리즈|작성시간|참여자)\b', line.strip()):
             continue
         if line.strip().startswith('# ') or line.strip():
             start = i
             break
 
-    body_lines = [l for l in lines[start:] if not re.match(r'^(범주|시리즈|작성시간|참여자):', l.strip())]
+    # 본문에서 메타 정보 라인 제거
+    body_lines = [
+        l for l in lines[start:]
+        if not re.match(r'^(범주|시리즈|작성시간|참여자)\b', l.strip())
+    ]
+
+    # 첫 번째 H1 제목("# 제목")을 찾아 frontmatter 제목으로 쓰고,
+    # 본문에서는 중복되지 않도록 제거
+    doc_title = title
+    heading_idx = None
+    for idx, l in enumerate(body_lines):
+        m = re.match(r'^#\s+(.+)$', l.strip())
+        if m:
+            doc_title = m.group(1).strip()
+            heading_idx = idx
+            break
+
+    if heading_idx is not None:
+        filtered = []
+        for idx, l in enumerate(body_lines):
+            # H1 제목 라인 제거
+            if idx == heading_idx:
+                continue
+            # 제목 바로 다음 줄이 공백이면 같이 제거해 중복 여백 방지
+            if idx == heading_idx + 1 and not l.strip():
+                continue
+            filtered.append(l)
+        body_lines = filtered
+
     body = '\n'.join(body_lines).strip()
-    doc_title = re.search(r'^#\s+(.+)$', body, re.M)
-    doc_title = doc_title.group(1).strip() if doc_title else title
 
     return f'''---
 title: "{doc_title}"
@@ -243,6 +289,7 @@ def main():
         title_from_doc = re.search(r'^#\s+(.+)$', md_content, re.M)
         doc_title = title_from_doc.group(1).strip() if title_from_doc else md_path.stem
         qmd_content = add_yaml_frontmatter(new_content, doc_title)
+        qmd_content = auto_link_bare_urls(qmd_content)
         qmd_path = chapter_dir / f'{article_slug}.qmd'
 
         if args.dry_run:

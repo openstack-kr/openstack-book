@@ -427,8 +427,8 @@ NAT의 동작 흐름은 다음과 같습니다.
 
 # 참조
 
-https://datatracker.ietf.org/doc/html/rfc3022
+[https://datatracker.ietf.org/doc/html/rfc3022](https://datatracker.ietf.org/doc/html/rfc3022)
 
-https://www.netfilter.org/documentation/HOWTO/NAT-HOWTO.html
+[https://www.netfilter.org/documentation/HOWTO/NAT-HOWTO.html](https://www.netfilter.org/documentation/HOWTO/NAT-HOWTO.html)
 
-https://arthurchiao.art/blog/conntrack-design-and-implementation/
+[https://arthurchiao.art/blog/conntrack-design-and-implementation/](https://arthurchiao.art/blog/conntrack-design-and-implementation/)
