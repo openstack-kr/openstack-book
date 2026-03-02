@@ -43,9 +43,6 @@ python3 import_notion_zip.py "ZIP파일명.zip" ch6 글슬러그 --title "사이
 ```bash
 # SNAT/DNAT 글
 python3 import_notion_zip.py "SNAT, DNAT 개념.zip" ch6 snat_dnat --title "SNAT/DNAT 개념"
-
-# Provider/Tenant 글
-python3 import_notion_zip.py "provider network와 tenant network 개념 정리.zip" ch6 provider_tenant --title "Provider/Tenant Network 개념"
 ```
 
 끝이에요. 그러면 `lectures/ch6/` 에 문서가 생성되고, 사이드바/목차에도 자동으로 들어갑니다.
@@ -78,6 +75,12 @@ python3 import_notion_zip.py "provider network와 tenant network 개념 정리.z
 - **ZIP 처리 규칙 (중요)**
   - 처리 대상 ZIP은 **항상** `tools/imports/{chapter}/`에서만 찾고, `tools/imports/{chapter}/processed/`는 **검색/실행 대상에 포함하지 않는다.**
   - `tools/imports/{chapter}/processed/` 안의 ZIP 파일은 `import_notion_zip.py`로 **이미 반영이 끝난 파일**이므로, 다시 변환 대상으로 사용하지 않는다.
+
+- **에이전트 후속 작업 체크리스트**
+  - 새로 생성된 문서/이미지 경로를 사용자에게 요약해서 알려준다.
+  - 해당 챕터에 `lectures/ch{N}_lec.qmd` 같은 **챕터 소개 문서**가 있는 경우:
+    - 그 문서에 `## 하위 목차` 섹션이 있으면, 방금 생성한 글을 하위 목차에 **추가할지 사용자에게 묻거나, 사용자가 원하면 직접 추가**한다.
+    - 예: `ch6`인 경우 `lectures/ch6_lec.qmd`의 하위 목차에 `lectures/ch6/{slug}.qmd` 링크를 맞춰 준다.
 
 ---
 

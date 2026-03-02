@@ -32,8 +32,6 @@ website:
           contents:
             - text: "6장. Neutron 개요"
               file: lectures/ch6_lec.qmd
-            - text: "Provider/Tenant Network 개념"
-              file: lectures/ch6/provider_tenant.qmd
             - text: "SNAT/DNAT 개념"
               file: lectures/ch6/snat_dnat.qmd
             - text: "Neutron Agent 종류 정리"

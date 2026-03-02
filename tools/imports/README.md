@@ -11,9 +11,8 @@ tools/imports/
 ├── ch3/
 ├── ch4/
 ├── ch5/
-└── ch6/          ← 6장 Neutron (Provider/Tenant, SNAT/DNAT 등)
+└── ch6/          ← 6장 Neutron (SNAT/DNAT 등)
     ├── SNAT, DNAT 개념.zip
-    ├── provider network와 tenant network 개념 정리.zip
     └── processed/   ← 변환이 끝난 ZIP이 자동으로 이동되는 폴더
 ```
 
