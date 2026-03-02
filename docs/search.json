@@ -1,0 +1,387 @@
+[
+  {
+    "objectID": "lectures/ch2_lec.html",
+    "href": "lectures/ch2_lec.html",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "",
+    "text": "이 강의에서는 오픈스택을 설치하는 두 가지 주요 방법을 다룹니다:",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#강의-구성",
+    "href": "lectures/ch2_lec.html#강의-구성",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "강의 구성",
+    "text": "강의 구성\n\n2-1장. DevStack으로 구성하기\n\n개발 및 테스트 환경에 적합\n단일 노드 구성\n빠른 설치와 테스트\n\n2-2장. Kolla-Ansible로 구성하기\n\n프로덕션 환경에 적합\n멀티 노드 구성\n컨테이너 기반 배포",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#준비사항",
+    "href": "lectures/ch2_lec.html#준비사항",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "준비사항",
+    "text": "준비사항\n\nLinux 기본 명령어 이해\n가상화 개념 이해\n네트워크 기본 지식",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#참고-자료",
+    "href": "lectures/ch2_lec.html#참고-자료",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "참고 자료",
+    "text": "참고 자료\n\n환경 설정 가이드\n문제 해결 가이드",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html",
+    "href": "lectures/ch2/ch2_2_lec.html",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "Kolla-Ansible의 아키텍처 이해\n멀티노드 환경 구성\n고가용성 설정 방법 습득\n\n\n\n\n\n\n\n컨테이너 기반 배포 개념\nKolla-Ansible 아키텍처\n구성 요소 설명\n\n\n\n\n\n호스트 시스템 요구사항\n네트워크 구성\nAnsible 설정\n\n\n\n\n\n인벤토리 구성\n글로벌 설정\n배포 실행과 검증\n\n\n\n\n\n\n강의 슬라이드\n실습 가이드"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html#학습-목표",
+    "href": "lectures/ch2/ch2_2_lec.html#학습-목표",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "Kolla-Ansible의 아키텍처 이해\n멀티노드 환경 구성\n고가용성 설정 방법 습득"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html#학습-내용",
+    "href": "lectures/ch2/ch2_2_lec.html#학습-내용",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "컨테이너 기반 배포 개념\nKolla-Ansible 아키텍처\n구성 요소 설명\n\n\n\n\n\n호스트 시스템 요구사항\n네트워크 구성\nAnsible 설정\n\n\n\n\n\n인벤토리 구성\n글로벌 설정\n배포 실행과 검증"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_2_lec.html#실습-자료",
+    "href": "lectures/ch2/ch2_2_lec.html#실습-자료",
+    "title": "2-2장. Kolla-Ansible로 구성하기",
+    "section": "",
+    "text": "강의 슬라이드\n실습 가이드"
+  },
+  {
+    "objectID": "lectures/index.html",
+    "href": "lectures/index.html",
+    "title": "오픈스택 강의 자료",
+    "section": "",
+    "text": "강의 목록\n\n1장. 오픈스택 개요\n2장. 오픈스택 설치 해보기\n\n2-1장. VirtualBox으로 기본 환경 구성하기\n2-2장. VMWare Fusion으로 기본 환경 구성하기\n2-3장. Proxmox로 기본 환경 구성하기\n2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기\n\n3장. Keystone\n\n3-1장. Keystone 토큰\n\n4장. Nova\n\n4-1장. nova의 서비스 종류\n\n5장. Glance\n6장. Neutron\n\nProvider/Tenant Network 개념\nSNAT/DNAT 개념",
+    "crumbs": [
+      "목록",
+      "목차"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html",
+    "href": "lectures/ch6/snat_dnat.html",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "작성시간 - origin: 2026년 1월 19일 오후 4:20 작성시간 - 속성수정: 2026년 1월 19일 오후 4:20 (GMT+9)\n일단 SNAT, DNAT를 설명하기 전에 NAT에 대해서 먼저 설명해보겠습니다.\nNAT은 “여러 사설 IP를 적은 수(또는 한 개)의 공인 IP로 바꿔서 외부와 통신하게 해 주는 주소 변환 장치/기능”입니다.\n\n\n원래 IP 주소는 전 세계에서 고유해야 하는데, 인터넷 사용자가 폭발적으로 늘면서 IPv4 주소가 모자라기 시작했습니다\n동시에:\n\n내부 망 구조를 자주 바꾸더라도, 외부에 보이는 주소 체계는 그대로 두고 싶고\n내부 IP를 외부에 노출하고 싶지 않은(프라이버시·보안 측면) 요구도 있었습니다.\n\n그래서 내부에서는 마음대로 쓸 수 있는 사설 IP(예: 10.x.x.x, 192.168.x.x)를 쓰고, 외부와 통신할 때만 NAT 장비가 사설 IP ↔︎ 공인 IP로 바꿔주는 구조가 등장했습니다.\n\n\n\nNAT는 일반적으로 경계 라우터(회사/집 안과 인터넷 사이)에 위치합니다.\n\n내부 호스트에서 인터넷으로 패킷을 보냄 (출발지 = 사설 IP).\nNAT 라우터가 패킷을 보고, 출발지 IP(그리고 필요하면 포트)를 공인 IP(그리고 새 포트)로 바꿉니다.\n외부 서버 입장에서는 “NAT 라우터의 공인 IP에서 온 트래픽”으로 보입니다.\n응답 패킷이 돌아오면, NAT 라우터가 미리 기억해 둔 매핑 정보를 보고 다시 사설 IP(원래 호스트/포트)로 되돌린 후 내부에 전달합니다.\n\n이때 매핑 정보(어느 내부 IP/포트가 어느 공인 IP/포트로 나갔는지)를 세션별로 가지고 있기 때문에, NAT 장비가 고장나거나 경로가 바뀌면 세션이 끊어지기 쉽습니다.\n\n\n\n“Traditional NAT”는 크게 두 종류입니다.\n\n\n\n여러 개의 사설 IP ↔︎ 여러 개의 공인 IP를 1:1 또는 N:M으로 매핑\n패킷 변환 시 IP 주소만 바꿈 (TCP/UDP 포트는 그대로)\n내부 호스트 수 ≤ 공인 IP 수라면, 각 내부 호스트가 공인 IP 하나씩을 “빌려 쓰는 느낌”\n\n예:\n\n내부: 10.0.0.0/16\n외부: 198.76.29.0/24\n10.0.1.5 → 198.76.29.7 이런 식으로 매핑\n\n장점: 구조가 단순하고, 일부 프로토콜/애플리케이션에 덜 민감합니다\n단점: 공인 IP를 여러 개 써야 해서 주소 절약 효과가 크지 않습니다\n\n\n\n우리가 흔히 말하는 “NAT”라고 하면 대부분 NAPT을 의미합니다.\n\n여러 사설 IP가 하나의 공인 IP를 공유\n(사설 IP, 사설 포트) → (공인 IP, 공인 포트) 튜플로 매핑\n내부 수십 대 PC가 하나의 공인 IP로 동시에 인터넷 접속 가능\n\n\n\n\nimage.png\n\n\nOutbound: 사설 망에서 외부로 나갈 때\n내부 호스트들이 외부 서버로 요청을 보낼 때, NAT 라우터는 고유한 식별을 위해 공인 IP 포트(Public Port)를 새로 할당합니다.\n\n매핑 과정: 내부 호스트 192.10.100.1이 포트 2000으로 요청을 보내면, 라우터는 이를 공인 IP 10.16.2.10의 포트 1001로 변환하여 기록합니다.\n튜플(Tuple) 생성: 테이블에는 (사설 IP:포트) ↔︎ (공인 IP:변환 포트) 쌍이 생성되며, 이를 통해 하나의 공인 IP로 수많은 내부 장치를 구분할 수 있게 됩니다.\n\nInbound: 외부에서 응답이 돌아올 때\n외부 서버는 응답을 보낼 때 목적지를 NAT 라우터의 공인 IP와 변환된 포트(10.16.2.10:2001)로 설정합니다.\n\n역추적: NAT 라우터는 도착한 패킷의 포트 번호(1001)를 NAT Table에서 조회합니다.\n최종 전달: 매핑된 정보를 확인한 후, 패킷의 목적지 주소를 다시 원래의 사설 주소인 192.10.100.1:2000으로 되돌려 내부 호스트에게 정확히 전달합니다.\n\n\n\n\n\n장점\n\nIPv4 주소 부족을 완화 (여러 사설 IP → 적은 수의 공인 IP).\n내부 주소 체계 변경을 외부에 숨길 수 있어, ISP 변경·망 재구성 시에도 외부 영향 최소화.\n어느 정도의 프라이버시: 외부에서는 내부 개별 호스트 주소를 알 수 없습니다.\n\n한계·문제점\n\nEnd-to-end 특성 붕괴: IP 주소가 더 이상 “고정된 종단 식별자”가 아니게 됩니다.\n\nIPSec 같은 “끝단끼리 직접 인증/암호화” 모델과 충돌.\n\n디버깅/보안 추적이 어려움: 로그를 NAT 매핑과 함께 봐야 “어느 내부 호스트”인지 알 수 있습니다.\n세션 상태(state)를 NAT가 들고 있어서,\n\nNAT 장비가 죽거나\n세션이 다른 NAT로 우회되면 → 기존 연결이 깨집니다\n\n일부 프로토콜은 추가 장치(ALG) 없이는 잘 안 돌아가거나, 아예 설계상 NAT-unfriendly.\n\n\n\n\n\n집 공유기, 카페·회사 AP: 거의 전부 NAPT 방식 NAT\n기업 경계 라우터: 사설망(10.x, 192.168.x) ↔︎ 인터넷 사이의 주소 변환\nIDC/클라우드 내부: 특정 세그먼트 간, 또는 DMZ 구성 시도 NAT를 사용하기도 함\n\n정리하면, NAT = 내부 사설 주소 체계를 외부에서 가리고, 부족한 IPv4 주소를 아끼기 위해 경계에서 IP(그리고 포트)만 바꿔 주는 중간 통역 장치라고 보면 됩니다.\n\nSNAT이랑 DNAT은 “어느 주소를 바꾸느냐”와 “언제/어디에서 바꾸느냐”가 핵심입니다\n\n\n\nimage.png\n\n\n\n\n\nSNAT은 패킷의 출발지(소스) 주소를 바꾸는 것입니다.\n\n언제/어디서: ‎POSTROUTING 체인에서, 패킷이 나가기 직전에 수행됩니다. 그래서 라우팅·필터링 같은 건 모두 원래 주소를 보고 처리한 뒤, 마지막에 주소만 갈아끼웁니다.\n용도: 사설 IP 여러 대가 하나의 공인 IP로 인터넷에 나갈 때 등, “내가 누구인 척 할지(출발 IP)”를 바꿔야 할 때 사용합니다.\niptables 예시 (2.4 기준):\n\n‎-t nat -A POSTROUTING -o eth0 -j SNAT --to 1.2.3.4\n\nMasquerade:\n\n동적 IP(ADSL, PPPoE, 일반 모뎀 등)에서 쓰는 SNAT의 특수 버전.\n‎--to-source에 IP를 안 적고, 나가는 인터페이스의 IP를 자동으로 사용.\n연결이 끊겼다가 새 IP로 다시 붙을 때, 기존 연결들을 정리해 줘서 깔끔함.\n예: ‎-j MASQUERADE\n\n\n요약하면, SNAT = “밖으로 나갈 때 내 IP(소스)를 뭘로 보이게 할까?”를 설정하는 것.\n\n\n\nDNAT은 패킷의 목적지(데스티네이션) 주소를 바꾸는 것입니다.\n\n언제/어디서: ‎PREROUTING 체인에서, 패킷이 들어오자마자 수행됩니다. 그래서 이후 라우팅·필터링은 이미 바뀐 목적지 기준으로 동작합니다.\n용도: 포트 포워딩, 로드 밸런싱, 내부 서버로 트래픽 보내기 등 “이 패킷이 실제로 어디로 가야 할지(목적지 IP/포트)”를 바꿀 때 사용합니다.\niptables 예시:\n\n‎-t nat -A PREROUTING -i eth0 -j DNAT --to 5.6.7.8\n웹 트래픽 포트 변경: ‎--dport 80 ... -j DNAT --to 5.6.7.8:8080\n\nREDIRECT:\n\nDNAT의 특수 버전으로, 들어온 인터페이스 자신의 주소로 보내는 편의 기능.\n로컬의 프록시(예: squid)로 투명 프록시 구성할 때 사용.\n예: ‎-j REDIRECT --to-port 3128\n\n\n요약하면, DNAT = “들어오는 패킷을 실제로 어디 서버로 보낼까? (목적지 변경)”를 정하는 것.\n정리 한 줄로 말하면,\n\nSNAT: 나갈 때 “누가 보낸 것처럼 보이게 할지” (Source, POSTROUTING)\nDNAT: 들어올 때 “어디로 보내 줄지” (Destination, PREROUTING)\n\n\n위의 NAT 관련 글을 읽다 보면 자연스럽게 이런 의문이 들 수 있습니다.\n\n“그러면 실제로 주소를 바꾸는 건 누가 하는 거지? IP/포트를 바꾸려면, 이 트래픽이 어디에서 와서 어디로 가는지에 대한 정보가 있어야 할 텐데, 이런 정보는 어디에 저장되어 있을까?”",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html#nat가-왜-생겼는지",
+    "href": "lectures/ch6/snat_dnat.html#nat가-왜-생겼는지",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "원래 IP 주소는 전 세계에서 고유해야 하는데, 인터넷 사용자가 폭발적으로 늘면서 IPv4 주소가 모자라기 시작했습니다\n동시에:\n\n내부 망 구조를 자주 바꾸더라도, 외부에 보이는 주소 체계는 그대로 두고 싶고\n내부 IP를 외부에 노출하고 싶지 않은(프라이버시·보안 측면) 요구도 있었습니다.\n\n그래서 내부에서는 마음대로 쓸 수 있는 사설 IP(예: 10.x.x.x, 192.168.x.x)를 쓰고, 외부와 통신할 때만 NAT 장비가 사설 IP ↔︎ 공인 IP로 바꿔주는 구조가 등장했습니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html#nat의-기본-동작-개념",
+    "href": "lectures/ch6/snat_dnat.html#nat의-기본-동작-개념",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "NAT는 일반적으로 경계 라우터(회사/집 안과 인터넷 사이)에 위치합니다.\n\n내부 호스트에서 인터넷으로 패킷을 보냄 (출발지 = 사설 IP).\nNAT 라우터가 패킷을 보고, 출발지 IP(그리고 필요하면 포트)를 공인 IP(그리고 새 포트)로 바꿉니다.\n외부 서버 입장에서는 “NAT 라우터의 공인 IP에서 온 트래픽”으로 보입니다.\n응답 패킷이 돌아오면, NAT 라우터가 미리 기억해 둔 매핑 정보를 보고 다시 사설 IP(원래 호스트/포트)로 되돌린 후 내부에 전달합니다.\n\n이때 매핑 정보(어느 내부 IP/포트가 어느 공인 IP/포트로 나갔는지)를 세션별로 가지고 있기 때문에, NAT 장비가 고장나거나 경로가 바뀌면 세션이 끊어지기 쉽습니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html#두-가지-전통적인-nat-방식",
+    "href": "lectures/ch6/snat_dnat.html#두-가지-전통적인-nat-방식",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "“Traditional NAT”는 크게 두 종류입니다.\n\n\n\n여러 개의 사설 IP ↔︎ 여러 개의 공인 IP를 1:1 또는 N:M으로 매핑\n패킷 변환 시 IP 주소만 바꿈 (TCP/UDP 포트는 그대로)\n내부 호스트 수 ≤ 공인 IP 수라면, 각 내부 호스트가 공인 IP 하나씩을 “빌려 쓰는 느낌”\n\n예:\n\n내부: 10.0.0.0/16\n외부: 198.76.29.0/24\n10.0.1.5 → 198.76.29.7 이런 식으로 매핑\n\n장점: 구조가 단순하고, 일부 프로토콜/애플리케이션에 덜 민감합니다\n단점: 공인 IP를 여러 개 써야 해서 주소 절약 효과가 크지 않습니다\n\n\n\n우리가 흔히 말하는 “NAT”라고 하면 대부분 NAPT을 의미합니다.\n\n여러 사설 IP가 하나의 공인 IP를 공유\n(사설 IP, 사설 포트) → (공인 IP, 공인 포트) 튜플로 매핑\n내부 수십 대 PC가 하나의 공인 IP로 동시에 인터넷 접속 가능\n\n\n\n\nimage.png\n\n\nOutbound: 사설 망에서 외부로 나갈 때\n내부 호스트들이 외부 서버로 요청을 보낼 때, NAT 라우터는 고유한 식별을 위해 공인 IP 포트(Public Port)를 새로 할당합니다.\n\n매핑 과정: 내부 호스트 192.10.100.1이 포트 2000으로 요청을 보내면, 라우터는 이를 공인 IP 10.16.2.10의 포트 1001로 변환하여 기록합니다.\n튜플(Tuple) 생성: 테이블에는 (사설 IP:포트) ↔︎ (공인 IP:변환 포트) 쌍이 생성되며, 이를 통해 하나의 공인 IP로 수많은 내부 장치를 구분할 수 있게 됩니다.\n\nInbound: 외부에서 응답이 돌아올 때\n외부 서버는 응답을 보낼 때 목적지를 NAT 라우터의 공인 IP와 변환된 포트(10.16.2.10:2001)로 설정합니다.\n\n역추적: NAT 라우터는 도착한 패킷의 포트 번호(1001)를 NAT Table에서 조회합니다.\n최종 전달: 매핑된 정보를 확인한 후, 패킷의 목적지 주소를 다시 원래의 사설 주소인 192.10.100.1:2000으로 되돌려 내부 호스트에게 정확히 전달합니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html#nat의-장점과-한계",
+    "href": "lectures/ch6/snat_dnat.html#nat의-장점과-한계",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "장점\n\nIPv4 주소 부족을 완화 (여러 사설 IP → 적은 수의 공인 IP).\n내부 주소 체계 변경을 외부에 숨길 수 있어, ISP 변경·망 재구성 시에도 외부 영향 최소화.\n어느 정도의 프라이버시: 외부에서는 내부 개별 호스트 주소를 알 수 없습니다.\n\n한계·문제점\n\nEnd-to-end 특성 붕괴: IP 주소가 더 이상 “고정된 종단 식별자”가 아니게 됩니다.\n\nIPSec 같은 “끝단끼리 직접 인증/암호화” 모델과 충돌.\n\n디버깅/보안 추적이 어려움: 로그를 NAT 매핑과 함께 봐야 “어느 내부 호스트”인지 알 수 있습니다.\n세션 상태(state)를 NAT가 들고 있어서,\n\nNAT 장비가 죽거나\n세션이 다른 NAT로 우회되면 → 기존 연결이 깨집니다\n\n일부 프로토콜은 추가 장치(ALG) 없이는 잘 안 돌아가거나, 아예 설계상 NAT-unfriendly.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html#실제-어디서-쓰이는지",
+    "href": "lectures/ch6/snat_dnat.html#실제-어디서-쓰이는지",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "집 공유기, 카페·회사 AP: 거의 전부 NAPT 방식 NAT\n기업 경계 라우터: 사설망(10.x, 192.168.x) ↔︎ 인터넷 사이의 주소 변환\nIDC/클라우드 내부: 특정 세그먼트 간, 또는 DMZ 구성 시도 NAT를 사용하기도 함\n\n정리하면, NAT = 내부 사설 주소 체계를 외부에서 가리고, 부족한 IPv4 주소를 아끼기 위해 경계에서 IP(그리고 포트)만 바꿔 주는 중간 통역 장치라고 보면 됩니다.\n\nSNAT이랑 DNAT은 “어느 주소를 바꾸느냐”와 “언제/어디에서 바꾸느냐”가 핵심입니다\n\n\n\nimage.png",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html#snat-source-nat",
+    "href": "lectures/ch6/snat_dnat.html#snat-source-nat",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "SNAT은 패킷의 출발지(소스) 주소를 바꾸는 것입니다.\n\n언제/어디서: ‎POSTROUTING 체인에서, 패킷이 나가기 직전에 수행됩니다. 그래서 라우팅·필터링 같은 건 모두 원래 주소를 보고 처리한 뒤, 마지막에 주소만 갈아끼웁니다.\n용도: 사설 IP 여러 대가 하나의 공인 IP로 인터넷에 나갈 때 등, “내가 누구인 척 할지(출발 IP)”를 바꿔야 할 때 사용합니다.\niptables 예시 (2.4 기준):\n\n‎-t nat -A POSTROUTING -o eth0 -j SNAT --to 1.2.3.4\n\nMasquerade:\n\n동적 IP(ADSL, PPPoE, 일반 모뎀 등)에서 쓰는 SNAT의 특수 버전.\n‎--to-source에 IP를 안 적고, 나가는 인터페이스의 IP를 자동으로 사용.\n연결이 끊겼다가 새 IP로 다시 붙을 때, 기존 연결들을 정리해 줘서 깔끔함.\n예: ‎-j MASQUERADE\n\n\n요약하면, SNAT = “밖으로 나갈 때 내 IP(소스)를 뭘로 보이게 할까?”를 설정하는 것.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/snat_dnat.html#dnat-destination-nat",
+    "href": "lectures/ch6/snat_dnat.html#dnat-destination-nat",
+    "title": "SNAT, DNAT 개념",
+    "section": "",
+    "text": "DNAT은 패킷의 목적지(데스티네이션) 주소를 바꾸는 것입니다.\n\n언제/어디서: ‎PREROUTING 체인에서, 패킷이 들어오자마자 수행됩니다. 그래서 이후 라우팅·필터링은 이미 바뀐 목적지 기준으로 동작합니다.\n용도: 포트 포워딩, 로드 밸런싱, 내부 서버로 트래픽 보내기 등 “이 패킷이 실제로 어디로 가야 할지(목적지 IP/포트)”를 바꿀 때 사용합니다.\niptables 예시:\n\n‎-t nat -A PREROUTING -i eth0 -j DNAT --to 5.6.7.8\n웹 트래픽 포트 변경: ‎--dport 80 ... -j DNAT --to 5.6.7.8:8080\n\nREDIRECT:\n\nDNAT의 특수 버전으로, 들어온 인터페이스 자신의 주소로 보내는 편의 기능.\n로컬의 프록시(예: squid)로 투명 프록시 구성할 때 사용.\n예: ‎-j REDIRECT --to-port 3128\n\n\n요약하면, DNAT = “들어오는 패킷을 실제로 어디 서버로 보낼까? (목적지 변경)”를 정하는 것.\n정리 한 줄로 말하면,\n\nSNAT: 나갈 때 “누가 보낸 것처럼 보이게 할지” (Source, POSTROUTING)\nDNAT: 들어올 때 “어디로 보내 줄지” (Destination, PREROUTING)\n\n\n위의 NAT 관련 글을 읽다 보면 자연스럽게 이런 의문이 들 수 있습니다.\n\n“그러면 실제로 주소를 바꾸는 건 누가 하는 거지? IP/포트를 바꾸려면, 이 트래픽이 어디에서 와서 어디로 가는지에 대한 정보가 있어야 할 텐데, 이런 정보는 어디에 저장되어 있을까?”",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "SNAT/DNAT 개념"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "OpenStack Korea Community",
+    "section": "",
+    "text": "OpenStack Korea Community에 오신 것을 환영합니다. 이 사이트는 오픈스택을 학습하는데 필요한 다양한 강의 자료들을 제공합니다.\n\n\n\n\n\n오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\nDevStack 설치 가이드\n\n개발 및 테스트 환경 구성\n단일 노드 설치 방법\n\nKolla-Ansible 설치 가이드\n\n프로덕션 환경 구성\n멀티 노드 클러스터 구축\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
+  },
+  {
+    "objectID": "index.html#주요-콘텐츠",
+    "href": "index.html#주요-콘텐츠",
+    "title": "OpenStack Korea Community",
+    "section": "",
+    "text": "오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\nDevStack 설치 가이드\n\n개발 및 테스트 환경 구성\n단일 노드 설치 방법\n\nKolla-Ansible 설치 가이드\n\n프로덕션 환경 구성\n멀티 노드 클러스터 구축\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html",
+    "href": "lectures/ch6/provider_tenant.html",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "",
+    "text": "작성시간 - origin: 2026년 2월 25일 오후 7:12 작성시간 - 속성수정: 2026년 2월 25일 오후 7:12 (GMT+9)",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html#provider-network란",
+    "href": "lectures/ch6/provider_tenant.html#provider-network란",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "Provider Network란?",
+    "text": "Provider Network란?\n\n정의(핵심)\nProvider network는 보통 “클라우드 네트워크가 물리 네트워크와 만나는 지점”에 있는 네트워크입니다.\n즉, 물리 스위치/라우터의 특정 네트워크(VLAN 등)와 직접 매핑되거나, 최소한 강하게 연결됩니다.\n\n\n누가 만들고 관리하나\n\n대부분 환경에서 운영자(Admin)가 생성/관리\n이유: 물리망 연결은 잘못 건드리면 전체 장애/보안 이슈로 직결\n\n\n\n어떤 형태가 흔한가(대표)\n환경에 따라 다르지만, 전형적인 분류는 이런 느낌입니다.\n\nFlat(untagged): VLAN 태그 없이 특정 물리 네트워크에 바로 붙는 형태\nVLAN 기반: 물리 스위치에서 VLAN으로 분리된 네트워크에 매핑\n\n(※ OpenStack Neutron에선 provider network가 flat 또는 vlan로 많이 구성됩니다.)\n\n\n주 역할\n\n외부망(External) 제공: 인터넷/사내망 등 “클라우드 밖”으로 나가는 출구/입구 역할\n데이터센터 내부의 특정 물리망(예: 관리망, 스토리지망, DMZ망 등)과 연결되는 통로 역할",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html#tenant-network란",
+    "href": "lectures/ch6/provider_tenant.html#tenant-network란",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "Tenant Network란?",
+    "text": "Tenant Network란?\n\n정의(핵심)\nTenant network는 테넌트(프로젝트/사용자)가 VM들을 붙이기 위해 만드는 네트워크입니다.\n특징은 다른 테넌트와 논리적으로 격리된다는 점입니다.\n\n\n누가 만들고 관리하나\n\n보통 테넌트(프로젝트 사용자)가 직접 생성(Self-service)\n네트워크/서브넷/라우터를 UI/CLI로 만들고 VM을 붙이는 형태\n\n\n\n격리는 어떻게 하냐(개념 수준)\n테넌트 네트워크는 물리 케이블을 새로 까는 게 아니라, 가상화 계층에서 분리합니다. 대표적으로:\n\n오버레이(Overlay): VXLAN/Geneve/GRE 같은 캡슐화로 논리 네트워크를 분리\n→ 여러 테넌트가 같은 물리망을 공유해도 “논리적으로 서로 다른 L2”처럼 보이게 함\n\n\n\n주요 특징\n\n테넌트 간 트래픽 분리가 기본값\n서로 다른 테넌트가 같은 IP 대역(예: 둘 다 10.0.0.0/24)을 써도 공존 가능(격리되어 있으니까)\n외부 연결은 기본적으로 바로 열려 있지 않습니다\n→ 라우터/NAT/보안그룹 등을 통해 열어야 외부 통신이 됩니다",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html#전체-레이어",
+    "href": "lectures/ch6/provider_tenant.html#전체-레이어",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "전체 레이어",
+    "text": "전체 레이어\n[물리 네트워크(스위치/라우터)]\n          ^\n          | (직접 매핑/연결)\n          |\n[Provider Network]  &lt;--- 운영자 영역 (외부/물리와 연결)\n          |\n          v (라우팅/NAT 게이트)\n[Virtual Router]\n          |\n          v\n[Tenant Network]    &lt;--- 테넌트 영역 (VM 내부 통신)\n          |\n          v\n[VM Ports / VMs]",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html#트래픽-흐름-3가지로-이해하기",
+    "href": "lectures/ch6/provider_tenant.html#트래픽-흐름-3가지로-이해하기",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "트래픽 흐름 3가지로 이해하기",
+    "text": "트래픽 흐름 3가지로 이해하기\n\n(1) 테넌트 내부 통신(East-West)\n같은 tenant network에 붙은 VM끼리는 그냥 L2/L3로 통신합니다.\nVM1(10.0.0.5)  ---- Tenant Network ----  VM2(10.0.0.6)\n다른 tenant network라면(서브넷이 다르면) 라우터가 필요합니다.\nVM1 -- TenantNet A --\\\n                      &gt;-- Virtual Router -- TenantNet B -- VM2\nVM2 -- TenantNet B --/\n\n\n\nVM이 외부로 나감(Egress, 보통 SNAT)\n많은 클라우드에서 기본은:\n\nVM은 사설 IP\n외부로 나갈 때 라우터가 SNAT를 수행\n\nVM(사설IP) -&gt; Tenant Network -&gt; Virtual Router(SNAT) -&gt; Provider/External -&gt; Outside\n\n\n\n외부에서 VM으로 들어옴(Ingress, 보통 DNAT/매핑 필요)\n기본적으로 tenant network는 외부에서 바로 접근이 안 됩니다. 들어오려면 보통:\n\nFloating IP(공인 IP를 VM에 매핑) 또는\n포트포워딩 같은 DNAT 설정\n보안그룹/방화벽 허용\n\n이런 “열어주는 작업”이 필요합니다.\nOutside -&gt; Provider/External\n        -&gt; Virtual Router(DNAT or Floating IP)\n        -&gt; Tenant Network -&gt; VM",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html#provider-vs-tenant-차이-정리",
+    "href": "lectures/ch6/provider_tenant.html#provider-vs-tenant-차이-정리",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "Provider vs Tenant 차이 정리",
+    "text": "Provider vs Tenant 차이 정리\n\n\n\n\n\n\n\n\n구분\nProvider Network\nTenant Network\n\n\n\n\n주 사용자\n운영자(Admin)\n테넌트(프로젝트/사용자)\n\n\n목적\n물리망/외부망과 연결되는 기반 제공\nVM용 내부망 제공, 테넌트 간 격리\n\n\n물리망과 관계\n직접 매핑/연결(Flat/VLAN 등)\n논리망(오버레이 등으로 분리)인 경우가 많음\n\n\nIP 성격\n공인/사내 대역 등 “외부에 의미 있는” 대역일 수 있음\n보통 사설 IP 대역(중복 가능)\n\n\n외부 접근성\n외부망 역할이면 접근성 높음(정책에 따름)\n기본은 외부에서 직접 접근 어려움\n\n\n성능/MTU 이슈\n상대적으로 단순(캡슐화 없음)\n오버레이면 캡슐화 오버헤드/MTU 고려 필요\n\n\n운영 리스크\n잘못 설정하면 전체 장애/보안 영향 큼\n특정 프로젝트 범위 영향이 대부분",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html#흔한-오해-정리",
+    "href": "lectures/ch6/provider_tenant.html#흔한-오해-정리",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "흔한 오해 정리",
+    "text": "흔한 오해 정리\n\n“Provider network = 무조건 인터넷망”\n→ 외부망일 수도 있고, 데이터센터 내부의 특정 물리망(VLAN)일 수도 있습니다\n“Tenant network = 무조건 완전 내부만”\n→ 기본은 내부로 쓰지만, 라우터/NAT/Floating IP 등으로 외부와 연결 가능합니다\n“Tenant network는 물리적으로 따로 깔린 네트워크”\n→ 보통은 물리적으로 새로 까는 게 아니라, 논리적으로 분리하는 방식(오버레이/VLAN 등) 입니다",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/provider_tenant.html#결론",
+    "href": "lectures/ch6/provider_tenant.html#결론",
+    "title": "provider network와 tenant network 개념 정리",
+    "section": "결론",
+    "text": "결론\n\nProvider network: 운영자가 물리망/외부망과 연결해 둔 기반 네트워크\nTenant network: 테넌트가 VM을 붙이고 서비스 구성하려고 만드는 격리된 논리 네트워크",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "Provider/Tenant Network 개념"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6_lec.html",
+    "href": "lectures/ch6_lec.html",
+    "title": "6장. Neutron",
+    "section": "",
+    "text": "Neutron은 오픈스택의 네트워킹 서비스입니다. 이 장에서는 Neutron의 핵심 개념들을 다룹니다.\n\n\n\nProvider/Tenant Network 개념\nSNAT/DNAT 개념",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6장. Neutron 개요"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6_lec.html#하위-목차",
+    "href": "lectures/ch6_lec.html#하위-목차",
+    "title": "6장. Neutron",
+    "section": "",
+    "text": "Provider/Tenant Network 개념\nSNAT/DNAT 개념",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6장. Neutron 개요"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2/ch2_1_lec.html",
+    "href": "lectures/ch2/ch2_1_lec.html",
+    "title": "2-1장. DevStack으로 구성하기",
+    "section": "",
+    "text": "DevStack의 특징과 용도 이해\n단계별 설치 과정 실습\n기본 구성 테스트"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_1_lec.html#학습-목표",
+    "href": "lectures/ch2/ch2_1_lec.html#학습-목표",
+    "title": "2-1장. DevStack으로 구성하기",
+    "section": "",
+    "text": "DevStack의 특징과 용도 이해\n단계별 설치 과정 실습\n기본 구성 테스트"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_1_lec.html#학습-내용",
+    "href": "lectures/ch2/ch2_1_lec.html#학습-내용",
+    "title": "2-1장. DevStack으로 구성하기",
+    "section": "학습 내용",
+    "text": "학습 내용\n\n2.1.1 DevStack 소개\n\nDevStack 개요\n사용 목적과 제한사항\n시스템 요구사항\n\n\n\n2.1.2 설치 준비\n\n운영체제 설정\n필수 패키지 설치\n네트워크 구성\n\n\n\n2.1.3 설치 과정\n\nlocal.conf 구성\nstack.sh 실행\n설치 검증"
+  },
+  {
+    "objectID": "lectures/ch2/ch2_1_lec.html#실습-자료",
+    "href": "lectures/ch2/ch2_1_lec.html#실습-자료",
+    "title": "2-1장. DevStack으로 구성하기",
+    "section": "실습 자료",
+    "text": "실습 자료\n\n강의 슬라이드\n실습 가이드"
+  },
+  {
+    "objectID": "lectures/ch1_lec.html",
+    "href": "lectures/ch1_lec.html",
+    "title": "1장. 오픈스택 개요",
+    "section": "",
+    "text": "클라우드 컴퓨팅의 기본 개념 이해\n오픈스택 프로젝트의 역사와 현황 파악\n주요 컴포넌트와 아키텍처 이해",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
+  },
+  {
+    "objectID": "lectures/ch1_lec.html#학습-목표",
+    "href": "lectures/ch1_lec.html#학습-목표",
+    "title": "1장. 오픈스택 개요",
+    "section": "",
+    "text": "클라우드 컴퓨팅의 기본 개념 이해\n오픈스택 프로젝트의 역사와 현황 파악\n주요 컴포넌트와 아키텍처 이해",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
+  },
+  {
+    "objectID": "lectures/ch1_lec.html#학습-내용",
+    "href": "lectures/ch1_lec.html#학습-내용",
+    "title": "1장. 오픈스택 개요",
+    "section": "학습 내용",
+    "text": "학습 내용\n\n1.1 클라우드 컴퓨팅 소개\n\n클라우드 컴퓨팅 정의\n클라우드 서비스 모델 (IaaS, PaaS, SaaS)\n클라우드 배포 모델\n\n\n\n1.2 오픈스택 프로젝트 이해\n\n오픈스택 역사\n릴리스 주기와 버전\n커뮤니티 구조\n\n\n\n1.3 주요 컴포넌트\n\nNova (Compute)\nNeutron (Networking)\nSwift (Object Storage)\nCinder (Block Storage)",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
+  },
+  {
+    "objectID": "lectures/ch1_lec.html#참고-자료",
+    "href": "lectures/ch1_lec.html#참고-자료",
+    "title": "1장. 오픈스택 개요",
+    "section": "참고 자료",
+    "text": "참고 자료\n\n강의 슬라이드\n실습 가이드",
+    "crumbs": [
+      "목록",
+      "1장. 오픈스택 개요"
+    ]
+  }
+]
