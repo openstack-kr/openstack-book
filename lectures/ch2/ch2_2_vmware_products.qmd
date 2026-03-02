@@ -1,0 +1,25 @@
+---
+title: "부록. VMWare 제품 종류 및 특징"
+---
+
+# 부록. VMWare 제품 종류 및 특징
+
+## 개요
+OpenStack 개인 실습 환경에서 자주 마주치는 VMWare 제품군의 용도를 빠르게 구분하기 위한 참고 문서다.
+
+## 제품별 비교
+| 제품 | 주요 용도 | 대상 환경 | 특징 |
+| --- | --- | --- | --- |
+| VMware Fusion | macOS에서 VM 실행 | 개인 개발/학습 | Mac 네이티브 환경, GUI 기반 설정이 쉬움 |
+| VMware Workstation Pro | Windows/Linux에서 VM 실행 | 개인 개발/테스트 | 다중 VM 테스트에 적합, 가상 네트워크 커스터마이징 지원 |
+| VMware ESXi | Bare Metal 하이퍼바이저 | 서버/랩 환경 | 호스트 OS 없이 직접 설치, 안정적인 서버 가상화 |
+| VMware vCenter | ESXi 중앙 관리 | 팀/엔터프라이즈 | 다수 ESXi 통합 관리, 템플릿/클러스터 운영 기능 제공 |
+
+## OpenStack 학습 관점 선택 가이드
+- macOS 개인 노트북: Fusion 권장
+- Windows/Linux 개인 PC: Workstation Pro 권장
+- 다수 노드와 실환경 유사 검증: ESXi + vCenter 고려
+
+## 주의사항
+- 본 강의의 네트워크 예시는 VMware Fusion 기반이다.
+- Fusion 단일 호스트 환경에서는 Provider External 네트워크를 NAT 대체로 구성할 수 있으며, 이는 실무 물리망(Bridged)과 동작 범위가 다르다.
