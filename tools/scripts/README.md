@@ -88,6 +88,14 @@ python3 import_notion_zip.py "SNAT, DNAT 개념.zip" ch6 snat_dnat --title "SNAT
     - 예: `neutron_agents.qmd`에서는  
       `[Red Hat OpenStack Platform Neutron 설정 문서](https://docs.redhat.com/ko/documentation/red_hat_openstack_platform/16.2/html/configuration_reference/neutron_2)`  
       처럼, 공식 문서가 무엇을 다루는지 한글로 설명을 붙여 준다.
+  - 강의 본문 헤딩(`#`, `##`, `###`)에는 가능하면 **섹션 코드/번호**를 붙인다.  
+    - 일반적인 장/절 구조: `## 2.2.5 VM NIC 3개 구성 및 정적 IP 설정`
+    - ch6처럼 코드 매핑이 있는 경우: `## 6-1 neutron agent 종류 정리`, `## 6-12 SNAT / DNAT 개념` 처럼 `6-번호` 형식을 사용한다.
+    - 번호가 누락된 경우, 에이전트는 상위 헤딩 구조와 순서를 기준으로 번호를 **추론**만 하고, 실제 헤딩 텍스트 수정은 PR/리뷰에서 사람과 함께 확정하는 것을 권장한다.
+  - 그림/표 번호는 이 헤딩/코드(예: `6-12`)를 기준으로 `그림 6-12-1`, `표 6-12-1` 처럼 계산한다.
+  - 그림을 추가/정리할 때는 다음 형태를 기본으로 사용한다.  
+    - `![그림 6-12-1. SNAT/DNAT 예시 흐름](images/ch6/snat_dnat_1.png){width="55%" fig-align="left"}`  
+      → **번호 + 한 줄 설명 + 파일명 + 왼쪽 정렬**이 한 번에 정리되도록 돕는다.
 
 ---
 
