@@ -87,7 +87,14 @@
     "href": "index.html",
     "title": "OpenStack Korea Community",
     "section": "",
-    "text": "OpenStack Korea Community에 오신 것을 환영합니다. 이 사이트는 오픈스택을 학습하는데 필요한 다양한 강의 자료들을 제공합니다.\n\n\n\n\n\n오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\nDevStack 설치 가이드\n\n개발 및 테스트 환경 구성\n단일 노드 설치 방법\n\nKolla-Ansible 설치 가이드\n\n프로덕션 환경 구성\n멀티 노드 클러스터 구축\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
+    "text": "OpenStack Korea Community에 오신 것을 환영합니다. 이 사이트는 오픈스택을 학습하는데 필요한 다양한 강의 자료들을 제공합니다.\n\n\n이 콘텐츠는 OpenInfra Korea User Group과 아주대학교 소학회 아올다가 함께 만들어가고 있습니다.\n아올다(Aolda)는 아주대학교의 클라우드 인프라 소학회로, 오픈스택을 비롯한 오픈소스 인프라 기술을 함께 배우고 실습하는 모임입니다.\n\n\n\n\n\n\n오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\nDevStack 설치 가이드\n\n개발 및 테스트 환경 구성\n단일 노드 설치 방법\n\nKolla-Ansible 설치 가이드\n\n프로덕션 환경 구성\n멀티 노드 클러스터 구축\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
+  },
+  {
+    "objectID": "index.html#함께-만드는-곳",
+    "href": "index.html#함께-만드는-곳",
+    "title": "OpenStack Korea Community",
+    "section": "",
+    "text": "이 콘텐츠는 OpenInfra Korea User Group과 아주대학교 소학회 아올다가 함께 만들어가고 있습니다.\n아올다(Aolda)는 아주대학교의 클라우드 인프라 소학회로, 오픈스택을 비롯한 오픈소스 인프라 기술을 함께 배우고 실습하는 모임입니다."
   },
   {
     "objectID": "index.html#주요-콘텐츠",
