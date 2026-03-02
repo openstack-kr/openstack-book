@@ -1,0 +1,26 @@
+---
+title: "5-3장. Backend Driver 구조와 LVM 이해"
+---
+
+## 학습 목표
+- Backend Driver의 역할과 구조 이해
+- LVM 기반 백엔드의 기본 동작 이해
+- Glance Store와 Cinder Backend의 책임 범위 구분
+
+## 학습 내용
+### 5.3.1 Backend Driver 구조
+- Cinder Volume Driver 개요
+- Driver와 Storage Backend 연결 방식
+- 멀티 백엔드 구성 개념
+
+### 5.3.2 LVM 이해
+- Physical Volume, Volume Group, Logical Volume
+- Cinder LVM 백엔드 동작 원리
+- 운영 시 장단점
+
+### 5.3.3 Glance Store vs Cinder Backend
+- 이미지 저장소와 블록 저장소의 차이
+- 선택 기준과 운영 고려사항
+
+## 실습 자료
+- [OpenStack Cinder LVM 백엔드 문서](https://docs.openstack.org/cinder/latest/admin/blockstorage-lvm-backend.html)

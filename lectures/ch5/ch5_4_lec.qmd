@@ -1,0 +1,27 @@
+---
+title: "5-4장. Boot from Volume 시나리오"
+---
+
+## 학습 목표
+- Boot from volume 동작 개념 이해
+- Nova, Glance, Cinder 간 호출 흐름 이해
+- 실무에서의 선택 기준과 트러블슈팅 포인트 이해
+
+## 학습 내용
+### 5.4.1 Boot from volume 개념
+- 부팅 디스크를 볼륨으로 사용하는 이유
+- Boot from image와의 차이
+- 사용 시나리오
+
+### 5.4.2 컴포넌트 간 요청 흐름
+- Nova API 요청
+- Cinder 볼륨 생성
+- Glance 이미지 참조
+
+### 5.4.3 운영 체크포인트
+- 용량 계획
+- 성능/가용성 고려
+- 자주 발생하는 실패 케이스
+
+## 실습 자료
+- [OpenStack Compute 공식 문서](https://docs.openstack.org/nova/latest/)

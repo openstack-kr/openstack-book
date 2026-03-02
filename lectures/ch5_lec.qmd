@@ -1,0 +1,31 @@
+---
+title: "5장. Glance"
+---
+
+이 장에서는 OpenStack 이미지 서비스인 Glance를 중심으로, 이미지와 볼륨이 연결되는 운영 흐름까지 다룹니다.
+
+## 강의 구성
+1. [5-1장. Glance 개요와 기본 사용법](ch5/ch5_1_lec.qmd)
+   - Glance의 역할과 아키텍처
+   - 이미지 생성 및 관리 흐름
+   - 운영 시 고려사항
+2. [5-2장. Glance와 Volume/Snapshot 연계 이해](ch5/ch5_2_lec.qmd)
+   - Volume과 Snapshot 개념
+   - Volume Type 개념
+   - 이미지 기반 볼륨 생성 흐름
+3. [5-3장. Backend Driver 구조와 LVM 이해](ch5/ch5_3_lec.qmd)
+   - Backend Driver 구조
+   - LVM 기본 개념 및 Cinder 백엔드 관점
+   - Glance Store와 Cinder Backend의 차이
+4. [5-4장. Boot from Volume 시나리오](ch5/ch5_4_lec.qmd)
+   - Boot from volume 개념
+   - Nova, Glance, Cinder 요청 흐름
+   - 운영 시 자주 만나는 이슈 포인트
+
+## 준비사항
+- OpenStack 기본 컴포넌트 이해
+- OpenStack CLI 사용 환경 준비
+
+## 참고 자료
+- [OpenStack Glance 공식 문서](https://docs.openstack.org/glance/latest/)
+- [OpenStack Cinder 공식 문서](https://docs.openstack.org/cinder/latest/)

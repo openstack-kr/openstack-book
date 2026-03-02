@@ -1,0 +1,27 @@
+---
+title: "5-2장. Glance와 Volume/Snapshot 연계 이해"
+---
+
+## 학습 목표
+- Volume과 Snapshot의 기본 개념 이해
+- Volume Type의 의미와 사용 목적 이해
+- Glance 이미지와 Cinder 볼륨 연계 흐름 이해
+
+## 학습 내용
+### 5.2.1 Volume과 Snapshot 개념
+- Volume의 역할
+- Snapshot의 역할
+- 이미지와 스냅샷의 차이
+
+### 5.2.2 Volume Type 개념
+- Volume Type 정의
+- 백엔드 매핑 개념
+- 성능/기능 분리 전략
+
+### 5.2.3 Glance-Cinder 연계 흐름
+- 이미지에서 볼륨 생성
+- Snapshot에서 이미지 생성
+- 운영 시 데이터 경로 이해
+
+## 실습 자료
+- [OpenStack Cinder 공식 문서](https://docs.openstack.org/cinder/latest/)
