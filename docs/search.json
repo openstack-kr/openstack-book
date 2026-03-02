@@ -76,7 +76,7 @@
     "href": "lectures/index.html",
     "title": "오픈스택 강의 자료",
     "section": "",
-    "text": "강의 목록\n\n1장. 오픈스택 개요\n2장. 오픈스택 설치 가이드\n\n2-1장. DevStack으로 구성하기\n2-2장. Kolla-Ansible로 구성하기",
+    "text": "강의 목록\n\n1장. 오픈스택 개요\n2장. 오픈스택 설치 해보기\n\n2-1장. VirtualBox으로 기본 환경 구성하기\n2-2장. VMWare Fusion으로 기본 환경 구성하기\n2-3장. Proxmox로 기본 환경 구성하기\n2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기\n\n3장. Keystone\n\n3-1장. Keystone 토큰\n\n4장. Nova\n\n4-1장. nova의 서비스 종류\n\n5장. Glance\n6장. neutron",
     "crumbs": [
       "목록",
       "목차"

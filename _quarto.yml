@@ -28,6 +28,8 @@ website:
           file: lectures/ch1_lec.qmd
         - text: "2장. 오픈스택 설치 가이드"
           file: lectures/ch2_lec.qmd
+        - text: "3장. Keystone"
+          file: lectures/ch3_lec.qmd
 
 format:
   html:
