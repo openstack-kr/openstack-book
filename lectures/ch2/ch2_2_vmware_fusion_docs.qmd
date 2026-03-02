@@ -1,0 +1,26 @@
+---
+title: "부록. VMware Fusion Documentation 요약"
+---
+
+# 부록. VMware Fusion Documentation 요약
+
+## 개요
+이 문서는 2-2장 실습에 필요한 VMware Fusion 공식 문서 주제를 빠르게 찾기 위한 요약 가이드다.
+
+## 자주 확인하는 문서 영역
+| 문서 영역 | 확인 목적 | 실습 연관 항목 |
+| --- | --- | --- |
+| Installation and Setup | Fusion 설치/업데이트 | 실습 환경 준비 |
+| Virtual Machine Settings | VM 하드웨어 설정 | CPU/메모리/디스크/NIC 추가 |
+| Networking | 가상 네트워크 구성 | vmnet2/mgmt, vmnet3/tenant, vmnet4/provider |
+| Import/Export | VM 백업 및 이관 | 실습 환경 복제/복구 |
+| Troubleshooting | 장애 대응 | 네트워크 연결 문제, 부팅/성능 이슈 |
+
+## 2-2장 기준 점검 포인트
+1. VM의 네트워크 어댑터가 3개인지 확인한다.
+2. 각 어댑터가 의도한 vmnet에 연결됐는지 확인한다.
+3. DHCP 자동 할당이 비활성화됐는지 확인한다.
+4. VM 내부에서 `ip a`, `ip route` 결과가 설계와 일치하는지 확인한다.
+
+## 참고
+VMware Fusion 공식 문서는 버전별 메뉴/화면이 일부 다를 수 있다. 문서 버전과 현재 설치 버전을 함께 확인해 적용한다.
