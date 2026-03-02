@@ -5,9 +5,9 @@
 사용법:
   python import_notion_zip.py <zip파일> <챕터> [글슬러그]
 
-ZIP 위치: imports/ 가 lectures/ 와 동일한 챕터 구조
-  imports/ch6/SNAT, DNAT 개념.zip → ch6 에 넣을 때: "SNAT, DNAT 개념.zip" ch6
-  - 파일명만 입력 시 imports/{챕터}/ 에서 찾음
+ZIP 위치: tools/imports/ 가 lectures/ 와 동일한 챕터 구조
+  tools/imports/ch6/SNAT, DNAT 개념.zip → ch6 에 넣을 때: "SNAT, DNAT 개념.zip" ch6
+  - 파일명만 입력 시 tools/imports/{챕터}/ 에서 찾음
   - 절대/상대 경로로 직접 지정도 가능
 
 챕터: ch1~ch6
@@ -26,9 +26,9 @@ from urllib.parse import unquote
 
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'}
 
-# 프로젝트 루트 기준 경로 (스크립트는 scripts/ 에 있음)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-IMPORTS_DIR = PROJECT_ROOT / 'imports'  # ZIP 파일 기본 위치
+# 프로젝트 루트 기준 경로 (스크립트는 tools/scripts/ 에 있음)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+IMPORTS_DIR = PROJECT_ROOT / 'tools' / 'imports'  # ZIP 파일 기본 위치
 
 
 def find_images_for_md(md_path: Path, md_content: str, article_slug: str) -> tuple[list[Path], dict[str, str]]:
@@ -177,20 +177,20 @@ def main():
     lectures_dir = base_dir / 'lectures'
     chapter = args.chapter.strip().lower().replace(' ', '_')
 
-    # ZIP 경로: 파일명만이면 imports/{챕터}/ 에서 찾음 (lectures 구조와 동일)
+    # ZIP 경로: 파일명만이면 tools/imports/{챕터}/ 에서 찾음 (lectures 구조와 동일)
     zip_arg = args.zip_path.strip()
     if '/' not in zip_arg and '\\' not in zip_arg:
         zip_path = IMPORTS_DIR / chapter / zip_arg
-    elif zip_arg.startswith('imports/') or zip_arg.startswith('imports\\'):
+    elif zip_arg.startswith('tools/imports/') or zip_arg.startswith('tools\\imports\\'):
         zip_path = PROJECT_ROOT / zip_arg.replace('\\', '/')
     else:
         zip_path = Path(zip_arg).resolve()
 
     if not zip_path.exists():
-        imports_chapter = IMPORTS_DIR / chapter
+            imports_chapter = IMPORTS_DIR / chapter
         if '/' not in zip_arg and '\\' not in zip_arg and not imports_chapter.exists():
             imports_chapter.mkdir(parents=True)
-            print(f"imports/{chapter}/ 폴더를 생성했습니다. ZIP 파일을 넣어주세요: {imports_chapter}")
+            print(f"tools/imports/{chapter}/ 폴더를 생성했습니다. ZIP 파일을 넣어주세요: {imports_chapter}")
         print(f"오류: ZIP 파일을 찾을 수 없습니다: {zip_path}")
         return 1
     chapter_dir = lectures_dir / chapter

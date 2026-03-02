@@ -20,7 +20,7 @@
 다운로드한 ZIP을 **해당 챕터 폴더**에 복사합니다.
 
 ```
-imports/
+tools/imports/
 ├── ch1/     ← 1장용
 ├── ch2/     ← 2장용
 ├── ch3/
@@ -29,12 +29,12 @@ imports/
 └── ch6/     ← 6장 Neutron (네트워킹 개념 등)
 ```
 
-예: 6장에 넣을 글이면 `imports/ch6/` 폴더에 ZIP 복사
+예: 6장에 넣을 글이면 `tools/imports/ch6/` 폴더에 ZIP 복사
 
 ### 3단계: 스크립트 실행
 
 ```bash
-cd openstack-book/scripts
+cd openstack-book/tools/scripts
 python3 import_notion_zip.py "ZIP파일명.zip" ch6 글슬러그 --title "사이드바에 표시할 제목"
 ```
 
@@ -56,7 +56,7 @@ python3 import_notion_zip.py "provider network와 tenant network 개념 정리.z
 
 | 입력 | 필수 | 설명 |
 |------|:----:|------|
-| ZIP파일명 | O | `imports/ch6/` 에 넣은 파일 이름 그대로 (예: `"SNAT, DNAT 개념.zip"`) |
+| ZIP파일명 | O | `tools/imports/ch6/` 에 넣은 파일 이름 그대로 (예: `"SNAT, DNAT 개념.zip"`) |
 | 챕터 | O | ch1, ch2, ch3, ch4, ch5, ch6 |
 | 글슬러그 | △ | 파일명 (생략 시 자동). 예: `snat_dnat` |
 | --title | △ | 사이드바에 보일 제목 |
@@ -66,18 +66,18 @@ python3 import_notion_zip.py "provider network와 tenant network 개념 정리.z
 ## 스크립트 I/O 요약 (에이전트용)
 
 - **입력**
-  - ZIP 파일: `imports/{chapter}/*.zip`
+  - ZIP 파일: `tools/imports/{chapter}/*.zip`
   - 명령:  
     `python3 import_notion_zip.py <zip파일> <chapter> [slug] [--title]`
 - **출력**
   - 문서: `lectures/{chapter}/{slug}.qmd`
   - 이미지: `lectures/{chapter}/images/{slug}/*`
   - 네비게이션 업데이트: `_quarto.yml`, `lectures/index.qmd`에 항목 추가
-  - ZIP 정리: 사용이 끝난 ZIP은 `imports/{chapter}/processed/` 로 이동
+  - ZIP 정리: 사용이 끝난 ZIP은 `tools/imports/{chapter}/processed/` 로 이동
 
 - **ZIP 처리 규칙 (중요)**
-  - 처리 대상 ZIP은 **항상** `imports/{chapter}/`에서만 찾고, `imports/{chapter}/processed/`는 **검색/실행 대상에 포함하지 않는다.**
-  - `imports/{chapter}/processed/` 안의 ZIP 파일은 `import_notion_zip.py`로 **이미 반영이 끝난 파일**이므로, 다시 변환 대상으로 사용하지 않는다.
+  - 처리 대상 ZIP은 **항상** `tools/imports/{chapter}/`에서만 찾고, `tools/imports/{chapter}/processed/`는 **검색/실행 대상에 포함하지 않는다.**
+  - `tools/imports/{chapter}/processed/` 안의 ZIP 파일은 `import_notion_zip.py`로 **이미 반영이 끝난 파일**이므로, 다시 변환 대상으로 사용하지 않는다.
 
 ---
 
