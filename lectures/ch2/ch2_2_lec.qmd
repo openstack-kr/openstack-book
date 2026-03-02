@@ -2,8 +2,6 @@
 title: "2-2장. VMWare 네트워크 설정"
 ---
 
-# 2-2장. VMWare 네트워크 설정
-
 ## 학습 목표
 - OpenStack 실습 환경에서 필요한 3-NIC 네트워크 요구사항을 이해한다.
 - VMware Fusion의 Custom Network(vmnet2, vmnet3, vmnet4)를 설계하고 구성한다.
@@ -12,9 +10,12 @@ title: "2-2장. VMWare 네트워크 설정"
 ## 학습 내용
 ### 2.2.1 네트워크 요구사항
 - 모든 노드는 NIC 3개를 사용한다.
-- MGMT 네트워크: `10.100.100.0/24` (인터넷 O, DHCP X)
-- Tenant(VXLAN) 네트워크: `10.100.200.0/24` (인터넷 X, DHCP X)
-- Provider 네트워크: `10.200.100.0/24` (인터넷 O, DHCP X, 노드 NIC는 IP 없이 인터페이스만 유지 가능)
+
+| 역할 | 대역 | 인터넷 | DHCP | 비고 |
+| --- | --- | --- | --- | --- |
+| MGMT | `10.100.100.0/24` | O | X | 관리/API/SSH 네트워크 |
+| Tenant (VXLAN) | `10.100.200.0/24` | X | X | 오버레이 내부 통신 네트워크 |
+| Provider | `10.200.100.0/24` | O | X | 노드 NIC는 무IP(인터페이스만 유지) 가능 |
 
 ### 2.2.2 VM 생성 및 기본 설정
 1. VMware Fusion을 설치하고 Ubuntu Server 22.04 LTS(ARM) 기반 VM을 생성한다.
@@ -33,7 +34,7 @@ title: "2-2장. VMWare 네트워크 설정"
 - `vmnet-mgmt` (Custom Host-Only): Host(macOS) <-> VM 관리 통신
 - `vmnet-tenant` (Custom Isolated): VM <-> VM 내부 오버레이 통신
 - `provider` (학습 환경에서는 NAT 기반 Custom): 외부망 역할 시뮬레이션
-```
+```bash
 [외부 제3자 PC] --(물리 스위치/공유기)-- [macOS의 물리 NIC]
                                          |
                                      (Bridged)
@@ -186,74 +187,68 @@ OpenStack의 Provider(External)는 원칙적으로 물리 NIC 기반 Bridged 구
 
 **1. 새 VM 생성 마법사를 시작한다.**
 
-![그림 2-2-9. VM 생성 시작 화면](images/ch2_2_img_09.png){width="55%" fig-align="center"}
+![그림 2-2-5-1. VM 생성 시작 화면](images/ch2_2_img_09.png){width="55%" fig-align="left"}
 
-설명: Ubuntu Server ARM 이미지를 기준으로 새 VM 생성을 시작한다.
+- Ubuntu Server ARM 이미지를 기준으로 새 VM 생성을 시작한다.
 
 ---
 
 **2. `Customize Settings`로 진입한다.**
 
-![그림 2-2-10. Customize Settings 진입 화면](images/ch2_2_img_10.png){width="55%" fig-align="center"}
+![그림 2-2-5-2. Customize Settings 진입 화면](images/ch2_2_img_10.png){width="55%" fig-align="left"}
 
-설명: 설치 전 단계에서 CPU/메모리/네트워크 장치를 확정한다.
+- 설치 전 단계에서 CPU/메모리/네트워크 장치를 확정한다.
 
 ---
 
 **3. Network Adapter를 총 3개로 확장한다.**
 
-![그림 2-2-11. 어댑터 3개 추가 화면](images/ch2_2_img_11.png){width="55%" fig-align="center"}
+![그림 2-2-5-3. 어댑터 3개 추가 화면](images/ch2_2_img_11.png){width="55%" fig-align="left"}
 
-설명: 각각 `vmnet2(MGMT)`, `vmnet3(Tenant)`, `vmnet4(Provider)`에 연결한다.
+- 각각 `vmnet2(MGMT)`, `vmnet3(Tenant)`, `vmnet4(Provider)`에 연결한다.
 
 ---
 
 **4. Ubuntu 설치 후 네트워크 설정 메뉴로 이동한다.**
 
-![그림 2-2-12. Ubuntu 네트워크 설정 진입 화면](images/ch2_2_img_12.png){width="55%" fig-align="center"}
+![그림 2-2-5-4. Ubuntu 네트워크 설정 진입 화면](images/ch2_2_img_12.png){width="55%" fig-align="left"}
 
-설명: NIC별 IPv4 방식을 자동이 아닌 수동(Manual)으로 변경할 준비를 한다.
+- NIC별 IPv4 방식을 자동이 아닌 수동(Manual)으로 변경할 준비를 한다.
 
 ---
 
 **5. MGMT 인터페이스부터 정적 IP를 설정한다.**
 
-![그림 2-2-13. MGMT 인터페이스 설정 화면](images/ch2_2_img_13.png){width="55%" fig-align="center"}
+![그림 2-2-5-5. MGMT 인터페이스 설정 화면](images/ch2_2_img_13.png){width="55%" fig-align="left"}
 
-설명: MGMT NIC에는 주소/서브넷/게이트웨이/DNS를 입력한다.
+- MGMT NIC에는 주소/서브넷/게이트웨이/DNS를 입력한다.
 
 ---
 
 **6. 인터페이스 이름과 VMware 어댑터 MAC 주소를 대조한다.**
 
-![그림 2-2-14. 어댑터-MAC 매핑 확인 화면](images/ch2_2_img_14.png){width="55%" fig-align="center"}
+![그림 2-2-5-6. 어댑터-MAC 매핑 확인 화면](images/ch2_2_img_14.png){width="55%" fig-align="left"}
 
-설명: `enpXsY` 이름만 보지 말고 MAC 주소로 vmnet 매핑을 확정한다.
+- `enpXsY` 이름만 보지 말고 MAC 주소로 vmnet 매핑을 확정한다.
 
 ---
 
 **7. 3개 NIC의 최종 상태를 검토한다.**
 
-![그림 2-2-15. 최종 NIC 설정 확인 화면](images/ch2_2_img_15.png){width="55%" fig-align="center"}
+![그림 2-2-5-7. 최종 NIC 설정 확인 화면](images/ch2_2_img_15.png){width="55%" fig-align="left"}
 
-설명: MGMT/Tenant는 정적 IP, Provider는 실습 기준 무IP(Disabled)로 맞춘다.
+- MGMT/Tenant는 정적 IP, Provider는 실습 기준 Disabled로 맞춘다.
 
-권장 정적 IP 예시:
+정적 IP 설정:
 
-- MGMT
-  - IPv4: Manual
-  - Address: `10.100.100.10`
-  - Subnet: `255.255.255.0`
-  - Gateway: `10.100.100.2`
-  - DNS: `8.8.8.8`
-- Tenant (VXLAN)
-  - IPv4: Manual
-  - Address: `10.100.200.10`
-  - Subnet: `255.255.255.0`
-  - Gateway: 비움
-  - DNS: 없음
-- Provider
-  - IPv4: Disabled (학습 환경 기준)
+| 항목 | MGMT | Tenant | Provider |
+| --- | --- | --- | --- |
+| IPv4 | Manual | Manual | Disabled |
+| Subnet | `10.100.100.0/24` | `10.100.200.0/24` | - |
+| Address | `10.100.100.10` | `10.100.200.10` | - |
+| Gateway | `10.100.100.2` | - | - |
+| DNS | `8.8.8.8` | - | - |
+
 
 ### 2.2.6 Controller/Compute IP 할당 예시표
 아래 표는 2노드(Controller 1대 + Compute 1대) 기준의 권장 예시이다.
@@ -289,6 +284,29 @@ OpenStack의 Provider(External)는 원칙적으로 물리 NIC 기반 Bridged 구
 #### NIC/IP 확인
 ```bash
 ip a
+```  
+출력 예시)
+```bash
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute
+       valid_lft forever preferred_lft forever
+2: enp2s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:0c:29:0a:d9:c1 brd ff:ff:ff:ff:ff:ff
+    inet 10.100.100.10/24 brd 10.100.100.255 scope global enp2s0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::20c:29ff:fe0a:d9c1/64 scope link
+       valid_lft forever preferred_lft forever
+3: enp10s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:0c:29:0a:d9:cb brd ff:ff:ff:ff:ff:ff
+    inet 10.100.200.10/24 brd 10.100.200.255 scope global enp10s0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::20c:29ff:fe0a:d9cb/64 scope link
+       valid_lft forever preferred_lft forever
+4: enp18s0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 00:0c:29:0a:d9:d5 brd ff:ff:ff:ff:ff:ff
 ```
 
 확인 기준:
@@ -300,6 +318,12 @@ ip a
 #### 라우팅 확인
 ```bash
 ip route
+```
+출력 예시)
+```bash
+default via 10.100.100.2 dev enp2s0 proto static
+10.100.100.0/24 dev enp2s0 proto kernel scope link src 10.100.100.10
+10.100.200.0/24 dev enp10s0 proto kernel scope link src 10.100.200.10
 ```
 
 확인 기준:
@@ -324,6 +348,6 @@ Provider (IP 미할당 시 링크 상태 확인):
 ip link show enp18s0
 ```
 
-## 실습 자료
+## 참고 자료
 - [VMWare 제품 종류 및 특징](ch2_2_vmware_products.qmd)
 - [VMware Fusion Documentation](ch2_2_vmware_fusion_docs.qmd)
