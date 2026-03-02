@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 website:
-  title: "OpenInfra Korea User Group"
+  title: "OpenStack 학습 자료실"
   navbar:
     background: primary
     search: true
