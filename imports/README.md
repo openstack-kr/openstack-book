@@ -6,14 +6,15 @@
 
 ```
 imports/
-├── ch1/     ← 1장용 ZIP
-├── ch2/     ← 2장용 ZIP
+├── ch1/          ← 1장용 ZIP
+├── ch2/          ← 2장용 ZIP
 ├── ch3/
 ├── ch4/
 ├── ch5/
-└── ch6/     ← 6장 Neutron (Provider/Tenant, SNAT/DNAT 등)
+└── ch6/          ← 6장 Neutron (Provider/Tenant, SNAT/DNAT 등)
     ├── SNAT, DNAT 개념.zip
-    └── provider_network.zip
+    ├── provider network와 tenant network 개념 정리.zip
+    └── processed/   ← 변환이 끝난 ZIP이 자동으로 이동되는 폴더
 ```
 
 ## 사용법

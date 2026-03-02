@@ -259,6 +259,18 @@ def main():
             _update_quarto_yml(base_dir, chapter, article_slug, args.title or doc_title)
             _update_index_qmd(lectures_dir, chapter, article_slug, args.title or doc_title)
 
+        # 성공적으로 반영된 ZIP은 processed/ 폴더로 이동해 상태를 구분
+        processed_dir = IMPORTS_DIR / chapter / "processed"
+        processed_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            new_zip_path = processed_dir / zip_path.name
+            if new_zip_path.exists():
+                new_zip_path.unlink()
+            shutil.move(str(zip_path), str(new_zip_path))
+            print(f"ZIP 이동: {zip_path} -> {new_zip_path}")
+        except Exception as e:
+            print(f"경고: ZIP 이동 중 오류가 발생했지만 변환은 완료되었습니다: {e}")
+
     finally:
         if extract_root.exists():
             shutil.rmtree(extract_root, ignore_errors=True)

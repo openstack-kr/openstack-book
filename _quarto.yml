@@ -36,6 +36,12 @@ website:
               file: lectures/ch6/provider_tenant.qmd
             - text: "SNAT/DNAT 개념"
               file: lectures/ch6/snat_dnat.qmd
+            - text: "Neutron Agent 종류 정리"
+              file: lectures/ch6/neutron_agents.qmd
+            - text: "OVS/VXLAN 가상 네트워크 만들기"
+              file: lectures/ch6/ovs_vxlan_vpn.qmd
+
+
 
 
 

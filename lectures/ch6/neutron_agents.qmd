@@ -1,0 +1,1349 @@
+---
+title: "neutron agent 종류 정리"
+description: "neutron agent 종류 정리"
+---
+
+# neutron agent 종류 정리
+
+작성시간 - origin: 2026년 1월 24일 오후 2:36
+작성시간 - 속성수정: 2026년 1월 24일 오후 2:36 (GMT+9)
+
+1. **뉴트론 에이전트로 뭘 쓸 수 있는지**
+2. **옵션값들은 어떤 값들을 넣을 수 있는지**
+3. **개요정도 수준으로 문서 작성**
+    1. https://docs.redhat.com/ko/documentation/red_hat_openstack_platform/16.2/html/configuration_reference/neutron_2
+    2. **이 문서 위주로 정리**
+
+이전에 작성했던 내용은 에이전트의 역할 및 그 자체에 대한 설명이기에 참고 문서로 제외했습니다.
+
+만약 agent가 정확히 뭔지에 대해서 알고 싶다면 아래의 내용을 읽어보시는 걸 추천드립니다.
+
+- agent 그 자체에 대한 설명 및 neutron과의 연결성
+    
+    neutron agent를 단순히 나열해서 종류를 정리할 수 있지만, 
+    
+    이런 agent들이 왜 생겨났고 어떤 layer에서 무슨 역할을 하는지를 알고 종류들을 정리해야 의미가 있다고 해당 내용들도 추가했습니다. 
+    
+    # **에이전트와 서비스**
+    
+    일반적인 Neutron 구성은 하나 또는 여러 노드에서 실행되는 여러 서비스와 에이전트들로 이루어져 있습니다.
+    
+    왜 에이전트라는 개념이 등장하게 된 것일까요?
+    
+    클라우드 환경에서는 수천 대의 VM이 초 단위로 생성되고 사라집니다. 사람이 일일이 랜선을 꽂거나 스위치를 설정할 수 없기에, 하나의 소프트웨어(Neutron server)의 명령을 받아 각 서버 현장에서 네트워크를 조립하는 **Agent(일꾼)** 구조가 탄생했습니다.
+    
+    - **추상화(Abstraction):** 사용자는 API로 "네트워크 생성"을 외치고, 에이전트는 내부적으로 `ip netns`, `ovs-vsctl` 같은 로우 레벨 명령어를 수행합니다.
+    - **분산 처리:** 모든 네트워크 처리를 중앙에서 하면 병목이 생기므로, 에이전트들이 각 노드에서 기능을 나누어 처리합니다.
+    
+    각 서비스는 일부 네트워킹 기능이나 API 서비스를 제공합니다. 그 중 특히 중요한 것들은 다음과 같습니다.
+    
+    1. **neutron-server**: API 엔드포인트를 제공하고 데이터베이스에 대한 단일 접점 역할을 합니다. 보통 컨트롤러 노드에서 실행됩니다.
+        1. 서버와 에이전트는 **Message Queue(RabbitMQ)**를 통해 **RPC(Remote Procedure Call)** 방식으로 대화합니다. 서버가 메시지 큐에 "어떤 작업을 하라"고 던지면, 각 노드의 에이전트가 이를 수신하여 즉각 실행하는 구조입니다.
+    2. **L2 에이전트:** Open vSwitch 또는 기타 벤더 특화 기술을 이용해 프로젝트 네트워크에 대한 네트워크 세분화와 격리를 제공합니다. L2 에이전트는 가상 인터페이스의 연결 및 보안을 담당하는 모든 노드(일반적으로 컴퓨트 노드와 네트워크 노드 모두)에서 실행되어야 합니다.
+    3. **L3 에이전트:** 네트워크 노드에서 실행되며, 동서(East‑West) 및 남북(North‑South) 라우팅을 제공하고, FWaaS나 VPNaaS 같은 고급 기능도 제공합니다.
+    
+    ## L2 agent
+    
+    L2 agent는 보통 "동일 브로드캐스트 도메인 내의 격리와 연결” 역할을 맡습니다.
+    
+    즉 L2 에이전트(주로 OVS Agent)의 핵심은 **Segmentation(세분화)**입니다. 같은 물리 서버에 서로 다른 프로젝트(Tenant)의 VM들이 섞여 있을 때, 이들이 서로의 트래픽을 훔쳐보지 못하게 가상 터널(VXLAN, VLAN 등)을 뚫고 꼬리표를 붙이는 역할을 진행합니다.
+    
+    ![image.png](images/neutron_agents/image.png)
+    
+    위 그림을 기반으로 L2 Agent가 어떻게 동작하는 지 봐보겠습니다.
+    
+    ### 1. 포트 바인딩 및 연결 (이미지 단계 2~3)
+    
+    이미지의 **2번(`vif_driver.plug`)**과 **3번(`scan_ports`)** 과정을 보면, Nova Compute가 VM을 위해 가상 인터페이스(**`tap device`**)를 만들면, L2 Agent는 이를 감지하여 통합 브릿지인 **`br-int`**에 연결합니다.
+    
+    즉 VM이 세상 밖으로 나갈 수 있는 통로를 실제 물리 서버의 가상 스위치에 꽂는 작업입니다.
+    
+    ### 2. 태깅 (Tagging): 논리적 격리 (이미지 단계 4~5)
+    
+    이미지의 **4번(`get_device_details`)**과 **5번(`bind_port`)** 과정를 보면 L2 Agent는 Neutron Server로부터 해당 포트가 어떤 네트워크(프로젝트)에 속해 있는지 정보를 받아옵니다. 그 후, 해당 VM에서 나가는 패킷에 **VLAN ID**나 **VXLAN VNI** 같은 **꼬리표(Tag)**를 붙입니다.
+    
+    물리적으로는 같은 서버, 같은 `br-int`를 공유하지만, 이 꼬리표 덕분에 다른 테넌트 소속 VM의 트래픽과 절대 섞이지 않습니다.
+    
+    ### 3. 보안 그룹(Security Group) 적용 (이미지 단계 6 이후)
+    
+    이미지 **6번(`update_device_up`)** 전후로 활성화되는 보안 메커니즘입니다.
+    
+    L2 Agent는 설정된 보안 정책을 바탕으로 `iptables` 규칙을 생성하거나 OVS의 `Flow Rule`을 실시간으로 업데이트합니다.
+    
+    단순히 연결만 하는 것이 아니라, 허용되지 않은 포트나 비정상적인 트래픽을 입구에서부터 차단하는 가상 방화벽 역할을 수행합니다.
+    
+    L2 Agent는 아래와 같은 종류가 있습니다.
+    
+    | **분류** | **Agent 이름 (CLI)** | **핵심 커널 메커니즘** | **배치 노드** | **주요 특징 및 시나리오** |
+    | --- | --- | --- | --- | --- |
+    | **L2** | **Open vSwitch** | OVS datapath, Flow tables | Compute/Network | 가장 표준적인 SDN 구현. VM 포트 연결 및 보안 그룹 적용. |
+    | **L2** | **Linux Bridge** | Linux bridge, veth pair | Compute/Network | 전통적인 브릿지 방식. 단순 VLAN 환경에서 가볍게 사용. |
+    | **L2** | **SR-IOV** | PCI Passthrough, VFs | Compute | 커널 바이패스로 물리 NIC 성능 직결. 고성능 패킷 처리. |
+    
+    각 agent 마다의 장단점을 정리하면 다음과 같습니다
+    
+    | **분류** | **Agent 이름** | **장점 (Pros)** | **단점 (Cons)** |
+    | --- | --- | --- | --- |
+    | **L2** | **Open vSwitch (OVS)** | **높은 유연성**: 가상 스위치 레벨에서 정교한 Flow 제어가 가능합니다.
+    
+    **표준화**: 가장 널리 쓰이는 방식으로 커뮤니티 지원 및 기능(VXLAN, GRE 등)이 풍부합니다.
+    
+    **고급 기능**: 보안 그룹(Security Group) 및 QoS 적용이 매우 정교합니다. | **CPU 오버헤드**: 소프트웨어 기반 스위칭으로 인해 패킷 처리 시 호스트 CPU 자원을 소모합니다.
+    
+    **복잡성**: Linux Bridge에 비해 아키텍처가 복잡하고 트러블슈팅 난이도가 높습니다. |
+    | **L2** | **Linux Bridge** | **단순함**: 리눅스 커널 기본 기능을 사용하므로 구조가 직관적이고 안정적입니다.
+    
+    **저자원 소모**: 가벼운 프로세스로 동작하여 자원 제약이 있는 환경에 유리합니다. | **기능 제약**: OVS에 비해 복잡한 SDN 기능이나 대규모 터널링 환경에서 제약이 있습니다.
+    
+    **확장성**: 대규모 테넌트 격리 시 Flow 제어 성능이 OVS보다 떨어질 수 있습니다. |
+    | **L2** | **SR-IOV** | **고성능**: 커널 네트워크 스택을 우회(Bypass)하여 물리 NIC 성능을 VM에 직결하므로 오버헤드가 거의 없습니다.
+    
+    **저지연**: 40G 이상의 고속 네트워크 환경에서 낮은 지연 시간을 보장합니다. | **유연성 부족**: 실시간 마이그레이션(Live Migration) 구현이 어렵거나 복잡합니다.
+    
+    **기능 제한**: 소프트웨어 브릿지를 거치지 않으므로 전통적인 방식의 보안 그룹 적용 등에 제약이 있을 수 있습니다. |
+    
+    ## L3 Agent
+    
+    **floating Ip 연결,  SNAT 처리 위주가 핵심**
+    
+    L3 Agent의 핵심 역할은 IP 라우팅(IP Routing)과 주소 변환(NAT)입니다. 하지만 단순히 길을 찾아주는 것을 넘어, 리눅스 커널 기술(namespace)을 이용해 프로젝트별로 완전히 격리된 가상 네트워크 환경을 만드는 것 입니다.
+    
+    ![image.png](images/neutron_agents/image 1.png)
+    
+    ### L3 Agent의 주요 동작 과정
+    
+    L3 Agent가 가상 라우터를 통해 패킷의 경로를 제어하고 주소를 변환하는 과정은 다음과 같습니다.
+    
+    이미지에서 Tenant A 내부의 HR 서브넷과 ENG 서브넷 사이의 흐름을 관리합니다. 
+    
+    Web 서버 대역(192.168.100.0/24)의 VM1이 
+    
+    DB 서버 대역(192.168.101.0/24)의 VM2와 통신할 때, 
+    
+    L3 Agent는 두 서브넷을 잇는 가상 인터페이스 사이에서 **라우팅(Routing)**을 수행하여 패킷이 목적지 서브넷으로 넘어갈 수 있도록 가이드합니다.
+    
+    - 이렇게 이동하는 트래픽을 **동서(East-West) 트래픽**이라고 합니다
+    
+    이미지에서 외부 네트워크와 VM 사이의 수직적 흐름도 처리합니다. 
+    테넌트 내부의 사설 IP(192.168.x.x)는 외부로 직접 나갈 수 없으므로, 
+    
+    패킷이 가상 라우터의 외부 인터페이스(10.134.13.2)를 통과할 때 L3 Agent가 **SNAT(Source NAT)**를 수행합니다. 
+    
+    이를 통해 내부 사설 IP를 공인 IP(Floating IP)로 변환하여 외부와 통신할 수 있게 합니다.
+    
+    - 이렇게 이동하는 트래픽을 **남북(North-South) 트래픽**이라고 합니다.
+    
+    **외부 접근 허용: Floating IP 매핑 (DNAT)**
+    외부 사용자가 특정 VM에 접속해야 할 경우, L3 Agent는 외부 IP와 내부 IP를 1:1로 매핑하는 **DNAT** 기능을 제공합니다. 외부 패킷이 들어오면 목적지 주소를 다시 내부 사설 IP로 변환하여 해당 VM으로 정확히 배달합니다.
+    
+    L3 계층 및 네트워크 서비스를 제공하기 위해 다음과 같은 에이전트들이 활용됩니다.
+    
+    | **분류** | **Agent 이름 (CLI)** | **핵심 커널 메커니즘** | **배치 노드** | **주요 특징 및 시나리오** |
+    | --- | --- | --- | --- | --- |
+    | **L3** | **L3 Agent** | ip netns, iptables, keepalived | Network | 가상 라우팅, SNAT/DNAT, Floating IP 처리. 고가용성(HA) 및 DVR 지원. |
+    | **L3+** | **DHCP Agent** | dnsmasq per-netns | Network | VM 부팅 시 IP 및 네트워크 옵션(DNS, Gateway 등) 자동 할당. |
+    | **L3+** | **Metadata Agent** | Python proxy, Unix socket | Compute/Network | 169.254.169.254를 통해 VM 설정 정보(Cloud-init) 전달. |
+    | **L4-7** | **Octavia (LBaaS)** | Amphora VM, HAProxy | 분산(VM) | 별도의 VM 인스턴스를 활용하여 로드밸런싱 및 고가용성 서비스 제공. |
+    
+    # 현대적 Neutron: OVN 및 Agentless 아키텍처 메커니즘
+    
+    현대적인 Neutron 구성은 관리 복잡성을 줄이고, 성능을 높이기 위해 개별 에이전트를 제거하거나 통합하는 추세입니다. 
+    
+    특히 **OVN(Open Virtual Network)**은 분산 SDN 컨트롤러를 통해 전통적인 에이전트들의 역할을 소프트웨어적으로 대신합니다.
+    
+    ### 현대적 구성의 주요 동작 과정
+    
+    에이전트 중심의 과거 방식에서 벗어나 제어기(Controller)가 직접 네트워크를 제어하는 과정은 다음과 같습니다.
+    
+    ![image.png](images/neutron_agents/image 2.png)
+    
+    **통합 제어 및 에이전트 제거 (OVN 기반)**
+    
+    전통적인 `neutron-l3-agent`, `neutron-dhcp-agent` 등을 개별적으로 실행하지 않습니다. 
+    중앙 집중형 **OVN DB**와 각 노드에 상주하는 단일 데몬인 **ovn-controller**가 L2, L3, DHCP 기능을 통합 처리합니다. 
+    이는 개별 프로세스를 관리하던 번거로움을 없애고 단일한 제어 평면을 제공합니다.
+    
+    ---
+    
+    **하드웨어 가속 및 SDN 연동 (Physical SDN)**
+    
+    Cisco, Arista와 같은 벤더의 SDN 솔루션을 연동할 경우, 서버 내부에서 소프트웨어 패킷 조작을 최소화합니다. 
+    `neutron-server`가 SDN 컨트롤러에 API를 던지면, 컨트롤러가 **물리 스위치 설정**을 직접 변경하여 L2/L3 에이전트의 역할을 물리 장비로 대체하거나 축소시킵니다.
+    
+    ---
+    
+    | **구성 방식** | **사라지는 에이전트** | **대체 요소 및 기술 메커니즘** | **배치 특징** |
+    | --- | --- | --- | --- |
+    | **OVN 기반** | L3, DHCP, Metadata 등 대부분 | **ovn-controller**, OVN DB | 모든 노드에 단일 데몬 배치, 논리적 흐름 제어 |
+    | **SDN 연동** | L2, L3 Agent | **물리 하드웨어 스위치**, 외부 SDN Controller | 외부 장비가 패킷 포워딩 및 라우팅 전담 |
+    
+
+Neutron 에이전트는 크게 다음과 같이 역할별로 나눌 수 있습니다.
+
+- **L2 (Layer 2) 관련**
+    - ‎linuxbridge-agent
+    - ‎openvswitch-agent
+    - ‎sriov-agent
+- **L3 (Layer 3, 라우팅/NAT) 관련**
+    - ‎l3-agent
+- **서비스 관련**
+    - ‎dhcp-agent
+    - ‎metadata-agent
+    - ‎metering-agent
+
+Neutron 서버(‎`neutron-server`)가 API 및 데이터베이스를 통해 네트워크/서브넷/포트를 관리한다면,
+
+각 에이전트들은 실제 컴퓨트/네트워크 노드에서 **브리지 생성, IP 할당, 라우터 구성, 메타데이터 전달** 등 **`“실제 동작”`**을 담당한다고 볼 수 있습니다.
+
+## dhcp_agent.ini
+
+**역할 요약**
+
+- Neutron 네트워크/서브넷에 대해 **DHCP 서버 역할**을 수행하는 에이전트입니다.
+- 일반적으로 ‎**`dnsmasq`** 프로세스를 사용해 인스턴스 부팅 시 IP 주소, 게이트웨이, DNS 등 네트워크 정보를 할당합니다.
+    - **`dnsmasq`**는 복잡한 설정 없이 **내부 망의 도메인 관리(DNS)와 IP 할당(DHCP)을 한 번에 해결하기 위해 만든 경량급 네트워크 백그라운드 서비스**
+
+**언제 쓰는지**
+
+- 인스턴스가 **자동으로 IP를 할당받도록** 하고 싶을 때, 대부분의 OpenStack 환경에서 **기본으로 사용**합니다.
+- 각 서브넷에서 DHCP를 사용하도록 설정했을 경우, 해당 서브넷에 대한 DHCP 네임스페이스와 dnsmasq 프로세스를 관리합니다.
+
+**주요 옵션** 
+
+- ‎**`interface_driver`**
+    - **역할:** DHCP 네임스페이스를 만들고, 내부 인터페이스를 연결할 때 사용할 L2 드라이버.
+    - **예시 값:**
+        - ‎`neutron.agent.linux.interface.OVSInterfaceDriver`
+        - ‎`neutron.agent.linux.interface.BridgeInterfaceDriver` (linuxbridge 환경)
+    - **언제 설정하는지:**
+        - L2 에이전트가 ‎`openvswitch-agent`면 OVS 관련 드라이버, ‎`linuxbridge-agent`면 Bridge 관련 드라이버로 맞춰줍니다.
+- **`‎dhcp_driver`**
+    - **역할:** 실제 DHCP 구현 선택.
+    - **일반적으로 사용:** ‎`neutron.agent.linux.dhcp.Dnsmasq`
+    - **비고:** 특별한 요구사항이 없다면 기본 dnsmasq를 그대로 사용하는 경우가 대부분입니다.
+- ‎**`enable_isolated_metadata`**
+    - **값:** ‎`True` / ‎`False`
+    - **역할:** 라우터가 없는 **isolated 네트워크**에서도 인스턴스가 메타데이터 서비스에 접근할 수 있게 할지 여부.
+    - **사용 예:** 테스트용 네트워크를 자주 만들고, 라우터 없이도 메타데이터에 접근하도록 하고 싶을 때 ‎`True`로 설정.
+    
+
+더 자세한 옵션은 아래에서 확인 가능합니다
+
+- 세부 옵션
+    
+    **[DEFAULT] 섹션** 
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | ovs_use_veth | boolean | False | OVS 인터페이스에 veth를 사용할지 여부. RHEL 6.5 같이 네임스페이스 지원이 제한된 커널이나, 라우터 게이트웨이 포트에 대한 rate‑limit 기능을 사용해야 할 때 True로 설정. |
+    | interface_driver | string | openvswitch | 가상 인터페이스를 관리하는 드라이버. 일반적으로 OVS를 사용할 때 ‎⁠openvswitch⁠ 사용. |
+    | rpc_response_max_timeout | integer | 600 | RPC 호출 응답을 기다리는 최대 시간(초). 이 시간이 지나면 RPC 요청이 실패한 것으로 간주. |
+    | resync_interval | integer | 5 | DHCP agent가 일시적인 알림/RPC 오류에서 복구하기 위해 Neutron과 상태를 재동기화(resync)하는 최대 간격(초). 이벤트에 따라 이보다 더 자주 resync가 일어날 수 있음. |
+    | resync_throttle | integer | 1 | DHCP 로컬 상태와 Neutron 상태를 resync하는 이벤트 사이의 최소 간격(초)을 제한. 너무 잦은 resync로 busy‑loop가 되는 것을 방지. ‎⁠resync_interval⁠보다 작은 값이어야 함. |
+    | dhcp_driver | string | neutron.agent.linux.dhcp.Dnsmasq | DHCP 서버를 관리하는 드라이버. 기본은 dnsmasq 기반 드라이버. |
+    | enable_isolated_metadata | boolean | False | 라우터 포트가 없는 고립된(isolated) 네트워크에서 DHCP 서버가 메타데이터 서비스를 도와줄지 여부. True면 DHCP 서버가 특정 host route(Option 121)를 추가해 메타데이터 IP로 트래픽을 유도. ‎⁠force_metadata=True⁠인 경우에는 효과 없음. |
+    | force_metadata | boolean | False | Neutron 라우터가 없어도 DHCP 서버를 통해 메타데이터 IP를 제공하도록 강제. True면 모든 네트워크에 대해 메타데이터 서비스가 활성화되고, DHCP 서버가 메타데이터 IP로 가는 host route를 항상 추가. |
+    | enable_metadata_network | boolean | False | 169.254.169.254/16(또는 그보다 큰 prefix) 메타데이터 전용 네트워크에서 오는 메타데이터 요청을 처리할지 여부. 이 네트워크가 Neutron 라우터에 연결되어 있고, VM이 그 라우터를 통해 메타데이터 요청을 보내는 경우에 사용. 이때는 DHCP Option 121이 주입되지 않으며, ‎⁠enable_isolated_metadata = True⁠일 때만 사용 가능. |
+    | num_sync_threads | integer | 4 | DHCP agent가 상태 동기화 작업을 수행할 때 사용할 스레드 수. Neutron 서버 측의 DB 커넥션 풀 크기를 넘지 않도록 설정해야 함. |
+    | bulk_reload_interval | integer | 0 | DHCP 할당 정보를 재로딩하는 호출 사이에서 대기할 시간(초). 0이 아니면 이 값만큼 sleep하며, 여러 변경(N회)이 짧은 시간(X초)에 몰려도 한 번에 묶어서 재로딩함. |
+    | dhcp_confs | string | $state_path/dhcp | DHCP 서버 설정 파일(dnsmasq 설정 등)을 저장하는 디렉터리 경로. |
+    | dnsmasq_config_file | string | ‘’ (빈 문자열) | dnsmasq 기본 설정을 덮어쓰는 사용자 정의 설정 파일 경로. 지정하면 해당 파일의 옵션이 dnsmasq에 추가됨. |
+    | dnsmasq_dns_servers | list | [] | dnsmasq가 포워더로 사용할 DNS 서버들의 목록(쉼표로 구분). 값이 비어 있으면 시스템 기본 또는 ‎⁠dnsmasq_local_resolv⁠ 설정에 따름. |
+    | dnsmasq_base_log_dir | string | <None> | dnsmasq 로그를 저장할 기본 디렉터리. DHCP/DNS 문제를 디버깅할 때 유용. 설정하지 않으면 dnsmasq 로그를 남기지 않음. |
+    | dnsmasq_local_resolv | boolean | False | DHCP agent가 실행되는 호스트의 ‎⁠/etc/resolv.conf⁠ 등 로컬 리졸버를 dnsmasq가 사용하도록 허용. True로 설정하면 dnsmasq 실행 시 ‎⁠--no-resolv⁠ 옵션이 제거됨. 단, ‎⁠dnsmasq_dns_servers⁠에 커스텀 DNS 서버를 지정하면 이 기능은 비활성화됨. |
+    | dnsmasq_lease_max | integer | 16777216 | dnsmasq가 할당할 수 있는 최대 DHCP lease 수를 제한하여 DoS(서비스 거부) 공격 가능성을 줄임. |
+    | dhcp_broadcast_reply | boolean | False | DHCP 응답을 브로드캐스트로 보낼지 여부. 특정 환경/클라이언트에서 유니캐스트 응답을 받지 못하는 경우 True로 설정. |
+    | dnsmasq_enable_addr6_list | boolean | False | 하나의 포트가 같은 서브넷에서 여러 IPv6 주소를 갖는 경우, 해당 주소들을 하나의 dhcp-host 리스트로 생성할지 여부. IPv6 주소가 여러 개일 때 더 명시적인 제어가 필요할 경우 사용. |
+    | debug | boolean | False | True면 로그 레벨을 INFO 대신 DEBUG로 설정. ‎⁠log_config_append⁠가 설정된 경우에는 이 옵션이 무시될 수 있음. |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 지정하면 기존 로그 설정에 append되며, 이 파일 안에서 로깅 형식/핸들러 등을 모두 제어. 이 경우 다른 로깅 관련 옵션(‎⁠log_date_format⁠ 등)은 무시됨. |
+    
+    로깅(oslo.log) 옵션 ￼
+    
+    이 부분은 다른 파일들과 동일한 oslo.log 공통 옵션이고, dhcp_agent.ini 샘플에도 그대로 반복된다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | true면 로그 레벨을 DEBUG로 설정(기본 INFO). 재시작 없이 변경 가능. |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 지정되면 이 파일의 설정이 기존 설정에 append되고, 다른 로깅 옵션들은 대부분 무시. |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그 레코드의 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_file | string | <None> | 로그 파일 이름. 미설정 시 stderr로 출력(‎⁠use_stderr⁠에 따름). |
+    | log_dir | string | <None> | ‎⁠log_file⁠가 상대 경로일 때 기준 디렉터리. |
+    | watch_log_file | boolean | false | 로그 파일이 이동/삭제될 때 새 파일을 자동으로 다시 여는 핸들러 사용 여부(Linux 전용). |
+    | use_syslog | boolean | false | syslog 사용 여부. 기존 포맷은 deprecated. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. |
+    | syslog_log_facility | string | LOG_USER | syslog facility 이름. |
+    | use_stderr | boolean | false | stderr 로깅 사용 여부. |
+    | logging_context_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s⁠ | 컨텍스트(요청 ID, 사용자 등)가 있는 로그 메시지 포맷. |
+    | logging_default_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s⁠ | 컨텍스트가 없을 때 기본 로그 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 추가되는 디버그용 suffix. |
+    | logging_exception_prefix | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s⁠ | 예외 스택 트레이스 앞에 붙는 prefix. |
+    | logging_user_identity_format | string | ‎⁠%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s⁠ | ‎⁠user_identity⁠ 필드 포맷. |
+    | default_log_levels | list | 여러 패키지=WARN/INFO | 패키지별 기본 로그 레벨 목록. |
+    | publish_errors | boolean | false | 에러 이벤트를 별도 채널로 publish할지 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 로그에 인스턴스 정보가 포함될 때 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 비활성. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 동안 허용되는 최대 로그 수. |
+    | rate_limit_except_level | string | CRITICAL | 이 레벨 이상 로그는 rate limiting에서 제외. 빈 문자열이면 모든 레벨이 필터 대상. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    
+
+## l3_agent.ini
+
+역할 요약
+
+- Neutron 라우터를 실제 **네임스페이스 기반 L3 라우터**로 구현하고,**라우팅, NAT, 플로팅 IP** 등을 처리하는 에이전트입니다.
+
+언제 쓰는지
+
+- 프로젝트 라우터를 생성하여 **외부 네트워크와 통신**하게 하고 싶을 때 필수입니다.
+- 플로팅 IP를 사용하거나, 테넌트 네트워크 간 라우팅이 필요할 때 사용됩니다.
+- 일반적으로 네트워크 노드(또는 컨트롤러+네트워크 통합 노드)에 배치됩니다.
+
+**주요 옵션**
+
+- ‎**`interface_driver`**
+    - 역할 및 사용 방식은 ‎`dhcp_agent.ini`와 비슷하게, 라우터 네임스페이스 내 인터페이스 연결 방식을 결정합니다.
+- ‎**`agent_mode`**
+    - **역할:** L3 에이전트가 어떤 모드로 동작할지 결정.
+    - **예시 값:**
+        - ‎`legacy`: 고전적인 단일 L3 에이전트 방식
+        - ‎`dvr_snat`, ‎`dvr`: DVR(Distributed Virtual Routing) 환경에서 사용
+    - **주의:** DVR 구성 여부에 따라 반드시 일관성 있게 설정해야 합니다.
+- ‎**`external_network_bridge`**
+    - **역할:** 외부 네트워크와 연결될 브리지 이름.
+    - **설정 예:** OVS 환경에서 ‎`br-ex` 등.
+    - **특징:** 최근 구성에서는 특정 값 대신 provider network + bridge_mappings 조합으로 대체되는 경우도 많습니다.
+- ‎**`router_delete_namespaces`**
+    - **역할:** 라우터 삭제 시 네임스페이스를 자동으로 제거할지 여부.
+    - **값:** ‎`True` / ‎`False`
+
+더 자세한 옵션은 아래에서 확인 가능합니다
+
+- 세부 옵션
+    
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | agent_mode | string | legacy | L3 에이전트 동작 모드. ‎⁠legacy⁠: 중앙 L3 노드에서 DNAT/SNAT 제공(기존 방식). ‎⁠dvr⁠: 컴퓨트 노드에서 분산 라우팅(DVR) 수행. ‎⁠dvr_snat⁠: 중앙 노드에서 SNAT, 각 컴퓨트에서 DVR. ‎⁠dvr_no_external⁠: 컴퓨트에서는 동서(East/West) 라우팅만, 북남(North/South) DNAT/SNAT는 ‎⁠dvr_snat⁠ 모드의 중앙 노드가 처리. |
+    | metadata_port | port | 9697 | Neutron 메타데이터 네임스페이스 프록시가 사용하는 TCP 포트. |
+    | handle_internal_only_routers | boolean | true | 외부 게이트웨이 네트워크가 없는 라우터(내부 전용 라우터)를 이 L3 에이전트가 처리할지 여부. 배포 내에서 한 에이전트만 True로 두는 것이 일반적. |
+    | gateway_external_network_id | string | (빈 값) | ‎⁠external_network_bridge⁠가 설정된 경우, 이 L3 에이전트가 연결될 수 있는 외부 네트워크의 UUID. 여러 외부 네트워크를 지원하려면 이 옵션과 ‎⁠external_network_bridge⁠ 둘 다 비워 둬야 함. (향후 제거 예정, 더 이상 쓰지 않는 것을 권장.) |
+    | ipv6_gateway | string | (빈 값) | IPv6 외부 게이트웨이 주소. 설정하지 않으면, 라우터는 상위 라우터의 RA(Router Advertisement)에서 기본 라우트를 자동으로 수신해야 함. 설정할 경우 상위 라우터 인터페이스의 링크로컬 주소(LLA)를 넣는 것이 일반적. GUA 기반 next‑hop이 필요하면 별도 서브넷을 통해 구성해야 함. |
+    | prefix_delegation_driver | string | dibbler | IPv6 Prefix Delegation에 사용할 드라이버. ‎⁠neutron.agent.linux.pd_drivers⁠ 네임스페이스의 엔트리포인트 이름을 사용. |
+    | enable_metadata_proxy | boolean | true | 각 라우터 네임스페이스 내부에서 메타데이터 프록시를 실행할지 여부. True이면 L3 에이전트가 metadata proxy를 띄움. |
+    | metadata_access_mark | string | 0x1 | 메타데이터로 가는 유효한 요청을 표시하기 위해 iptables mangle 테이블에서 사용할 마크 값. 하위 16비트만 사용(0xffff와 AND). |
+    | external_ingress_mark | string | 0x2 | 외부 네트워크에서 들어오는 트래픽을 표시하기 위한 iptables mangle 마크 값. 이 역시 하위 16비트만 사용. |
+    | external_network_bridge | string | (빈 값) | 외부 네트워크 트래픽을 위한 브릿지 이름. 설정하면 L3 에이전트가 외부 브릿지에 직접 인터페이스를 붙이고, L2 에이전트는 그 브릿지를 관리하지 않음(포트 상태가 어긋날 수 있음). 사용 중단 예정 옵션. |
+    | periodic_interval | integer | 40 | 주기 작업(라우터 상태 동기화 등)을 실행하는 간격(초). |
+    | api_workers | integer | <None> | API 서비스를 위해 사용할 워커 프로세스 개수. 지정하지 않으면 CPU 개수와 동일한 값으로 자동 설정되는 것이 일반적. |
+    | rpc_workers | integer | 1 | RPC 요청을 처리할 워커 프로세스 개수. |
+    | rpc_state_report_workers | integer | 1 | 상태 보고(state report) 큐를 처리하는 전용 RPC 워커 프로세스 개수. |
+    | periodic_fuzzy_delay | integer | 5 | 여러 에이전트의 주기 작업이 동시에 몰려 실행되는 것을 막기 위해, 주기 스케줄러 시작 시 추가로 랜덤 지연을 둘 범위(초). 0으로 설정하면 비활성화. |
+    | ha_confs_path | string | $state_path/ha_confs | keepalived / conntrackd 구성 파일을 저장하는 경로. HA 라우터 구성을 위한 디렉터리. |
+    | ha_vrrp_auth_type | string | PASS | VRRP 인증 타입. ‎⁠PASS⁠(단순 패스워드) 또는 ‎⁠AH⁠ 사용 가능. |
+    | ha_vrrp_auth_password | string | <None> | VRRP 인증에 사용할 패스워드. |
+    | ha_vrrp_advert_int | integer | 2 | VRRP 광고(advertisement) 간격(초). VRRP 마스터 선출/유지에 영향. |
+    | ha_keepalived_state_change_server_threads | integer | (1 + CPU 개수) / 2 | keepalived 상태 변경 이벤트를 처리하는 서버 스레드 수. 값이 크면 상태 변경 처리 속도는 빨라지지만 CPU 사용량이 증가. 최소 1. |
+    | ha_vrrp_health_check_interval | integer | 0 | VRRP 헬스 체크 간격(초). 0보다 크면 헬스 체크 활성화(권장값 5). 게이트웨이 IP에 주기적으로 ping을 보내고, 게이트웨이가 장애나면 모든 라우터를 master로 보고 다시 선출 과정을 반복. 0이면 헬스 체크 비활성화. |
+    | pd_dhcp_driver | string | dibbler | DHCPv6 Prefix Delegation을 처리하는 서비스 드라이버. |
+    | ra_confs | string | $state_path/ra | IPv6 Router Advertisement(radvd) 설정 파일을 저장하는 경로. |
+    | min_rtr_adv_interval | integer | 30 | radvd.conf에서 MinRtrAdvInterval 값. 최소 RA 전송 간격(초). |
+    | max_rtr_adv_interval | integer | 100 | radvd.conf에서 MaxRtrAdvInterval 값. 최대 RA 전송 간격(초). |
+    | ovs_integration_bridge | string | br-int | 사용할 Open vSwitch 통합 브리지 이름. 보통 ‎⁠br-int⁠. |
+    | ovs_use_veth | boolean | false | OVS 인터페이스 연결에 veth를 사용할지 여부. RHEL 6.5와 같이 네임스페이스 기능이 제한된 커널에서 사용 가능하도록 할 때 True로 설정. |
+    | interface_driver | string | <None> | 가상 인터페이스를 관리하는 드라이버. OVS를 쓰면 주로 ‎⁠openvswitch⁠ 드라이버를 사용. |
+    | ovs_vsctl_timeout | integer | 10 | ‎⁠ovs-vsctl⁠ 명령의 타임아웃(초). 이 시간을 넘기면 ALARMCLOCK 에러와 함께 명령 실패. |
+    | bridge_mac_table_size | integer | 50000 | Neutron OVS 에이전트가 관리하는 브리지에서 학습 가능한 MAC 주소 최대 개수. 10~1,000,000 범위를 벗어난 값은 OVS에서 무시하거나 덮어쓸 수 있음. |
+
+## **linuxbridge_agent.ini**
+
+역할 요약
+
+- Linux Bridge를 사용해 가상 스위치를 구성하고, Neutron 포트를 실제 Linux 브리지 및 물리 인터페이스에 매핑하는 L2 에이전트입니다.
+
+언제 쓰는지
+
+- OVS 대신 **Linux Bridge 기반의 네트워크 구성**을 사용할 때.
+- 일반적으로 컴퓨트 노드에 배치되어 인스턴스의 vNIC을 Linux Bridge에 붙여줍니다.
+
+**주요 옵션** 
+
+- ‎**`physical_interface_mappings`**
+    - **역할:** 논리 네트워크 이름 → 물리 NIC 이름 매핑.
+    - **예시:** ‎`provider:eth1`
+    - **의미:** ‎`provider` 네트워크 트래픽은 호스트의 ‎`eth1`을 통해 나감.
+- ‎**`bridge_mappings`** (버전/배포판에 따라 영역/형식이 다를 수 있음)
+    - **역할:** provider 네트워크와 Linux 브리지 이름 매핑.
+    - **예시:** ‎`provider:br-provider`
+- ‎**`enable_vxlan`**
+    - **역할:** VXLAN 기반의 오버레이 네트워크 사용 여부.
+    - **값:** ‎`True` / ‎`False`
+- ‎**`local_ip`**
+    - **역할:** VXLAN 터널 엔드포인트 IP 주소.
+    - **예시:** ‎`local_ip = 10.0.0.10`
+
+더 자세한 옵션은 아래에서 확인 가능합니다
+
+- 세부 옵션
+    
+    ## **DEFAULT**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | True면 로그 레벨을 DEBUG로 설정. |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 설정 시 이 파일의 설정이 기존 설정에 append되고, 다른 로깅 옵션은 무시될 수 있음. |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그에서 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠가 설정되면 무시. |
+    | log_file | string | <None> | 로그 파일 경로. 미설정 시 stderr로 출력. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_dir | string | <None> | ‎⁠log_file⁠의 상대 경로에 사용할 기본 디렉터리. |
+    | watch_log_file | boolean | false | 로그 파일 이동/삭제 시 새 파일 경로를 감지하는 핸들러 사용 여부. |
+    | use_syslog | boolean | false | syslog 사용 여부. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. |
+    | syslog_log_facility | string | LOG_USER | syslog facility. |
+    | use_stderr | boolean | false | stderr 로깅 여부. |
+    | logging_context_format_string | string | … | 컨텍스트가 있는 로그 메시지 포맷. |
+    | logging_default_format_string | string | … | 컨텍스트가 없는 로그 메시지 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 추가되는 suffix. |
+    | logging_exception_prefix | string | … | 예외 출력 앞에 붙는 포맷. |
+    | logging_user_identity_format | string | … | ‎⁠user_identity⁠ 포맷 문자열. |
+    | default_log_levels | list | (여러 패키지=WARN/INFO) | 패키지별 기본 로그 레벨. |
+    | publish_errors | boolean | false | 에러 이벤트 발행 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 인스턴스 정보 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 비활성. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 동안 허용할 최대 로그 수. |
+    | rate_limit_except_level | string | CRITICAL | 이 레벨 이상은 rate limiting에서 제외. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    
+    ## **agent**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | polling_interval | integer | 2 | 로컬 디바이스 변경을 폴링하는 주기(초). |
+    | quitting_rpc_timeout | integer | 10 | SIGTERM 수신 후 신규 RPC 요청에 적용할 타임아웃(초). 0이면 변경 없음. |
+    | extensions | list | (빈 값) | 사용할 에이전트 확장 목록. |
+    
+    ## **linux_bridge**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | physical_interface_mappings | list | (빈 값) | ‎⁠physical_network:physical_interface⁠ 튜플 목록. flat/VLAN 네트워크에 사용될 물리 인터페이스 매핑. |
+    | bridge_mappings | list | (빈 값) | ‎⁠physical_network:physical_bridge⁠ 목록. 필요 시 물리 네트워크를 특정 브리지로 매핑. |
+    
+    ## **securitygroup**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | firewall_driver | string | <None> | L2 에이전트에서 보안 그룹을 구현할 방화벽 드라이버. 예: ‎⁠iptables⁠ 기반 드라이버. |
+    | enable_security_group | boolean | true | Neutron 보안 그룹 API 사용 여부. Nova 보안 그룹만 쓸 때는 false. |
+    | enable_ipset | boolean | true | ipset 사용 여부. iptables 기반 보안 그룹 성능 향상. |
+    
+    ## **vxlan**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | enable_vxlan | boolean | true | VXLAN 기능 활성화 여부. |
+    | ttl | integer | <None> | VXLAN 패킷의 TTL 값. |
+    | tos | integer | <None> | VXLAN 패킷의 TOS 값. |
+    | vxlan_group | string | 224.0.0.1 | VXLAN 멀티캐스트 그룹(또는 CIDR 범위). 모든 에이전트에서 동일해야 함. |
+    | local_ip | IP | <None> | 터널 엔드포인트로 사용할 로컬 IP. 서버의 인터페이스에 존재하는 IPv4/IPv6 주소. |
+    | udp_srcport_min | port | 0 | VXLAN 통신에 사용할 UDP 소스 포트 범위 최소값. |
+    | udp_srcport_max | port | 0 | VXLAN 통신에 사용할 UDP 소스 포트 범위 최대값. |
+    | udp_dstport | port | <None> | VXLAN 통신에 사용할 UDP 목적지 포트. 표준 포트(4789)를 쓰려면 명시 필요. |
+    | l2_population | boolean | false | ML2 l2population 메커니즘과 함께 VXLAN 포워딩 테이블을 채우는 확장 활성화 여부. |
+    | arp_responder (enable_local_arp_responder 등) | boolean | false | 로컬 ARP responder 사용 여부(브로드캐스트 대신 로컬 응답). 버전에 따라 이름이 다를 수 있음. |
+
+## **metadata_agent.ini**
+
+역할 요약
+
+- 인스턴스에서 메타데이터(유저 데이터, 인스턴스 정보 등)를 조회할 수 있도록,
+Neutron 네트워크와 Nova 메타데이터 서비스 사이를 **프록시** 해주는 에이전트입니다.
+
+언제 쓰는지
+
+- 인스턴스가 ‎`http://169.254.169.254/` 로 메타데이터에 접근할 수 있어야 할 때 필수입니다.
+    - [http://169.254.169.254/](http://169.254.169.254/) 는 전 세계 모든 클라우드(AWS, GCP, OpenStack 등)에서 공통으로 사용하는 **메타데이터 서버 주소**
+    - 받아오는 메타데이터 정보는 호스트네임, SSH 키 와 같은 것들(다 같이 가지고 있지만, 각 인스턴스마다 값이 다를 수 있는 것들)
+    - **즉 "이미지 하나로 수천 대의 서로 다른 서버를 찍어내기 위해"** 메타데이터가 필요하고 이를 관리하는 것이 필요하다.
+- 대부분의 환경에서 기본적으로 사용합니다.
+
+**주요 옵션**
+
+- ‎**`nova_metadata_host`**
+    - **역할:** Nova 메타데이터 API가 떠 있는 호스트 주소.
+    - **예시:** ‎`nova_metadata_host = controller.example.com` 또는 컨트롤러 IP.
+- ‎**`nova_metadata_port`**
+    - **역할:** Nova 메타데이터 API 포트.
+    - **기본 예시:** ‎`8775` 등 배포판에 따라 상이.
+- ‎**`metadata_proxy_shared_secret`**
+    - **역할:** Neutron metadata agent와 Nova 메타데이터 서비스 간 인증에 사용되는 공유 비밀값.
+    - **주의:** Nova 측 설정(‎`metadata_proxy_shared_secret`)과 반드시 일치해야 합니다.
+
+더 자세한 옵션은 아래에서 확인 가능합니다
+
+- 세부 옵션
+    
+    ## default
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | true면 로그 레벨을 INFO 대신 DEBUG로 설정. 에이전트 로그가 매우 상세해짐. |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 지정되면 이 파일을 기존 설정에 append하고, 다른 로깅 관련 옵션들은 대부분 무시됨. |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그 레코드의 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠가 설정되면 무시. |
+    | log_file | string | <None> | 로그 파일 이름. 값이 없으면 ‎⁠use_stderr⁠에 따라 stderr로 출력. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_dir | string | <None> | ‎⁠log_file⁠가 상대 경로일 때 기준이 되는 디렉터리. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | watch_log_file | boolean | false | 로그 파일이 이동/삭제될 때 새 파일을 자동으로 다시 여는 핸들러 사용 여부(Linux 전용). ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_syslog | boolean | false | syslog 사용 여부. 기존 포맷은 deprecated. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | syslog_log_facility | string | LOG_USER | syslog facility 이름. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_stderr | boolean | false | stderr 로깅 사용 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | logging_context_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s⁠ | 컨텍스트(요청 ID, 사용자 등)가 있는 로그 메시지 포맷. |
+    | logging_default_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s⁠ | 컨텍스트가 없을 때 기본 로그 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 붙는 디버그용 suffix. |
+    | logging_exception_prefix | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s⁠ | 예외 스택 트레이스 앞에 붙는 prefix. |
+    | logging_user_identity_format | string | ‎⁠%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s⁠ | ‎⁠user_identity⁠ 필드 포맷. |
+    | default_log_levels | list | ‎⁠amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,oslo_messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO⁠ | 패키지별 기본 로그 레벨. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | publish_errors | boolean | false | 에러 이벤트를 별도 채널로 발행할지 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 로그 메시지에 인스턴스 정보가 포함될 때의 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 제한 없음. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 내에서 허용되는 최대 로그 메시지 수. |
+    | rate_limit_except_level | string | CRITICAL | 이 레벨 이상인 로그는 rate limiting에서 제외. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    
+    **metadata agent**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | auth_url | string | <None> | Keystone 인증 URL. keystoneauth1 기반 인증에 사용. |
+    | auth_type | string | password | Keystone 인증 플러그인 타입. 보통 ‎⁠password⁠. |
+    | project_domain_name | string | Default | 프로젝트(테넌트) 도메인 이름. |
+    | user_domain_name | string | Default | 사용자 도메인 이름. |
+    | project_name | string | services | Keystone에서 사용할 프로젝트 이름(예: ‎⁠service⁠ 또는 ‎⁠services⁠). |
+    | username | string | neutron | Keystone 사용자 이름. 보통 neutron 서비스 계정. |
+    | password | string | <None> | 위 username에 해당하는 비밀번호. |
+    | region_name | string | <None> | 서비스 카탈로그 사용 시 region 이름. |
+    | interface | string | internal | Keystone/서비스 엔드포인트에서 사용할 인터페이스(public/internal/admin). |
+    | auth_section | string | <None> | oslo.config에서 keystoneauth 설정을 담은 섹션 이름을 지정할 때 사용. |
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | nova_metadata_host | string | 127.0.0.1 | 연결할 Nova metadata API 서버의 호스트/IP. 컨트롤러 노드 이름이나 VIP를 넣는 경우가 많음. |
+    | nova_metadata_port | integer | 8775 | Nova metadata API 포트 번호. |
+    | nova_metadata_protocol | string | http | Nova metadata API에 접속할 프로토콜(http/https). |
+    | nova_metadata_insecure | boolean | false | HTTPS 사용 시 서버 인증서 검증을 비활성화할지 여부. 테스트 환경에서만 권장. |
+    | nova_client_cert | string | <None> | Nova metadata API에 클라이언트 인증서로 TLS 접속할 때 사용할 인증서 경로. |
+    | nova_client_priv_key | string | <None> | 위 인증서에 대응하는 개인 키 경로. |
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | cache_url | string | memory://?default_ttl=5 | metadata 응답 캐싱에 사용하는 oslo.cache URL. 기본은 메모리 캐시, TTL 5초. |
+    | metadata_workers | integer | <None> | metadata 에이전트 워커 프로세스 수. 설정하지 않으면 CPU 수를 기준으로 자동 결정. |
+    | metadata_backlog | integer | 128 | metadata 에이전트 리스닝 소켓의 backlog 크기(대기 중 연결 큐 길이). |
+    | metadata_host | string | 0.0.0.0 | metadata 에이전트가 바인드할 IP 주소. 보통 0.0.0.0. |
+    | metadata_port | integer | 9697 | L3 네임스페이스에서 접근하는 Neutron metadata 프록시 포트. 기본 9697. |
+    | metadata_proxy_shared_secret | string | <None> | L3 에이전트/노바와 metadata 프록시 간 HMAC 인증용 공유 시크릿. Nova의 ‎⁠metadata_proxy_shared_secret⁠와 반드시 동일해야 함. |
+    | metadata_proxy_user | string | <None> | metadata 프록시 프로세스를 실행할 사용자 이름(권한 분리를 위해 사용 가능). |
+    | metadata_proxy_group | string | <None> | metadata 프록시 프로세스를 실행할 그룹 이름. |
+    | enable_proxy_headers_parsing | boolean | false | HTTP 프로시 환경에서 ‎⁠X-Forwarded-For⁠, ‎⁠X-Forwarded-Proto⁠ 등의 헤더를 신뢰하고 파싱할지 여부. 로드밸런서 뒤에 둘 때 사용. |
+    
+
+## **openvswitch_agent.ini**
+
+역할 요약
+
+- Open vSwitch(OVS)를 이용해 가상 스위치를 구성하고,
+Neutron 네트워크를 OVS 브리지/포트로 매핑하는 L2 에이전트입니다.
+
+언제 쓰는지
+
+- **OVS 기반 네트워크**를 사용할 때.
+- VXLAN, GRE 등 터널 네트워크를 활용하는 환경에서 가장 많이 사용되는 에이전트입니다.
+- 주로 컴퓨트 노드와 네트워크 노드에 배치됩니다.
+
+주요 옵션
+
+- ‎**`local_ip`**
+    - **역할:** 터널 네트워크의 엔드포인트 IP.
+    - **예시:** ‎`local_ip = 10.0.0.10`
+- ‎**`tunnel_types`**
+    - **역할:** 사용할 터널 종류 지정.
+    - **예시 값:** ‎`vxlan`, ‎`gre`, ‎`geneve` 등
+    - **예시:** ‎`tunnel_types = vxlan`
+- ‎**`bridge_mappings`**
+    - **역할:** provider 네트워크 → OVS 브리지 매핑.
+    - **예시:** ‎`provider:br-provider`
+    - **의미:** ‎`provider` 타입 네트워크는 호스트의 ‎`br-provider` 브리지를 통해 외부와 연결.
+- ‎**`of_interface`** / ‎**`ovsdb_interface`**
+    - **역할:** OVS와 통신할 때 사용할 인터페이스(라이브러리) 유형.
+    - **일반적으로:** 기본값 사용.
+
+더 자세한 옵션은 아래에서 확인 가능합니다
+
+- 세부 옵션
+    
+    **[DEFAULT]** 
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | true면 로그 레벨을 INFO 대신 DEBUG로 설정. |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 지정 시 이 파일 내용이 기존 설정에 append되고, 다른 로깅 옵션들은 대부분 무시됨. |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그 레코드의 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_file | string | <None> | 로그 파일 이름. 미설정 시 stderr로 출력(‎⁠use_stderr⁠에 따름). ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_dir | string | <None> | ‎⁠log_file⁠가 상대 경로일 때 기준 디렉터리. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | watch_log_file | boolean | false | 로그 파일 이동/삭제 시 새 파일을 자동으로 다시 여는 핸들러 사용 여부(Linux 전용). ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_syslog | boolean | false | syslog 사용 여부. 기존 syslog 포맷은 deprecated. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | syslog_log_facility | string | LOG_USER | syslog facility 이름. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_stderr | boolean | false | stderr 로깅 사용 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | logging_context_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s⁠ | 컨텍스트(요청 ID, 사용자 등)가 있는 로그 메시지 포맷. |
+    | logging_default_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s⁠ | 컨텍스트가 없을 때 기본 로그 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 붙는 디버그용 suffix. |
+    | logging_exception_prefix | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s⁠ | 예외 스택 트레이스 앞에 붙는 prefix. |
+    | logging_user_identity_format | string | ‎⁠%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s⁠ | ‎⁠user_identity⁠ 포맷. |
+    | default_log_levels | list | ‎⁠amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,oslo_messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO⁠ | 패키지별 기본 로그 레벨. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | publish_errors | boolean | false | 에러 이벤트를 별도의 채널로 publish할지 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 로그 메시지에 인스턴스 정보가 포함될 때의 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 rate limiting 비활성. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 내에서 허용되는 최대 로그 수. |
+    | rate_limit_except_level | string | CRITICAL | 이 레벨 이상인 로그는 rate limiting에서 제외. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    
+    버전에 따라 [DEFAULT]에 ‎`state_path` 또는 ‎`host` 같은 공통 Neutron 옵션이 같이 존재하기도 합니다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | state_path | string | /var/lib/neutron | 에이전트 상태/임시 파일을 저장할 기본 디렉터리. |
+    | host | string | (호스트 이름) | 에이전트가 자신을 보고할 때 쓰는 호스트 ID. 기본은 시스템 호스트명. |
+    
+    **[ovs]**
+    
+    OVS 브리지와 터널 설정을 담당하는 핵심 섹션이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | integration_bridge | string | br-int | 테넌트 포트가 연결되는 통합 브리지 이름. 대부분 ‎⁠br-int⁠. |
+    | tunnel_bridge | string | br-tun | 터널 네트워크용 브리지 이름. VXLAN/GRE 터널 인터페이스가 붙음. |
+    | local_ip | IP 주소 | <None> | VXLAN/GRE/Geneve 터널의 로컬 엔드포인트 IP. 이 노드의 NIC에 실제 존재하는 IPv4/IPv6 주소여야 함. |
+    | bridge_mappings | list | (빈 값) | ‎⁠physical_network:bridge_name⁠ 리스트. 예: ‎⁠physnet1:br-ex,physnet2:br-storage⁠. 프로바이더/외부 네트워크를 특정 OVS 브리지에 매핑. |
+    | datapath_type | string | system | OVS datapath 타입. ‎⁠system⁠(커널 OVS), ‎⁠netdev⁠ 등. DPDK 사용 시 ‎⁠netdev⁠로 설정. |
+    | vhostuser_socket_dir | string | /var/run/openvswitch | vhost‑user 소켓을 둘 디렉터리. DPDK/OVS + QEMU vhost-user 조합에서 사용. |
+    | of_connect_timeout | integer | 300 | OVS vswitchd와 OpenFlow 연결을 맺을 때 타임아웃(초). |
+    | of_request_timeout | integer | 10 | OpenFlow 요청에 대한 응답을 기다리는 시간(초). |
+    | of_inactivity_probe | integer | 10 | OpenFlow keepalive(inactivity probe) 간격(초). 0이면 비활성화. |
+    | ovsdb_timeout | integer | 10 | OVSDB 요청 타임아웃(초). |
+    | ovsdb_connection | string | unix:/var/run/openvswitch/db.sock | OVSDB 서버 URI. 기본은 로컬 unix 소켓. |
+    | ovsdb_debug | boolean | false | OVSDB 인터랙션 관련 디버그 정보 출력 여부. |
+    
+    버전에 따라 다음과 같은 필드도 함께 존재한다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | prevent_arp_spoofing | boolean | true | L2 레벨에서 ARP 스푸핑 방지를 위한 플로우를 OVS에 추가할지 여부. 일부 버전에서는 [agent] 섹션에 위치. |
+    | use_veth_interconnection | boolean | false | 특정 상호연결에서 veth pair를 사용할지 여부(리눅스 네임스페이스/브리지 조합). |
+    
+    **[agent]**
+    
+    에이전트의 동작 방식, 폴링 주기, DVR, L2 population 등과 관련된 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | polling_interval | integer | 2 | 로컬 디바이스/포트 상태를 폴링하는 주기(초). 너무 짧으면 CPU 부하 증가. |
+    | minimize_polling | boolean | true | 이벤트 기반 최적화를 활용해 불필요한 폴링을 줄일지 여부. |
+    | tunnel_types | list | (빈 값) | 사용할 터널 타입 목록. 예: ‎⁠vxlan⁠, ‎⁠gre⁠, ‎⁠geneve⁠. 비워두면 터널 비활성 상태. |
+    | l2_population | boolean | false | ML2 L2 population 메커니즘 사용 여부. 활성화하면 브로드캐스트를 줄이고 유니캐스트 기반 포워딩을 위해 OVS 플로우를 미리 설치. |
+    | arp_responder | boolean | false | 로컬 ARP responder를 활성화하여 오버레이 네트워크에서 ARP 브로드캐스트 대신 로컬 응답을 사용. allowed‑address‑pairs 기능과 완전 호환되지 않을 수 있음. |
+    | enable_distributed_routing | boolean | false | DVR(Distributed Virtual Routing) 사용 여부. True면 이 노드에서 분산 L3 기능을 수행. |
+    | enable_tunneling | boolean | true | 터널링 기능 사용 여부. ‎⁠tunnel_types⁠를 설정하면 자동으로 활성화되는 경우가 많음. |
+    | drop_flows_on_start | boolean | false | 에이전트 시작 시 기존 OpenFlow 플로우를 모두 제거할지 여부. 재설치가 필요한 장애 복구 상황에서 사용. |
+    | physical_network_vlan_mappings | list | (빈 값) | 일부 버전에서 VLAN 맵핑에 쓰이는 추가 옵션. 일반적으로는 ‎⁠bridge_mappings⁠로 충분. |
+    | extension_drivers / extensions | list | (빈 값) | 에이전트 레벨 확장 목록. 예: QoS, availability zone extensions 등. |
+    | prevent_arp_spoofing | boolean | true | (버전에 따라 여기 위치) 인스턴스의 허용된 IP/포트만 ARP 응답하도록 플로우를 설치. |
+    
+    또한 상태 리포트/agent_down_time 관련 옵션들이 추가로 있을 수 있다:
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | report_interval | integer | 30 | 에이전트가 Neutron 서버에 상태를 보고하는 주기(초). |
+    | agent_down_time | integer | 75 | 서버가 에이전트를 down으로 간주하는 기준 시간(초). 일반적으로 report_interval의 2~3배. |
+    
+    **[securitygroup]** 
+    
+    OVS 환경에서 보안 그룹(iptables-hybrid/OVS native 등)을 어떻게 처리할지 정의한다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | firewall_driver | string | ‎⁠iptables_hybrid⁠ (또는 <None>) | 보안 그룹 방화벽 드라이버. OVS 환경에서는 ‎⁠neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver⁠(iptables_hybrid) 같은 하이브리드 드라이버를 자주 사용. |
+    | enable_security_group | boolean | true | Neutron 보안 그룹 기능 활성화 여부. false로 두면 모든 트래픽이 허용되거나, 별도 외부 방화벽에 의존. |
+    | enable_ipset | boolean | true | iptables 기반 보안 그룹에서 ipset 사용 여부. 대량의 IP/포트를 처리할 때 성능 개선에 도움. |
+    | firewall_log_rate_limit | integer | 0 | (버전에 따라 존재) 보안 그룹 룰 로그의 rate limit. 0이면 제한 없음. |
+    
+
+## **sriov_agent.ini**
+
+역할 요약
+
+- SR-IOV NIC를 사용하여, 인스턴스에 **가상 기능(VF)** 를 직접 할당하는 L2 에이전트입니다.
+- 고성능/저지연 네트워크가 필요한 워크로드에서 사용합니다.
+
+언제 쓰는지
+
+- 호스트에 SR-IOV 지원 NIC가 있고, 인스턴스에 **직접 VF를 붙여야 할 때** 사용합니다.
+- 일반적인 가상 스위치(Linux Bridge, OVS) 경로를 우회하여 네트워크 성능을 끌어올리는 경우에 적용합니다.
+
+주요 옵션 (개요 수준)
+
+- ‎**`physical_device_mappings`**
+    - **역할:** 논리 네트워크 이름 → 물리 SR-IOV NIC 매핑.
+    - **예시:** ‎`physnet1:eth2`
+    - **의미:** ‎`physnet1` 네트워크는 호스트의 ‎`eth2` SR-IOV NIC를 사용.
+- ‎**`exclude_devices`**
+    - **역할:** SR-IOV 관리 대상에서 제외할 VF 목록.
+    - **예시:** ‎`eth2:0000:03:10.1;0000:03:10.2`
+    - **사용 이유:** 특정 VF는 호스트 용도로 예약하거나, 다른 용도로 사용할 때.
+
+더 자세한 옵션은 아래에서 확인 가능합니다
+
+- 세부 옵션
+    
+    **[DEFAULT] 섹션**
+    
+    SR-IOV 에이전트도 다른 Neutron 에이전트와 동일하게 oslo.log 기반 공통 옵션을 가진다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | true면 로그 레벨을 INFO 대신 DEBUG로 설정. |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 지정되면 이 파일 내용이 기존 설정에 추가되고, 다른 로깅 옵션은 대부분 무시됨. |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_file | string | <None> | 로그 파일 이름. 설정하지 않으면 ‎⁠use_stderr⁠에 따라 stderr로 출력. |
+    | log_dir | string | <None> | ‎⁠log_file⁠가 상대 경로일 때 기준 디렉터리. |
+    | watch_log_file | boolean | false | 로그 파일 이동/삭제 시 새 파일을 자동으로 다시 여는 핸들러 사용 여부(Linux 전용). |
+    | use_syslog | boolean | false | syslog 사용 여부. 기존 포맷은 deprecated. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. |
+    | syslog_log_facility | string | LOG_USER | syslog facility 이름. |
+    | use_stderr | boolean | false | stderr 로깅 사용 여부. |
+    | logging_context_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s⁠ | 컨텍스트(요청 ID, 사용자 등)를 포함한 로그 포맷. |
+    | logging_default_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s⁠ | 컨텍스트가 없을 때 기본 로그 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 붙는 디버그용 suffix. |
+    | logging_exception_prefix | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s⁠ | 예외 출력 앞에 붙는 prefix. |
+    | logging_user_identity_format | string | ‎⁠%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s⁠ | ‎⁠user_identity⁠ 포맷. |
+    | default_log_levels | list | ‎⁠amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,oslo_messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO⁠ | 패키지별 기본 로그 레벨. |
+    | publish_errors | boolean | false | 에러 이벤트를 별도 채널로 publish할지 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 로그에 인스턴스가 포함될 때의 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 rate limiting 비활성. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 내에서 허용되는 최대 로그 수. |
+    | rate_limit_except_level | string | CRITICAL | 이 레벨 이상인 로그는 rate limiting에서 제외. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    | host | string | (호스트 이름) | 에이전트가 자신을 보고할 때 사용하는 host ID. 기본은 시스템 호스트명. |
+    | state_path | string | /var/lib/neutron | 에이전트 상태/임시 파일을 저장할 기본 디렉터리. |
+    
+    **[agent] 섹션**
+    
+    SR-IOV Nic Switch agent 자체의 동작과 관련된 옵션이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | polling_interval | integer | 2 | 에이전트가 로컬 SR-IOV 디바이스 상태(포트, VF 등)를 폴링하는 주기(초). 너무 짧으면 CPU 부하 증가. |
+    | report_interval | integer | 30 | 에이전트가 Neutron 서버에 상태를 보고하는 주기(초). |
+    | extensions | list | (빈 값) | SR-IOV 에이전트 확장 목록. QoS, QoS minimum bandwidth 같은 확장이 여기로 들어가는 경우가 있음. |
+    | rp_bandwidths | list | (버전에 따라 존재) | Placement 리소스 프로바이더 대역폭 광고에 사용. 예: ‎⁠phy:10000:10000⁠ 형식. |
+    | rp_hypervisors | list | (버전에 따라 존재) | Placement에 리포트할 hypervisor 이름 매핑. |
+    | rp_inventory_defaults | dict | (버전에 따라 존재) | Placement inventory 기본 속성(예약률, 할당 비율 등). |
+    
+    report_interval/rp_* 옵션은 Placement와 통합하는 최신 Neutron에서 등장하는 경우가 많아, 실제 배포 버전에 따라 보이거나 안 보일 수 있다.
+    
+    **[sriov_nic] 섹션**
+    
+    이 섹션이 SR-IOV agent의 핵심이다. 물리 PF와 물리 네트워크 이름 매핑, 제외할 VF 등을 정의한다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | physical_device_mappings | list | (빈 값) | ‎⁠physical_network:PF_interface⁠ 목록. 예: ‎⁠physnet1:ens2f0,physnet2:ens2f1⁠. 각 PF 인터페이스를 Neutron의 물리 네트워크 이름과 매핑한다. 이 PF에서 생성된 VF들이 해당 physnet에 사용된다. |
+    | exclude_devices | list | (빈 값) | SR-IOV 관리 대상에서 제외할 VF들을 지정. 형식은 ‎⁠PF_interface:VF_PCI_ADDRESS⁠ 또는 ‎⁠PF_interface:VF_range⁠. 예: ‎⁠ens2f0:0000:af:00.3⁠. NIC의 일부 VF를 다른 용도로 사용하거나, 장애가 있는 VF를 제외할 때 사용. |
+    | resource_provider_bandwidths | list | (버전별) | Placement에 VF 대역폭을 광고하기 위한 설정. 예: ‎⁠ens2f0:10000:10000⁠ (총/보장 대역폭). |
+    | resource_provider_hypervisors | list | (버전별) | 각 물리 디바이스에 대해 hypervisor 이름을 지정해 Placement와의 매핑을 구성. |
+    | resource_provider_default_hypervisor | string | (버전별) | 위 hypervisors 리스트에 없는 디바이스에 적용할 기본 hypervisor 이름. |
+    | resource_provider_inventory_defaults | dict | (버전별) | Placement inventory의 기본 설정(예약 비율, 할당 비율 등)을 key=value 형태로 지정. |
+    
+    배포에 따라 이름이 ‎`resource_provider_*` 대신 ‎`rp_*` 프리픽스로 바뀐 버전도 있으니, 실제 사용하는 OpenStack 버전의 문서에서 정확한 키 이름만 맞춰주면 된다. 구조(“PF마다 bandwidth/hypervisor 정보를 Placement에 보고한다”)는 동일하다.
+    
+    **(선택적) [securitygroup] 섹션**
+    
+    일부 배포/버전에서는 SR-IOV 포트에도 보안 그룹을 적용하기 위해 securitygroup 관련 섹션이 붙기도 한다. SR-IOV는 L2 switch offload를 많이 하므로, 실제로는 **보안 그룹 미지원** 또는 제한적 지원일 수 있다.
+    
+    존재하는 경우 흔한 옵션은 다음과 같다:
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | firewall_driver | string | <None> | SR-IOV 포트에 적용할 수 있는 방화벽 드라이버. 많은 환경에서 SR-IOV port에는 L2 offload 때문에 보안 그룹을 쓰지 않거나, 별도 하드웨어 방화벽을 사용한다. |
+    | enable_security_group | boolean | true/false | Neutron 보안 그룹을 SR-IOV 포트에 적용할지 여부. 실제 지원 여부는 NIC와 드라이버에 따라 다름. |
+    
+    이 섹션은 버전에 따라 아예 없기도 하고, neutron.conf/ml2_conf 쪽에서만 보안 그룹을 제어하기도 하므로, “있을 수 있는” 정도로 이해하고 노션에는 “SR-IOV 환경에서는 보안 그룹 적용이 제한적”이라는 메모와 함께 정리해 두는 편이 좋다.
+    
+    여기까지가 **sriov_agent.ini에서 사용되는 섹션과 옵션 전체**를 정리한 것이다(공식 SR-IOV Nic Switch agent 문서 기준, 주석에 등장하는 옵션 포함).
+    
+
+## **metering_agent.ini**
+
+역할 요약
+
+- Neutron 라우터를 기준으로 **트래픽 사용량(미터링 정보)** 을 수집하는 에이전트입니다.
+- 대역폭 사용량, 과금/통계 등의 용도로 활용할 수 있는 데이터를 제공합니다.
+
+언제 쓰는지
+
+- 테넌트별/라우터별 트래픽 사용량을 기록해야 하는 환경에서 사용합니다.
+- 미터링/과금/리포팅 기능을 활성화할 때 유용합니다.
+
+주요 옵션 (개요 수준)
+
+- ‎**`driver`**
+    - **역할:** 어떤 미터링 드라이버를 사용할지 지정.
+    - **예시:** ‎`neutron.services.metering.drivers.iptables.iptables_driver.IptablesMeteringDriver` 등
+- ‎**`interface_driver`**
+    - **역할:** l3/dhcp와 마찬가지로 네임스페이스 내 인터페이스를 관리하기 위한 드라이버.
+    - **예시:** OVS 환경이면 ‎`neutron.agent.linux.interface.OVSInterfaceDriver`
+- ‎**`measure_interval`**
+    - **역할:** 트래픽을 측정하는 간격(초 단위).
+    - **예시:** ‎`measure_interval = 30`
+- ‎**`report_interval`**
+    - **역할:** 수집된 미터링 데이터를 보고(전송)하는 간격.
+
+더 자세한 옵션은 아래에서 확인 가능합니다
+
+- 세부 옵션
+    
+    **[DEFAULT] 섹션**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | true면 로그 레벨을 INFO 대신 DEBUG로 설정(재시작 없이 변경 가능). |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 지정 시 이 파일의 설정이 기존 로깅 설정에 추가되고, 다른 로깅 옵션들은 무시됨(재시작 없이 변경 가능). |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그 레코드의 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_file | string | <None> | 로그를 보낼 파일 이름. 설정하지 않으면 ‎⁠use_stderr⁠에 따라 stderr로 출력. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_dir | string | <None> | ‎⁠log_file⁠가 상대 경로일 때 기준 디렉터리. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | watch_log_file | boolean | false | 로그 파일이 이동/삭제될 때 새 파일을 자동으로 다시 여는 핸들러 사용 여부(Linux 전용). ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_syslog | boolean | false | syslog 사용 여부. 기존 포맷은 deprecated이고, 향후 RFC5424 형식으로 변경 예정. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | syslog_log_facility | string | LOG_USER | syslog facility 이름. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_stderr | boolean | false | stderr 로깅 사용 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | logging_context_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s⁠ | 컨텍스트(요청 ID, 사용자 등)가 있는 로그 메시지 포맷. |
+    | logging_default_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s⁠ | 컨텍스트가 없을 때 기본 로그 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 추가되는 디버그용 suffix. |
+    | logging_exception_prefix | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s⁠ | 예외 스택 트레이스 앞에 붙는 prefix. |
+    | logging_user_identity_format | string | ‎⁠%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s⁠ | ‎⁠user_identity⁠ 필드 포맷. |
+    | default_log_levels | list | ‎⁠amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,oslo_messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO⁠ | 패키지별 기본 로그 레벨 목록(‎⁠logger=LEVEL⁠ 쌍). ‎⁠log_config_append⁠ 설정 시 무시. |
+    | publish_errors | boolean | false | 에러 이벤트를 별도 채널로 발행할지 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 로그 메시지에 인스턴스 정보가 포함될 때의 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 rate limiting 비활성. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 내에서 허용되는 최대 로그 메시지 수. |
+    | rate_limit_except_level | string | CRITICAL | rate limiting에 사용하는 기준 레벨. 이 레벨 이상인 로그는 필터링하지 않음. 빈 문자열이면 모든 레벨이 필터링 대상. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    
+    **[agent] 섹션**
+    
+    metering agent 자체의 Heartbeat/상태 보고와 관련된 옵션이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | report_interval | float | 30 | 노드가 Neutron 서버로 상태를 보고하는 간격(초). ‎⁠agent_down_time⁠보다 작아야 하고, 일반적으로 그 절반 이하로 설정하는 것이 좋다. |
+    | log_agent_heartbeats | boolean | false | 에이전트 Heartbeat를 로그에 남길지 여부. true로 두면 주기적으로 “agent is alive” 형태 로그가 찍힌다. |
+    
+    **[ovs] 섹션**
+    
+    OVSDB와 상호작용하는 방식에 대한 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | ovsdb_interface | string | native | OVSDB와 상호작용할 때 사용할 인터페이스. ‎⁠native⁠: Python native OVSDB 라이브러리 사용, ‎⁠vsctl⁠: ‎⁠ovs-vsctl⁠ CLI를 호출. |
+    | ovsdb_connection | string | tcp:127.0.0.1:6640 | OVSDB 백엔드 연결 문자열. native OVSDB 인터페이스를 사용할 때뿐만 아니라, 모니터링과 모든 OVSDB 명령에 사용된다. TCP, UNIX 소켓 등으로 지정 가능. |
+    
+
+아래는 문서 기반으로 정리하다보니 ml2와 neutron 자체 설정값도 정리하게 되어서 공부 목적으로 작성만 해놓았습니다.
+
+## ml2_conf.ini
+
+- **역할:** ML2(플러그형 L2 플러그인)의 동작을 정의하는 핵심 설정 파일입니다.
+- **주요 내용:**
+    - 사용할 네트워크 타입: ‎`type_drivers` (예: ‎`local,flat,vlan,vxlan`)
+    - 테넌트 네트워크에 허용할 타입: ‎`tenant_network_types`
+    - 사용할 메커니즘 드라이버: ‎`mechanism_drivers` (예: ‎`openvswitch`, ‎`linuxbridge`, ‎`sriovnicswitch`)
+    - 물리 네트워크와 실제 인터페이스/브리지 매핑: ‎`ml2_type_flat`, ‎`ml2_type_vlan` 섹션 등.
+
+이 파일에서 “어떤 L2 기술/드라이버를 쓸지”를 결정하고,
+
+각 호스트에서는 해당하는 에이전트(linuxbridge-agent, openvswitch-agent, sriov-agent 등)가 실제 동작을 담당합니다.
+
+- 옵션
+    
+    **[DEFAULT] 섹션**
+    
+    oslo.log 공통 옵션이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | true면 로그 레벨을 INFO 대신 DEBUG로 설정(재시작 없이 변경 가능). |
+    | log_config_append | string | <None> | 로깅 설정 파일 경로. 지정 시 이 파일의 설정이 기존 설정에 append되고, 다른 로깅 옵션 대부분은 무시됨(재시작 없이 변경 가능). |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그 레코드의 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_file | string | <None> | 로그 파일 이름. 설정하지 않으면 ‎⁠use_stderr⁠에 따라 stderr로 출력. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_dir | string | <None> | ‎⁠log_file⁠가 상대 경로일 때 기준 디렉터리. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | watch_log_file | boolean | false | 로그 파일 이동/삭제를 감지해서 새 파일을 즉시 다시 여는 핸들러 사용 여부(Linux 전용). ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_syslog | boolean | false | syslog 사용 여부. 기존 syslog 포맷은 deprecated. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | syslog_log_facility | string | LOG_USER | syslog facility 이름. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | use_stderr | boolean | false | stderr 로깅 사용 여부. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | logging_context_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s⁠ (또는 최신 버전에서는 ‎⁠global_request_id⁠ 포함) | 컨텍스트(요청 ID, 사용자 등)가 있는 로그 메시지 포맷. |
+    | logging_default_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s⁠ | 컨텍스트가 없을 때 기본 로그 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 추가되는 디버그용 suffix. |
+    | logging_exception_prefix | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s⁠ | 예외 스택 트레이스 앞에 붙는 prefix. |
+    | logging_user_identity_format | string | ‎⁠%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s⁠ (또는 최신 버전에서는 ‎⁠system_scope⁠ 포함) | ‎⁠user_identity⁠ 필드 포맷. |
+    | default_log_levels | list | 다수 패키지=WARN/INFO | 패키지별 기본 로그 레벨(예: ‎⁠sqlalchemy=WARN⁠ 등). ‎⁠log_config_append⁠ 설정 시 무시. |
+    | publish_errors | boolean | false | 에러 이벤트를 별도 채널로 publish할지 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 로그에 인스턴스 정보가 포함될 때 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 비활성. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 내에서 허용되는 최대 로그 수. |
+    | rate_limit_except_level | string | CRITICAL | 이 레벨 이상인 로그는 rate limiting에서 제외. 빈 문자열이면 모든 레벨이 필터 대상. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    
+    **[l2pop] 섹션**
+    
+    L2 population 메커니즘 드라이버 관련 옵션이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | agent_boot_time | integer | 180 | 에이전트가 재시작 후 기존 포트를 업데이트할 것으로 기대되는 최대 지연 시간(초). 이 시간동안은 L2 population이 포트 상태 반영을 기다리는 데 사용. |
+    
+    **[ml2] 섹션**
+    
+    ML2 플러그인 핵심 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | type_drivers | list | local,flat,vlan,gre,vxlan,geneve | 사용할 네트워크 타입 드라이버 목록. ‎⁠neutron.ml2.type_drivers⁠ 네임스페이스에서 엔트리포인트로 로드. 예: ‎⁠flat,vlan,vxlan⁠. |
+    | tenant_network_types | list | local | 테넌트 네트워크로 할당할 네트워크 타입 목록(순서 중요). ‎⁠local⁠은 단일 노드 테스트용(호스트 간 연결 없음). 일반 배포에서는 ‎⁠vxlan⁠, ‎⁠vlan⁠ 등 사용. |
+    | mechanism_drivers | list | (빈 값) | 사용할 메커니즘 드라이버 목록. 예: ‎⁠openvswitch⁠, ‎⁠linuxbridge⁠, ‎⁠sriovnicswitch⁠, ‎⁠l2population⁠ 등. ‎⁠neutron.ml2.mechanism_drivers⁠ 네임스페이스에서 로드. |
+    | extension_drivers | list | (빈 값) | ML2 리소스를 확장하는 extension 드라이버 목록. 예: ‎⁠port_security,qos⁠ 등. |
+    | path_mtu | integer | 0 | 오버레이/터널 네트워크를 사용할 때, 물리 네트워크에서 단편화 없이 전달 가능한 최대 IP 패킷 크기(MTU). 0이면 ‎⁠global_physnet_mtu⁠/기본값에 따름. |
+    | physical_network_mtus | list/dict | (빈 값) | ‎⁠physnet:mtu⁠ 형태의 매핑 리스트. 특정 물리 네트워크에 대해 전역 MTU와 다른 값을 사용할 때 지정. 예: ‎⁠physnet1:9000,physnet2:1500⁠. |
+    | external_network_type | string | <None> | provider 속성을 지정하지 않고 외부 네트워크를 만들 때 사용할 기본 네트워크 타입. 지정하지 않으면 테넌트 네트워크와 동일한 타입을 사용. 허용 값은 ‎⁠type_drivers⁠에 지정된 타입에 따라 달라짐. |
+    | overlay_ip_version | integer | 4 | 모든 오버레이(터널) 엔드포인트에 사용할 IP 버전. 4 또는 6 중 하나. |
+    
+    (최신 문서에는 ‎`tunnelled_network_rp_name` 등 OVN/Placement 관련 항목이 추가되지만, 일반적인 ml2_conf.ini에서는 위 항목이 핵심이다. [⁠](https://docs.openstack.org/neutron/latest/configuration/ml2-conf.html))
+    
+    **[ml2_type_flat] 섹션**
+    
+    Flat 네트워크 타입 설정.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | flat_networks | list | * | flat 네트워크를 만들 수 있는 physical_network 이름 목록. 기본 ‎⁠*⁠는 임의의 physnet 이름 사용 허용. 빈 리스트로 두면 flat 네트워크를 비활성화. |
+    
+    **[ml2_type_geneve] 섹션**
+    
+    Geneve 오버레이 네트워크 타입 설정.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | vni_ranges | list | (빈 값) | Geneve VNI ID 범위 목록. ‎⁠<vni_min>:<vni_max>⁠ 튜플을 쉼표로 구분해 나열. 예: ‎⁠1:1000,2000:3000⁠. 테넌트 네트워크에 할당 가능한 VNI 풀을 정의. |
+    | max_header_size | integer | 30 | Geneve encapsulation 헤더 최대 크기(바이트). ETH+IP+UDP+Geneve 헤더의 합으로, 이 값을 기준으로 MTU가 계산된다. 기본 30은 옵션 헤더 없는 순수 Geneve 헤더 크기 기준. OVN 환경에서는 최소 38 이상 권장. |
+    
+    **[ml2_type_gre] 섹션**
+    
+    GRE 터널 네트워크 타입 설정.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | tunnel_id_ranges | list | (빈 값) | GRE 터널 ID 범위 목록. ‎⁠<tun_min>:<tun_max>⁠ 튜플을 쉼표로 구분해 나열. 예: ‎⁠1:1000,2000:4094⁠. 이 범위 내에서 테넌트 GRE 네트워크가 할당됨. |
+    
+    **[ml2_type_vlan] 섹션**
+    
+    VLAN 네트워크 타입 설정.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | network_vlan_ranges | list | (빈 값) | VLAN을 사용할 수 있는 물리 네트워크와 VLAN ID 범위 정의. 형식은 ‎⁠<physical_network>:<vlan_min>:<vlan_max>⁠ 또는 ‎⁠<physical_network>⁠ 단독. 예: ‎⁠physnet1:100:200,physnet2⁠. 범위를 지정하지 않으면 [1,4094] 전체를 할당 가능 범위로 사용. |
+    
+    **[ml2_type_vxlan] 섹션**
+    
+    VXLAN 오버레이 네트워크 타입 설정.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | vni_ranges | list | (빈 값) | VXLAN VNI ID 범위 목록. ‎⁠<vni_min>:<vni_max>⁠ 튜플을 쉼표로 구분. 예: ‎⁠1:100000⁠. 이 범위 내에서 테넌트 VXLAN 네트워크가 할당됨. |
+    | vxlan_group | string | <None> | VXLAN 멀티캐스트 그룹 주소. 설정하면 broadcast 트래픽을 이 멀티캐스트 그룹으로 전송하는 멀티캐스트 VXLAN 모드 활성화. 비워두면 멀티캐스트 VXLAN 모드는 비활성화. (OVS 기반 에이전트에서는 보통 사용 안 함.) |
+    
+    **[securitygroup] 섹션**
+    
+    ML2/에이전트에서 보안 그룹 처리 방식을 정의한다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | firewall_driver | string | <None> | L2 에이전트에서 보안 그룹 방화벽을 구현할 드라이버. 예: OVS 하이브리드 iptables 드라이버, LinuxBridge iptables 드라이버 등. |
+    | enable_security_group | boolean | true | Neutron 보안 그룹 API 활성화 여부. Nova 보안 그룹만 쓰거나, 전혀 사용하지 않을 때 false. |
+    | enable_ipset | boolean | true | iptables 기반 보안 그룹에서 IPset 사용 여부. 대량의 IP/포트를 처리할 때 성능 향상. |
+    
+    **[ovn] 섹션**
+    
+    OVN Northbound/Southbound DB 연결, DHCP, 메타데이터 등 OVN 통합 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | ovn_nb_connection | list | [‘tcp:127.0.0.1:6641’] | OVN Northbound OVSDB 연결 문자열 목록. ‎⁠tcp:IP:PORT⁠, ‎⁠ssl:IP:PORT⁠, ‎⁠unix:FILE⁠ 형식 지원. 여러 개를 콤마로 지정 가능. |
+    | ovn_nb_private_key | string | ‘’ | OVN Northbound DB에 SSL로 접속할 때 사용할 프라이빗 키(PEM 파일) 경로. |
+    | ovn_nb_certificate | string | ‘’ | 위 private key를 인증하는 인증서(PEM) 경로. |
+    | ovn_nb_ca_cert | string | ‘’ | OVN이 SSL 피어 인증서를 검증할 때 사용할 CA 인증서(PEM) 경로. |
+    | ovn_sb_connection | list | [‘tcp:127.0.0.1:6642’] | OVN Southbound OVSDB 연결 문자열 목록. ‎⁠tcp:⁠, ‎⁠ssl:⁠, ‎⁠unix:⁠ 형식 지원, 여러 개 지정 가능. |
+    | ovn_sb_private_key | string | ‘’ | OVN Southbound DB에 SSL로 접속할 때 사용할 프라이빗 키 경로. |
+    | ovn_sb_certificate | string | ‘’ | 위 SB private key를 인증하는 인증서 경로. |
+    | ovn_sb_ca_cert | string | ‘’ | OVN Southbound DB SSL 피어 인증서 검증용 CA 인증서 경로. |
+    | ovsdb_connection_timeout | integer | 180 | OVN NB/SB OVSDB 트랜잭션 타임아웃(초). |
+    | ovsdb_retry_max_interval | integer | 180 | OVN NB/SB IDL 연결 재시도 사이의 최대 간격(초). |
+    | ovsdb_probe_interval | integer | 60000 | OVSDB 세션 keepalive(프로브) 간격(밀리초). 0이면 keepalive 비활성. 0이 아니면 최소 1000으로 강제. |
+    | neutron_sync_mode | string | log | Neutron DB와 OVN Northbound DB 사이 동기화 모드. ‎⁠off⁠(동기화 안함), ‎⁠log⁠(차이만 로그), ‎⁠repair⁠(자동 수정), ‎⁠migrate⁠(OVS→OVN 마이그레이션 시 사용). |
+    | ovn_l3_scheduler | string | leastloaded | OVN L3 스케줄러 타입. ‎⁠leastloaded⁠: 게이트웨이 포트가 가장 적은 chassis 선택. ‎⁠chance⁠: 랜덤 선택. |
+    | enable_distributed_floating_ip | boolean | False | True면 Floating IP NAT를 중앙 게이트웨이 대신 로컬(각 compute)에서 처리(분산 FIP). 각 compute 노드에 ‎⁠ovn-bridge-mappings⁠ 등 물리 네트워크 매핑이 필요. |
+    | vhost_sock_dir | string | /var/run/openvswitch | vswitch 데몬들이 vhost virtio 소켓을 만드는 디렉터리. |
+    | dhcp_default_lease_time | integer | 43200 | OVN native DHCP 서비스의 기본 리스 시간(초). |
+    | ovsdb_log_level | string | INFO | OVSDB 로깅 레벨. CRITICAL/ERROR/WARNING/INFO/DEBUG 중 하나. |
+    | ovn_metadata_enabled | boolean | False | OVN의 메타데이터 서비스 사용 여부. True면 OVN 메타데이터 path 사용. |
+    | dns_servers | list | [] | 서브넷의 ‎⁠dns_nameservers⁠가 비어 있을 때 포워더로 사용할 DNS 서버 목록. 여기와 dns_nameservers 둘 다 비어 있으면 neutron-server 호스트의 리졸버 사용. |
+    | dns_records_ovn_owned | boolean | False | True면 DNS 레코드를 로컬 OVN이 소유/응답(OVN 24.03+). False면 구성된 외부 DNS 서버로 포워딩. |
+    | ovn_dhcp4_global_options | dict | {} | 모든 서브넷에 전역적으로 적용할 DHCPv4 옵션 딕셔너리. 예: ‎⁠ntp_server:1.2.3.4,wpad:1.2.3.5;1.2.3.6⁠. 빈 값은 해당 옵션 전역 해제. |
+    | ovn_dhcp6_global_options | dict | {} | DHCPv6 전역 옵션 딕셔너리. 빈 값은 해당 옵션 전역 해제. |
+    | disable_ovn_dhcp_for_baremetal_ports | boolean | False | baremetal 포트(VNIC type ‘baremetal’)에 대해 OVN 내장 DHCP 비활성화. 자체 DHCP 서버로 PXE 부팅할 때 사용. OVN 23.06 이전에 IPv6 PXE가 필요하면 True로 설정하고 neutron-dhcp-agent 사용. |
+    | localnet_learn_fdb | boolean | False | True면 localnet 포트가 MAC을 학습하고 FDB SB 테이블에 저장, port-security 비활성 상태에서 unknown IP로의 플러딩을 줄임(OVN 22.09+). |
+    | fdb_age_threshold | integer | 0 | OVN DB에서 FDB 항목을 유지할 시간(초). 0이면 비활성(aging 없음). OVN 23.09+ 지원. |
+    | mac_binding_age_threshold | integer | 0 | MAC_Binding 항목 aging 시간(초). 0이면 aging 비활성. |
+    | broadcast_arps_to_all_routers | boolean | True | True면 ARP 요청을 네트워크의 모든 포트로 플러딩. False면 대상 MAC이 라우터와 매칭될 때만 라우터로 ARP 전달; 매칭 안 되면 라우터를 제외한 포트에만 전달(OVN 23.06+). |
+    | ovn_router_indirect_snat | boolean | False | True면 라우터를 통해 간접적으로 연결된 nested 서브넷에도 SNAT를 설정(기존 ML2/OVS와 유사 동작). |
+    | live_migration_activation_strategy | string | rarp | 라이브 마이그레이션 후 포트 활성화 전략. ‎⁠rarp⁠: hypervisor가 RARP를 보내기를 기대, 빈 문자열(’’)이면 목적 호스트에서 포트 즉시 활성화. |
+    | stateless_nat_enabled | boolean | False | True면 Floating IP NAT 규칙을 conntrack이 아니라 stateless NAT 액션으로 구성(DPDK 환경 등에서 성능 향상). |
+    | ovs_create_tap | boolean | False | True면 os-vif가 TAP 디바이스를 생성하도록 함(‎⁠vif-details⁠의 ‎⁠ovs_create_tap⁠에 영향). 2026.1 이후 제거 예정 deprecate 옵션. |
+    
+    **[ovn_nb_global] 섹션**
+    
+    OVN Northbound 글로벌 설정 튜닝.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | ignore_lsp_down | boolean | False | False면 포트가 UP(chassis에 claim된) 상태일 때만 ARP/ND reply 플로우 설치. True면 포트 상태와 상관없이 플로우 설치(컨트롤 플레인 부하/지연 감소 가능). |
+    | fdb_removal_limit | integer | 0 | 한 번의 트랜잭션에서 aging으로 제거할 수 있는 FDB 엔트리 최대 개수. 0이면 무제한. 한 번에 제한 개수만큼 제거 후, 다음 제거는 5초 지연(OVN 23.09+). |
+    | mac_binding_removal_limit | integer | 0 | 한 번의 트랜잭션에서 제거할 MAC Binding 엔트리 최대 개수. 0이면 무제한. 제한에 도달하면 다음 제거를 5초 지연. |
+    
+    **[ovs] 섹션 (OVN용)**
+    
+    OVN이 관리하는 OVS 관련 설정이다(ML2 OVS agent의 ovs 섹션과 이름은 같지만, 여기서는 OVN 컨텍스트).
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | ovsdb_timeout | integer | 10 | OVSDB 명령 타임아웃(초). 초과 시 ALARMCLOCK 에러로 실패. |
+    | bridge_mac_table_size | integer | 50000 | Neutron OVS 에이전트가 관리하는 브리지에서 학습 가능한 MAC 수 최대값. 10~1,000,000 범위를 벗어나면 OVS가 자체 값으로 override할 수 있음. |
+    | igmp_snooping_enable | boolean | False | True면 integration bridge에서 IGMP snooping 활성화(멀티캐스트 트래픽 제어). |
+    | igmp_flood | boolean | False | True면 멀티캐스트 패킷(리포트 제외)을 물리 네트워크로 브리징되는 포트에 무조건 플러딩. |
+    | igmp_flood_reports | boolean | True | True면 멀티캐스트 리포트도 물리 네트워크 브리지 포트로 무조건 플러딩. |
+    | igmp_flood_unregistered | boolean | False | True면 등록되지 않은 멀티캐스트 패킷을 모든 포트로 플러딩. False면 멀티캐스트 라우터에만 전달. |
+    
+    **[ovs_driver] 섹션**
+    
+    OVS 메커니즘 드라이버의 VNIC 타입 제한 설정.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | vnic_type_prohibit_list | list | [] | OVS 메커니즘 드라이버에서 **관리자가 사용 금지할 vNIC 타입 목록**. 콤마로 구분. OVS 드라이버에서 유효한 vNIC 타입은 보통 ‎⁠normal⁠, ‎⁠direct⁠. ‎⁠direct⁠는 커널 4.8+, OVS 2.8.0+에서 TC 오프로딩(SR-IOV NIC representor)과 함께 사용 가능. 여기 적힌 타입은 바인딩을 거부. |
+    
+    **[securitygroup] 섹션 (OVN 연동 시)**
+    
+    ML2+OVN에서도 securitygroup 섹션은 그대로 사용된다. (이미 앞에서 한 번 정리했지만, OVN 환경에서도 동일하므로 다시 명시.)
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | firewall_driver | string | <None> | L2 에이전트/OVN 드라이버가 사용할 보안 그룹 방화벽 드라이버. OVN native security group을 쓰는 경우엔 OVN 측 구성을 따르고, 이 값은 크게 쓰이지 않을 수 있음. |
+    | enable_security_group | boolean | True | Neutron 보안 그룹 API 활성화 여부. OVN도 이 값에 따라 보안 그룹 리소스를 관리. |
+    | enable_ipset | boolean | True | iptables 기반 보안 그룹에서 IPset 사용 여부. OVN native SG에서는 영향이 없을 수 있지만, 일부 혼합 환경에서 유의미. |
+    | permitted_ethertypes | list | [] | 허용할 ethertype 목록(16진수, ‎⁠0x⁠로 시작). 예: InfiniBand 허용 시 ‎⁠0x4008⁠. |
+    
+    **[sriov_driver] 섹션**
+    
+    SR-IOV 메커니즘 드라이버에 대한 vNIC 타입 제한 설정이다(ml2_conf.ini 안에 포함될 수 있음).
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | vnic_type_prohibit_list | list | [] | SR-IOV 메커니즘 드라이버에서 **관리자가 금지할 vNIC 타입 목록**. 콤마로 구분. SR-IOV 드라이버에서 유효한 vNIC 타입은 ‎⁠direct⁠, ‎⁠macvtap⁠, ‎⁠direct-physical⁠. 여기 지정된 타입은 바인딩되지 않게 막는다. |
+    
+
+## **neutron.conf**
+
+- **역할:** Neutron 서비스 전체에 공통적으로 적용되는 설정 파일입니다.
+- **대표적으로 포함되는 항목:**
+    - 사용 플러그인: ‎`core_plugin`, ‎`service_plugins`
+    - 데이터베이스 연결 정보: ‎`connection`
+    - 메시지 큐(RabbitMQ 등) 설정
+    - Keystone 인증 관련 설정(‎`[keystone_authtoken]` 섹션)
+    - 로그/디버그/프로세스 관련 옵션 등
+
+에이전트별 ‎`*.ini` 파일이 “각 에이전트의 역할과 옵션”을 정의한다면,
+
+‎`neutron.conf`는 Neutron 전체 프로세스의 **공통 기반 설정**을 제공한다고 보면 됩니다.
+
+- 옵션
+    
+    **로깅/공통 옵션 (oslo.log)**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | debug | boolean | false | true면 로그 레벨을 INFO 대신 DEBUG로 설정(재시작 없이 변경 가능). |
+    | log_config_append | string | <None> | Python logging 설정 파일 경로. 지정되면 이 파일 설정이 기존에 append되고, 다른 로깅 옵션은 대부분 무시(재시작 없이 변경 가능). |
+    | log_date_format | string | %Y-%m-%d %H:%M:%S | 로그 레코드의 ‎⁠asctime⁠ 포맷. ‎⁠log_config_append⁠ 설정 시 무시. |
+    | log_file | string | <None> | 로그 파일 이름. 미설정 시 stderr로 출력(‎⁠use_stderr⁠에 따름). |
+    | log_dir | string | <None> | ‎⁠log_file⁠가 상대 경로일 때 기준 디렉터리. |
+    | watch_log_file | boolean | false | 로그 파일 이동/삭제 시 새 파일을 자동으로 다시 여는 핸들러 사용 여부(Linux 전용). |
+    | use_syslog | boolean | false | syslog 사용 여부. 기존 포맷은 deprecated. |
+    | use_journal | boolean | false | systemd 환경에서 journald 로깅 활성화 여부. |
+    | syslog_log_facility | string | LOG_USER | syslog facility 이름. |
+    | use_stderr | boolean | false | stderr 로깅 사용 여부. |
+    | logging_context_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s⁠ (또는 최신 버전에서는 ‎⁠global_request_id⁠ 포함) | 컨텍스트(요청 ID, 사용자 등)가 있는 로그 메시지 포맷. |
+    | logging_default_format_string | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s⁠ | 컨텍스트가 없을 때 기본 로그 포맷. |
+    | logging_debug_format_suffix | string | ‎⁠%(funcName)s %(pathname)s:%(lineno)d⁠ | DEBUG 레벨 로그에 추가되는 디버그용 suffix. |
+    | logging_exception_prefix | string | ‎⁠%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s⁠ | 예외 스택 트레이스 앞에 붙는 prefix. |
+    | logging_user_identity_format | string | ‎⁠%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s⁠ (또는 ‎⁠system_scope⁠ 포함 버전) | ‎⁠user_identity⁠ 필드 포맷. |
+    | default_log_levels | list | 다수 패키지=WARN/INFO | 패키지별 기본 로그 레벨. |
+    | publish_errors | boolean | false | 에러 이벤트를 별도 채널로 publish할지 여부. |
+    | instance_format | string | “[instance: %(uuid)s] “ | 로그에 인스턴스 정보가 포함될 때 포맷. |
+    | instance_uuid_format | string | “[instance: %(uuid)s] “ | 인스턴스 UUID 포맷. |
+    | rate_limit_interval | integer | 0 | 로그 rate limiting 간격(초). 0이면 비활성. |
+    | rate_limit_burst | integer | 0 | ‎⁠rate_limit_interval⁠ 동안 허용되는 최대 로그 수. |
+    | rate_limit_except_level | string | CRITICAL | 이 레벨 이상인 로그는 rate limiting에서 제외. 빈 문자열이면 모든 레벨이 필터 대상. |
+    | fatal_deprecations | boolean | false | deprecated 경고를 fatal로 처리할지 여부. |
+    
+    **기본 플러그인/서비스 플러그인**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | core_plugin | string | neutron.plugins.ml2.plugin.Ml2Plugin (또는 배포 기본값) | Neutron의 코어 플러그인 클래스. 최근에는 거의 항상 ML2 플러그인. |
+    | service_plugins | list | (빈 값) | 사용할 서비스 플러그인 목록. 예: ‎⁠router,metering,segments,qos,trunk⁠ 등. 클래스 전체 경로나 alias 사용 가능. |
+    | allow_overlapping_ips | boolean | True | 테넌트 네트워크에서 서브넷 IP 대역이 서로 겹치는 것을 허용할지 여부. 일반적으로 True로 사용. |
+    | auth_strategy | string | keystone | API 인증 전략. 기본 keystone. |
+    | api_extensions_path | string | (배포 기본) | API 확장 정의 파일이 있는 경로. 여러 디렉터리를 콤마로 구분해 지정 가능. |
+    | policy_file | string | policy.json 또는 policy.yaml | 정책 파일 이름. |
+    | notify_nova_on_port_status_changes | boolean | True | 포트 상태(UP/DOWN) 변경 시 Nova에 알릴지 여부. |
+    | notify_nova_on_port_data_changes | boolean | True | 포트 IP/MAC 변경 같은 데이터 변경 시 Nova에 알릴지 여부. |
+    | nova_url | string | http://127.0.0.1:8774/v2 | Nova API 엔드포인트 URL. |
+    | nova_region_name | string | <None> | Nova 서비스를 찾을 Keystone region 이름. |
+    | nova_admin_username | string | <None> | Nova와 통신 시 사용할 Keystone 사용자 이름(구 스타일, 최신 버전에서는 keystoneauth 섹션 사용). |
+    | nova_admin_password | string | <None> | 위 사용자의 비밀번호. |
+    | nova_admin_tenant_id | string | <None> | Nova Admin 테넌트 ID. |
+    | nova_admin_tenant_name | string | <None> | Nova Admin 테넌트 이름. |
+    | nova_admin_auth_url | string | <None> | Nova 연동용 Keystone 인증 URL. |
+    | nova_ca_certificates_file | string | <None> | Nova API에 HTTPS로 접속할 때 사용할 CA 인증서 파일. |
+    | nova_api_insecure | boolean | False | Nova API HTTPS 접속 시 인증서 검증 비활성화 여부. |
+    
+    (배포/버전에 따라 Nova 연동 옵션은 ‎`nova` 섹션으로 분리되기도 하지만, pike/queens 세대 neutron.conf에서는 대부분 [DEFAULT]에 존재.)
+    
+    **API 서버/워크 플로우 관련**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | api_workers | integer | <None> | Neutron API용 워커 프로세스 수. 지정하지 않으면 CPU 개수 기반으로 자동 설정. |
+    | rpc_workers | integer | 1 | RPC 요청 처리용 워커 프로세스 수. |
+    | rpc_state_report_workers | integer | 1 | 에이전트 상태 보고용 RPC 워커 프로세스 수. |
+    | metadata_workers | integer | <None> | 메타데이터 관련 워커 프로세스 수. |
+    | max_header_line | integer | 16384 | 수신 HTTP 요청 헤더 한 줄 최대 길이(바이트). |
+    | use_ssl | boolean | false | API 서비스에 SSL 사용 여부. True면 cert_file/key_file 설정 필요. |
+    | ssl_cert_file | string | <None> | SSL 인증서 파일 경로. |
+    | ssl_key_file | string | <None> | SSL 프라이빗 키 파일 경로. |
+    | ssl_ca_file | string | <None> | 클라이언트 인증용 CA 인증서 파일 경로(클라이언트 인증 사용 시). |
+    
+    **RPC/메시징 관련 (oslo.messaging 공통)**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | transport_url | string | <None> | 메시지 버스(예: RabbitMQ) 연결 URL. 예: ‎⁠rabbit://user:pass@host:5672/⁠. 설정하지 않으면 개별 rabbit 옵션 조합 사용. |
+    | rpc_backend | string | rabbit | RPC backend 드라이버. 기본 rabbit. |
+    | control_exchange | string | neutron | 메시지 브로커에서 사용할 교환(exchange) 이름. |
+    | notification_driver | list | (빈 값) | Oslo notification 드라이버. 예: ‎⁠messagingv2⁠. |
+    | notification_topics | list | notifications | Notification 발행 토픽 목록. |
+    | default_notification_level | string | INFO | 기본 notification 심각도 레벨. |
+    | notification_format | string | both | notification payload 포맷(구/신 포맷 병행 등, 버전에 따라 옵션 이름/값 차이). |
+    
+    (RPC 세부 옵션은 보통 ‎`[oslo_messaging_rabbit]`, ‎`[oslo_messaging_notifications]` 섹션으로 분리되므로, 여기서는 상위 공통만 잡힌다.)
+    
+    **데이터베이스/쿼터/기타 글로벌**
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | global_physnet_mtu | integer | 1500 | 물리 네트워크 전체에 대한 기본 MTU. ML2에서 ‎⁠path_mtu⁠ 계산에 사용. |
+    | dhcp_agents_per_network | integer | 1 | 한 네트워크에 할당할 DHCP 에이전트 수. HA 구성 시 2 이상 설정. |
+    | l3_ha | boolean | False | L3 에이전트 HA 기능 사용 여부. |
+    | l3_ha_net_cidr | string | 169.254.192.0/18 | L3 HA 네트워크에 사용할 CIDR. |
+    | max_l3_agents_per_router | integer | 3 | 라우터 하나에 붙일 수 있는 L3 에이전트 최대 수(HA 시). |
+    | min_l3_agents_per_router | integer | 2 | 라우터 하나에 필요한 L3 에이전트 최소 수. |
+    | router_scheduler_driver | string | neutron.scheduler.l3_agent_scheduler.LeastRoutersScheduler | 라우터를 L3 에이전트에 배치하는 스케줄러 클래스. |
+    | network_scheduler_driver | string | neutron.scheduler.dhcp_agent_scheduler.ChanceScheduler | 네트워크를 DHCP 에이전트에 배치하는 스케줄러 클래스. |
+    | quota_driver | string | neutron.db.quota.driver.DbQuotaDriver | 쿼터 관리 드라이버. |
+    | quota_items | list | network,subnet,port,router,floatingip,security_group,security_group_rule 등 | 쿼터를 적용할 리소스 이름 목록. |
+    | default_quota | integer | -1 | 리소스를 생성할 수 있는 기본 개수. -1은 무제한. |
+    | quota_network | integer | 10 | 프로젝트당 네트워크 기본 쿼터. |
+    | quota_subnet | integer | 10 | 프로젝트당 서브넷 기본 쿼터. |
+    | quota_port | integer | 50 | 프로젝트당 포트 기본 쿼터. |
+    | quota_router | integer | 10 | 프로젝트당 라우터 기본 쿼터. |
+    | quota_floatingip | integer | 50 | 프로젝트당 Floating IP 기본 쿼터. |
+    | quota_security_group | integer | 10 | 프로젝트당 Security Group 기본 쿼터. |
+    | quota_security_group_rule | integer | 100 | 프로젝트당 Security Group Rule 기본 쿼터. |
+    
+     **[keystone_authtoken]**
+    
+    Neutron API가 Keystone 토큰을 검증하고, 서비스 간 통신을 인증할 때 사용하는 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | www_authenticate_uri | string | <None> | 클라이언트가 인증을 위해 리다이렉트될 Keystone public URL. 예: ‎⁠http://controller:5000⁠. |
+    | auth_url | string | <None> | Keystone 인증(토큰 검증, 서비스 토큰 획득)에 사용할 Keystone URL. 보통 admin/internal 엔드포인트. |
+    | auth_type | string | password | Keystone 인증 플러그인 타입. 일반적으로 ‎⁠password⁠. |
+    | username | string | <None> | Keystone에 인증할 사용자 이름(예: ‎⁠neutron⁠). |
+    | password | string | <None> | 위 username의 비밀번호. |
+    | user_domain_name | string | Default | 사용자 도메인 이름. 기본 ‎⁠Default⁠. |
+    | project_name | string | service | 사용자의 프로젝트(테넌트) 이름. 보통 ‎⁠service⁠ 또는 ‎⁠services⁠. |
+    | project_domain_name | string | Default | 프로젝트 도메인 이름. |
+    | region_name | string | <None> | Keystone 서비스 카탈로그에서 사용할 region 이름. |
+    | interface | string | internal | Keystone 엔드포인트 타입(‎⁠public⁠, ‎⁠internal⁠, ‎⁠admin⁠ 중 선택). |
+    | cafile | string | <None> | HTTPS로 Keystone에 접속할 때 신뢰할 CA 인증서 파일. |
+    | certfile | string | <None> | 클라이언트 인증용 인증서 파일. |
+    | keyfile | string | <None> | 위 certfile에 대응하는 프라이빗 키 파일. |
+    | insecure | boolean | false | HTTPS 사용 시 인증서 검증을 비활성화할지 여부(테스트 환경에서만 사용 권장). |
+    | memcached_servers | list | <None> | 토큰 캐싱용 memcached 서버 목록. 예: ‎⁠controller:11211⁠. |
+    | memcache_security_strategy | string | <None> | memcached 보안 전략. ‎⁠MAC⁠, ‎⁠ENCRYPT⁠ 또는 비움. |
+    | memcache_secret_key | string | <None> | memcache 보안에 사용할 시크릿 키(위 전략 사용 시). |
+    | token_cache_time | integer | 300 | 유효 토큰을 캐시하는 시간(초). 0이면 캐시 비활성. |
+    | revocation_cache_time | integer | 300 | 토큰 폐기 목록을 캐시하는 시간(초). |
+    | hash_algorithms | list | md5 | 토큰 캐시 키를 계산할 때 사용할 해시 알고리즘 목록. |
+    | check_revocations_for_cached | boolean | false | 캐시된 토큰에 대해서도 폐기(revocation) 목록을 검사할지 여부. |
+    | delay_auth_decision | boolean | false | Keystone 미들웨어가 인증 결정을 지연시키고, 애플리케이션이 최종 결정할 수 있도록 할지 여부. |
+    | enforce_token_bind | string | permissive | token bind 정책. ‎⁠disabled⁠, ‎⁠permissive⁠, ‎⁠required⁠ 등. |
+    | service_token_roles | list | service | 서비스 토큰으로 인정할 Keystone role 목록. |
+    | service_token_roles_required | boolean | false | True면 위 role을 가진 토큰만 서비스 토큰으로 인정. |
+    | auth_section | string | <None> | oslo.config에서 Keystone 인증 옵션이 정의된 다른 섹션 이름. 설정 시 해당 섹션에서 auth 파라미터를 읽음. |
+    | include_service_catalog | boolean | true | 토큰 검증 시 서비스 카탈로그를 포함할지 여부. false면 약간 더 가벼움. |
+    | enforce_scope | boolean | false | Keystone RBAC v3 scope를 강제할지 여부. |
+    | service_type | string | network | Keystone 카탈로그에서 찾을 서비스 타입 이름. 기본 ‎⁠network⁠. |
+    
+    (버전에 따라 일부 옵션 이름/기본값이 조금씩 다르지만, keystone_authtoken 섹션에 문서화된 항목은 위와 동일한 성격이다.)
+    
+    **2. [database] 섹션 – 전체 옵션**
+    
+    Neutron가 사용하는 DB 연결, 풀, retry 정책 등을 설정한다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | connection | string | sqlite:// | DB 연결 문자열. 일반 배포에서는 ‎⁠mysql+pymysql://user:pass@host/neutron⁠ 형태로 설정. |
+    | connection_recycle_time | integer | 3600 | 유휴 DB 연결을 재사용하기 전에 유지할 시간(초). MySQL의 wait_timeout과 맞춰 튜닝. |
+    | max_pool_size | integer | 5 | DB 연결 풀의 최대 연결 수. |
+    | max_overflow | integer | 10 | 풀 크기를 넘어서까지 허용할 추가 임시 연결 수. |
+    | pool_timeout | integer | 30 | 풀에서 연결을 빌릴 때 기다릴 최대 시간(초). 초과 시 에러. |
+    | mysql_sql_mode | string | TRADITIONAL | MySQL SQL 모드. |
+    | idle_timeout | integer | 3600 | 유휴 DB 연결 타임아웃(초). (일부 버전에서 ‎⁠connection_recycle_time⁠와 통합/대체되기도 함.) |
+    | use_db_reconnect | boolean | false | DB 연결이 끊겼을 때 자동 reconnect를 사용할지 여부. |
+    | retry_interval | integer | 10 | DB 연결 실패 시 다음 재시도까지 대기 시간(초). |
+    | max_retries | integer | 10 | DB 연결 재시도 최대 횟수. -1이면 무한 재시도. |
+    | db_inc_retry_interval | boolean | true | 각 실패 후 retry_interval을 점진적으로 증가시킬지 여부. |
+    | db_max_retry_interval | integer | 10 | 증가된 retry_interval의 최대값(초). |
+    | max_overflow_db_pool | integer | (버전에 따라 추가) | DB 풀 overflow 용량 조정용 추가 옵션(일부 배포 전용). |
+    
+    (DB 섹션은 oslo.db 공통 옵션이기 때문에, 세부 이름은 배포 버전에 따라 약간 달라지지만, neutron.conf [database]에 문서화된 필드는 위 항목들이다.)
+    
+    **3. [oslo_messaging_rabbit] 섹션 – 전체 옵션**
+    
+    RabbitMQ(또는 호환 메시지 브로커)를 통한 RPC/notification 사용 시 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | rabbit_userid | string | guest | RabbitMQ 사용자 이름. |
+    | rabbit_password | string | guest | 위 사용자 비밀번호. |
+    | rabbit_hosts | list | localhost:5672 | RabbitMQ 호스트 목록. 예: ‎⁠controller1:5672,controller2:5672⁠. |
+    | rabbit_host | string | localhost | 단일 RabbitMQ 호스트 이름(‘rabbit_hosts’ 대신 사용할 수 있음). |
+    | rabbit_port | integer | 5672 | RabbitMQ 포트. |
+    | rabbit_virtual_host | string | / | RabbitMQ vhost 이름. |
+    | heartbeat_timeout_threshold | integer | 0 | RabbitMQ heartbeat 타임아웃 임계값(초). 0이면 비활성. |
+    | heartbeat_rate | integer | 2 | heartbeat 전송 빈도(초당). |
+    | rabbit_ha_queues | boolean | false | True면 HA 큐를 사용(Mirrored queue 등). |
+    | rabbit_use_ssl | boolean | false | SSL을 통해 RabbitMQ에 접속할지 여부. |
+    | rabbit_ssl_version | string | <system default> | 사용할 SSL 프로토콜 버전. |
+    | rabbit_ssl_ca_file | string | <None> | RabbitMQ 서버 인증서 검증용 CA 파일. |
+    | rabbit_ssl_certfile | string | <None> | 클라이언트 인증서 파일. |
+    | rabbit_ssl_keyfile | string | <None> | 위 인증서의 키 파일. |
+    | rabbit_ssl_cert_reqs | string | required | 서버 인증서 검증 수준: ‎⁠none⁠, ‎⁠optional⁠, ‎⁠required⁠. |
+    | kombu_reconnect_delay | integer | 1.0 | 연결 실패 후 재연결까지 대기 시간(초). |
+    | kombu_failover_strategy | string | round-robin | 여러 Rabbit 호스트 사이에서 failover 전략. 기본 round-robin. |
+    | rabbit_retry_interval | integer | 1 | 연결 재시도 사이의 간격(초). |
+    | rabbit_retry_backoff | integer | 2 | retry 간격 증가 배수(backoff). |
+    | rabbit_max_retries | integer | 0 | 최대 재시도 횟수. 0 또는 -1이면 무제한 재시도. |
+    | amqp_auto_delete | boolean | false | RPC reply 큐를 자동 삭제할지 여부. |
+    | rpc_queue_expiration | integer | 60 | 사용하지 않는 RPC 큐 만료 시간(초). |
+    | rpc_reply_exchange | string | reply | RPC reply가 사용될 exchange 이름. |
+    | rpc_reply_to | string | reply_XXXX | RPC reply 기본 큐 이름 패턴. |
+    | rpc_conn_pool_size | integer | 30 | RPC 연결 풀 크기. |
+    | rpc_response_timeout | integer | 60 | RPC 응답을 기다리는 시간(초). |
+    | rpc_ack_timeout_base | integer | 15 | RPC ack 타임아웃의 기본값(초). |
+    | rpc_ack_timeout_multiplier | integer | 2 | ack 타임아웃을 조정할 multiplier. |
+    | limited_priorities | integer | 0 | 우선순위 큐에 사용할 priority 레벨 수. 0이면 비활성. |
+    
+    **[oslo_messaging_notifications] 섹션**
+    
+    Notification(이벤트 발행) 관련 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | driver | list | [] | Notification 드라이버 목록. 예: ‎⁠messagingv2⁠, ‎⁠log⁠. 비워두면 notification 비활성. |
+    | topics | list | notifications | Notification이 발행될 토픽 이름 목록. |
+    | level | string | INFO | Notification 기본 심각도 레벨. DEBUG/INFO/WARNING/ERROR/CRITICAL 중 선택. |
+    | retry | integer | -1 | Notification 전송 실패 시 재시도 횟수. -1이면 무제한 재시도. |
+    | allow_requeue | boolean | False | Notification 소비자가 메시지를 재큐(requeue)할 수 있게 허용할지 여부. |
+    | publisher_id | string | <None> | Notification publisher ID를 강제로 지정할 때 사용. 지정하지 않으면 서비스명/호스트명에서 자동 생성. |
+    
+    **[nova] 섹션**
+    
+    Neutron이 Nova와 통신할 때 사용하는 설정이다(최근 버전에서는 [DEFAULT]에 있던 Nova 옵션이 이 섹션으로 모이는 경우가 많다).
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | notify_nova_on_port_status_changes | boolean | True | 포트 상태(UP/DOWN) 변경 시 Nova에 알릴지 여부. |
+    | notify_nova_on_port_data_changes | boolean | True | 포트의 IP/MAC 등 데이터 변경 시 Nova에 알릴지 여부. |
+    | nova_url | string | http://127.0.0.1:8774/v2 | Nova API 엔드포인트 URL. |
+    | region_name | string | <None> | Nova 서비스를 찾을 Keystone region 이름. |
+    | auth_type | string | password | Nova API에 접근할 Keystone 인증 타입. 일반적으로 ‎⁠password⁠. |
+    | auth_url | string | <None> | Keystone 인증 URL. |
+    | username | string | <None> | Keystone 사용자 이름(예: ‎⁠nova⁠ 또는 ‎⁠neutron⁠). |
+    | password | string | <None> | 위 사용자 비밀번호. |
+    | user_domain_name | string | Default | 사용자 도메인 이름. |
+    | project_name | string | service | Nova 연동에 사용할 프로젝트 이름(보통 ‎⁠service⁠ 또는 ‎⁠services⁠). |
+    | project_domain_name | string | Default | 프로젝트 도메인 이름. |
+    | cafile | string | <None> | Nova API에 HTTPS로 접속할 때 사용할 CA 인증서 파일. |
+    | insecure | boolean | False | HTTPS 사용 시 인증서 검증 비활성화 여부. |
+    
+    (구 버전에서는 ‎`nova_admin_*` 이름으로 [DEFAULT]에 있던 옵션들이 이 섹션으로 이동한 형태라고 보면 된다.)
+    
+    **[oslo_concurrency] 섹션**
+    
+    락 파일(파일 기반 락)을 사용할 때의 디렉터리 등을 정의한다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | lock_path | string | <None> | 파일 기반 락을 생성할 디렉터리. 지정되지 않으면 ‎⁠state_path⁠ 아래의 기본 위치 사용. |
+    | disable_process_locking | boolean | False | 프로세스 락을 완전히 비활성화할지 여부. 일반적으로 False 유지. |
+    
+    **[cors] 섹션**
+    
+    Neutron API에 대한 CORS(Cross-Origin Resource Sharing) 설정이다.
+    
+    | 옵션 이름 | 타입 | 기본값 | 설명 |
+    | --- | --- | --- | --- |
+    | allowed_origin | list | [] | CORS 요청을 허용할 Origin 목록. 예: ‎⁠https://my-dashboard.example.com⁠. |
+    | allow_credentials | boolean | True | CORS 요청에서 Credentials(쿠키, Authorization 헤더 등)를 허용할지 여부. |
+    | expose_headers | list | [] | 클라이언트에 노출할 응답 헤더 목록(‎⁠Access-Control-Expose-Headers⁠). |
+    | allow_headers | list | [X-Auth-Token, X-OpenStack-Nova-API-Version, 등] | CORS 요청 시 허용할 요청 헤더 목록(‎⁠Access-Control-Allow-Headers⁠). |
+    | max_age | integer | 3600 | preflight 요청(OPTIONS)의 결과를 캐시할 최대 시간(초). |
+    | allow_methods | list | [GET, POST, PUT, DELETE, PATCH, HEAD] | CORS에서 허용할 HTTP 메서드 목록. |

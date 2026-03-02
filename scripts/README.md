@@ -2,6 +2,9 @@
 
 노션에 써둔 글을 이 사이트에 넣을 때 사용하는 도구입니다.
 
+- 이 파일(`scripts/README.md`)은 **사용법 설명만** 수정합니다.
+- 실제 동작은 `import_notion_zip.py`가 담당하므로, 코드를 바꾸기 전에는 **이 README의 I/O 요약을 먼저** 확인하세요.
+
 ---
 
 ## 3단계로 끝내기
@@ -57,6 +60,24 @@ python3 import_notion_zip.py "provider network와 tenant network 개념 정리.z
 | 챕터 | O | ch1, ch2, ch3, ch4, ch5, ch6 |
 | 글슬러그 | △ | 파일명 (생략 시 자동). 예: `snat_dnat` |
 | --title | △ | 사이드바에 보일 제목 |
+
+---
+
+## 스크립트 I/O 요약 (에이전트용)
+
+- **입력**
+  - ZIP 파일: `imports/{chapter}/*.zip`
+  - 명령:  
+    `python3 import_notion_zip.py <zip파일> <chapter> [slug] [--title]`
+- **출력**
+  - 문서: `lectures/{chapter}/{slug}.qmd`
+  - 이미지: `lectures/{chapter}/images/{slug}/*`
+  - 네비게이션 업데이트: `_quarto.yml`, `lectures/index.qmd`에 항목 추가
+  - ZIP 정리: 사용이 끝난 ZIP은 `imports/{chapter}/processed/` 로 이동
+
+- **ZIP 처리 규칙 (중요)**
+  - 처리 대상 ZIP은 **항상** `imports/{chapter}/`에서만 찾고, `imports/{chapter}/processed/`는 **검색/실행 대상에 포함하지 않는다.**
+  - `imports/{chapter}/processed/` 안의 ZIP 파일은 `import_notion_zip.py`로 **이미 반영이 끝난 파일**이므로, 다시 변환 대상으로 사용하지 않는다.
 
 ---
 

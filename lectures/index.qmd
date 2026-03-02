@@ -18,3 +18,5 @@ title: "오픈스택 강의 자료"
 - [6장. Neutron](ch6_lec.qmd)
   - [Provider/Tenant Network 개념](ch6/provider_tenant.qmd)
   - [SNAT/DNAT 개념](ch6/snat_dnat.qmd)
+  - [Neutron Agent 종류 정리](ch6/neutron_agents.qmd)
+  - [OVS/VXLAN 가상 네트워크 만들기](ch6/ovs_vxlan_vpn.qmd)
