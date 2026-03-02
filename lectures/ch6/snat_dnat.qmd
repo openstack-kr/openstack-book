@@ -8,7 +8,7 @@ description: "SNAT, DNAT 개념"
 작성시간 - origin: 2026년 1월 19일 오후 4:20
 작성시간 - 속성수정: 2026년 1월 19일 오후 4:20 (GMT+9)
 
-일단 SNAT, DNAT를 설명하기 전에 NAT에 대해서 먼저 설명해보겠습니다.
+일단 SNAT, DNAT를 설명하기 전에 NAT에 대해서 먼저 설명하겠습니다.
 
 **NAT은 “여러 사설 IP를 적은 수(또는 한 개)의 공인 IP로 바꿔서 외부와 통신하게 해 주는 주소 변환 장치/기능”입니다.**
 
@@ -110,7 +110,7 @@ SNAT이랑 DNAT은 “어느 주소를 바꾸느냐”와 “언제/어디에서
 
 ![image.png](images/snat_dnat/image 1.png)
 
-## **SNAT (Source NAT**
+## **SNAT (Source NAT)**
 
 SNAT은 **패킷의 출발지(소스) 주소를 바꾸는 것**입니다.
 
