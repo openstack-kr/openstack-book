@@ -81,6 +81,13 @@ python3 import_notion_zip.py "SNAT, DNAT 개념.zip" ch6 snat_dnat --title "SNAT
   - 해당 챕터에 `lectures/ch{N}_lec.qmd` 같은 **챕터 소개 문서**가 있는 경우:
     - 그 문서에 `## 하위 목차` 섹션이 있으면, 방금 생성한 글을 하위 목차에 **추가할지 사용자에게 묻거나, 사용자가 원하면 직접 추가**한다.
     - 예: `ch6`인 경우 `lectures/ch6_lec.qmd`의 하위 목차에 `lectures/ch6/{slug}.qmd` 링크를 맞춰 준다.
+  - 강의 본문(qmd)에는 필요하다면 마지막에 `# 참조` 섹션을 추가하고, 참조 링크를 다음 형식으로 정리해 둔다.
+    - `# 참조` 아래에 한 줄씩  
+      `[# 이 링크가 무엇을 설명하는지 한글로 요약](https://example.com/doc)`  
+      같은 형태로 **설명 + 하이퍼링크**를 쓴다.
+    - 예: `neutron_agents.qmd`에서는  
+      `[Red Hat OpenStack Platform Neutron 설정 문서](https://docs.redhat.com/ko/documentation/red_hat_openstack_platform/16.2/html/configuration_reference/neutron_2)`  
+      처럼, 공식 문서가 무엇을 다루는지 한글로 설명을 붙여 준다.
 
 ---
 
