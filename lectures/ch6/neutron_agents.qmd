@@ -1,0 +1,352 @@
+---
+title: "[6-1] Neutron 에이전트 설정 파일 정리"
+description: "Neutron 네트워크 서비스를 구성할 때 사용하는 주요 에이전트(dhcp, L3, Linux Bridge, OVS, SR-IOV, metering 등)의 역할과 각 설정 파일(*_agent.ini, ml2_conf.ini, neutron.conf)의 핵심 옵션을 정리합니다."
+code: "6-1"
+---
+
+Neutron 에이전트는 크게 다음과 같이 역할별로 나눌 수 있습니다.
+
+- **L2 (Layer 2) 관련**
+    - ‎linuxbridge-agent
+    - ‎openvswitch-agent
+    - ‎sriov-agent
+- **L3 (Layer 3, 라우팅/NAT) 관련**
+    - ‎l3-agent
+- **서비스 관련**
+    - ‎dhcp-agent
+    - ‎metadata-agent
+    - ‎metering-agent
+
+Neutron 서버(‎`neutron-server`)가 API 및 데이터베이스를 통해 네트워크/서브넷/포트를 관리한다면,
+
+각 에이전트들은 실제 컴퓨트/네트워크 노드에서 **브리지 생성, IP 할당, 라우터 구성, 메타데이터 전달** 등 **`“실제 동작”`**을 담당한다고 볼 수 있습니다.
+
+> 참고: 본 문서는 각 섹션의 "핵심 옵션 요약"만 남겼습니다. 세부 옵션은 배포판/버전별 공식 문서를 참고하세요.
+
+## [6-1-1] dhcp_agent.ini
+
+**역할 요약**
+
+- Neutron 네트워크/서브넷에 대해 **DHCP 서버 역할**을 수행하는 에이전트입니다.
+- 일반적으로 ‎**`dnsmasq`** 프로세스를 사용해 인스턴스 부팅 시 IP 주소, 게이트웨이, DNS 등 네트워크 정보를 할당합니다.
+    - **`dnsmasq`**는 복잡한 설정 없이 **내부 망의 도메인 관리(DNS)와 IP 할당(DHCP)을 한 번에 해결하기 위해 만든 경량급 네트워크 백그라운드 서비스**
+
+**언제 쓰는지**
+
+- 인스턴스가 **자동으로 IP를 할당받도록** 하고 싶을 때, 대부분의 OpenStack 환경에서 **기본으로 사용**합니다.
+- 각 서브넷에서 DHCP를 사용하도록 설정했을 경우, 해당 서브넷에 대한 DHCP 네임스페이스와 dnsmasq 프로세스를 관리합니다.
+
+**주요 옵션** 
+
+- ‎**`interface_driver`**
+    - **역할:** DHCP 네임스페이스를 만들고, 내부 인터페이스를 연결할 때 사용할 L2 드라이버.
+    - **예시 값:**
+        - ‎`neutron.agent.linux.interface.OVSInterfaceDriver`
+        - ‎`neutron.agent.linux.interface.BridgeInterfaceDriver` (linuxbridge 환경)
+    - **언제 설정하는지:**
+        - L2 에이전트가 ‎`openvswitch-agent`면 OVS 관련 드라이버, ‎`linuxbridge-agent`면 Bridge 관련 드라이버로 맞춰줍니다.
+- **`‎dhcp_driver`**
+    - **역할:** 실제 DHCP 구현 선택.
+    - **일반적으로 사용:** ‎`neutron.agent.linux.dhcp.Dnsmasq`
+    - **비고:** 특별한 요구사항이 없다면 기본 dnsmasq를 그대로 사용하는 경우가 대부분입니다.
+- ‎**`enable_isolated_metadata`**
+    - **값:** ‎`True` / ‎`False`
+    - **역할:** 라우터가 없는 **isolated 네트워크**에서도 인스턴스가 메타데이터 서비스에 접근할 수 있게 할지 여부.
+    - **사용 예:** 테스트용 네트워크를 자주 만들고, 라우터 없이도 메타데이터에 접근하도록 하고 싶을 때 ‎`True`로 설정.
+    
+
+더 자세한 옵션은 Neutron 공식 설정 문서와 Red Hat Neutron 설정 문서를 참고합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름                | 기본값(예시)                    | 역할/언제 중요한지                                      |
+|-------------------------|----------------------------------|---------------------------------------------------------|
+| interface_driver        | openvswitch, Bridge 등           | DHCP 네임스페이스 안에서 어떤 L2 드라이버를 쓸지 결정합니다. |
+| dhcp_driver             | neutron.agent.linux.dhcp.Dnsmasq | 실제 DHCP 구현 선택. 특별한 요구가 없으면 기본값을 사용합니다. |
+| enable_isolated_metadata| False                            | 라우터가 없는 isolated 네트워크에서도 메타데이터를 쓸지 여부입니다. |
+| force_metadata          | False                            | 라우터 유무와 상관없이 모든 네트워크에 메타데이터를 강제로 제공할지 여부입니다. |
+| enable_metadata_network | False                            | 별도의 메타데이터 전용 네트워크(169.254.169.254/16 등)를 사용할지 여부입니다. |
+
+## [6-1-2] l3_agent.ini
+
+역할 요약
+
+- Neutron 라우터를 실제 **네임스페이스 기반 L3 라우터**로 구현하고,**라우팅, NAT, 플로팅 IP** 등을 처리하는 에이전트입니다.
+
+언제 쓰는지
+
+- 프로젝트 라우터를 생성하여 **외부 네트워크와 통신**하게 하고 싶을 때 필수입니다.
+- 플로팅 IP를 사용하거나, 테넌트 네트워크 간 라우팅이 필요할 때 사용됩니다.
+- 일반적으로 네트워크 노드(또는 컨트롤러+네트워크 통합 노드)에 배치됩니다.
+
+**주요 옵션**
+
+- ‎**`interface_driver`**
+    - 역할 및 사용 방식은 ‎`dhcp_agent.ini`와 비슷하게, 라우터 네임스페이스 내 인터페이스 연결 방식을 결정합니다.
+- ‎**`agent_mode`**
+    - **역할:** L3 에이전트가 어떤 모드로 동작할지 결정.
+    - **예시 값:**
+        - ‎`legacy`: 고전적인 단일 L3 에이전트 방식
+        - ‎`dvr_snat`, ‎`dvr`: DVR(Distributed Virtual Routing) 환경에서 사용
+    - **주의:** DVR 구성 여부에 따라 반드시 일관성 있게 설정해야 합니다.
+- ‎**`external_network_bridge`**
+    - **역할:** 외부 네트워크와 연결될 브리지 이름.
+    - **설정 예:** OVS 환경에서 ‎`br-ex` 등.
+    - **특징:** 최근 구성에서는 특정 값 대신 provider network + bridge_mappings 조합으로 대체되는 경우도 많습니다.
+- ‎**`router_delete_namespaces`**
+    - **역할:** 라우터 삭제 시 네임스페이스를 자동으로 제거할지 여부.
+    - **값:** ‎`True` / ‎`False`
+
+더 자세한 옵션은 Neutron 공식 설정 문서와 Red Hat Neutron 설정 문서를 참고합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름             | 기본값(예시) | 역할/언제 중요한지                                                  |
+|----------------------|-------------|---------------------------------------------------------------------|
+| interface_driver     | (환경별 상이)| 라우터 네임스페이스 내부 인터페이스를 어떤 L2 드라이버로 붙일지 결정합니다. |
+| agent_mode           | legacy      | L3 에이전트가 중앙집중형인지(DVR/legacy) 등 동작 모드를 결정합니다.       |
+| external_network_bridge | (빈 값 권장) | 외부 네트워크와 연결되는 브리지 이름. 최근에는 provider network + bridge_mappings로 대체되는 경우가 많습니다. |
+| router_delete_namespaces | True/False | 라우터 삭제 시 네임스페이스를 자동으로 정리할지 여부입니다.               |
+| enable_metadata_proxy| True        | 각 라우터 네임스페이스 안에서 메타데이터 프록시를 띄울지 여부입니다.      |
+
+## [6-1-3] linuxbridge_agent.ini
+
+역할 요약
+
+- Linux Bridge를 사용해 가상 스위치를 구성하고, Neutron 포트를 실제 Linux 브리지 및 물리 인터페이스에 매핑하는 L2 에이전트입니다.
+
+언제 쓰는지
+
+- OVS 대신 **Linux Bridge 기반의 네트워크 구성**을 사용할 때.
+- 일반적으로 컴퓨트 노드에 배치되어 인스턴스의 vNIC을 Linux Bridge에 붙여줍니다.
+
+**주요 옵션** 
+
+- ‎**`physical_interface_mappings`**
+    - **역할:** 논리 네트워크 이름 → 물리 NIC 이름 매핑.
+    - **예시:** ‎`provider:eth1`
+    - **의미:** ‎`provider` 네트워크 트래픽은 호스트의 ‎`eth1`을 통해 나감.
+- ‎**`bridge_mappings`** (버전/배포판에 따라 영역/형식이 다를 수 있음)
+    - **역할:** provider 네트워크와 Linux 브리지 이름 매핑.
+    - **예시:** ‎`provider:br-provider`
+- ‎**`enable_vxlan`**
+    - **역할:** VXLAN 기반의 오버레이 네트워크 사용 여부.
+    - **값:** ‎`True` / ‎`False`
+- ‎**`local_ip`**
+    - **역할:** VXLAN 터널 엔드포인트 IP 주소.
+    - **예시:** ‎`local_ip = 10.0.0.10`
+
+더 자세한 옵션은 아래에서 확인 가능합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름                   | 기본값(예시)       | 역할/언제 중요한지                                            |
+|----------------------------|--------------------|-----------------------------------------------------------------|
+| physical_interface_mappings| (예: provider:eth1)| 논리 네트워크 이름을 실제 물리 NIC에 매핑합니다.                |
+| bridge_mappings            | (예: provider:br-provider) | provider 네트워크를 어떤 Linux 브리지에 연결할지 결정합니다. |
+| enable_vxlan               | True/False         | VXLAN 오버레이 네트워크 사용 여부입니다.                        |
+| local_ip                   | 10.0.0.10 등       | VXLAN 터널 엔드포인트로 사용할 호스트의 IP 주소입니다.          |
+## [6-1-4] metadata_agent.ini
+
+역할 요약
+
+- 인스턴스에서 메타데이터(유저 데이터, 인스턴스 정보 등)를 조회할 수 있도록,
+Neutron 네트워크와 Nova 메타데이터 서비스 사이를 **프록시** 해주는 에이전트입니다.
+
+언제 쓰는지
+
+- 인스턴스가 ‎`http://169.254.169.254/` 로 메타데이터에 접근할 수 있어야 할 때 필수입니다.
+    - [http://169.254.169.254/](http://169.254.169.254/) 는 전 세계 모든 클라우드(AWS, GCP, OpenStack 등)에서 공통으로 사용하는 **메타데이터 서버 주소**
+    - 받아오는 메타데이터 정보는 호스트네임, SSH 키와 같은 것들(다 같이 가지고 있지만, 각 인스턴스마다 값이 다를 수 있는 것들)
+    - **즉 "이미지 하나로 수천 대의 서로 다른 서버를 찍어내기 위해"** 메타데이터가 필요하고 이를 관리하는 것이 필요하다.
+- 대부분의 환경에서 기본적으로 사용합니다.
+
+**주요 옵션**
+
+- ‎**`nova_metadata_host`**
+    - **역할:** Nova 메타데이터 API가 떠 있는 호스트 주소.
+    - **예시:** ‎`nova_metadata_host = controller.example.com` 또는 컨트롤러 IP.
+- ‎**`nova_metadata_port`**
+    - **역할:** Nova 메타데이터 API 포트.
+    - **기본 예시:** ‎`8775` 등 배포판에 따라 상이.
+- ‎**`metadata_proxy_shared_secret`**
+    - **역할:** Neutron metadata agent와 Nova 메타데이터 서비스 간 인증에 사용되는 공유 비밀값.
+    - **주의:** Nova 측 설정(‎`metadata_proxy_shared_secret`)과 반드시 일치해야 합니다.
+
+더 자세한 옵션은 아래에서 확인 가능합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름                 | 기본값(예시)                     | 역할/언제 중요한지                                                |
+|--------------------------|-----------------------------------|-------------------------------------------------------------------|
+| nova_metadata_host       | controller.example.com 등         | Nova 메타데이터 API가 떠 있는 호스트 이름 또는 IP입니다.          |
+| nova_metadata_port       | 8775                              | Nova 메타데이터 API 포트 번호입니다.                              |
+| metadata_proxy_shared_secret | (환경에서 지정)               | Neutron metadata agent와 Nova 간 인증에 사용하는 공유 시크릿입니다. |
+| auth_url/auth_type 등    | (Keystone 설정 값)               | Keystone 인증 정보를 통해 메타데이터 서비스와 통신할 때 사용합니다. |
+## [6-1-5] openvswitch_agent.ini
+
+역할 요약
+
+- Open vSwitch(OVS)를 이용해 가상 스위치를 구성하고,
+Neutron 네트워크를 OVS 브리지/포트로 매핑하는 L2 에이전트입니다.
+
+언제 쓰는지
+
+- **OVS 기반 네트워크**를 사용할 때.
+- VXLAN, GRE 등 터널 네트워크를 활용하는 환경에서 가장 많이 사용되는 에이전트입니다.
+- 주로 컴퓨트 노드와 네트워크 노드에 배치됩니다.
+
+주요 옵션
+
+- ‎**`local_ip`**
+    - **역할:** 터널 네트워크의 엔드포인트 IP.
+    - **예시:** ‎`local_ip = 10.0.0.10`
+- ‎**`tunnel_types`**
+    - **역할:** 사용할 터널 종류 지정.
+    - **예시 값:** ‎`vxlan`, ‎`gre`, ‎`geneve` 등
+    - **예시:** ‎`tunnel_types = vxlan`
+- ‎**`bridge_mappings`**
+    - **역할:** provider 네트워크 → OVS 브리지 매핑.
+    - **예시:** ‎`provider:br-provider`
+    - **의미:** ‎`provider` 타입 네트워크는 호스트의 ‎`br-provider` 브리지를 통해 외부와 연결.
+- ‎**`of_interface`** / ‎**`ovsdb_interface`**
+    - **역할:** OVS와 통신할 때 사용할 인터페이스(라이브러리) 유형.
+    - **일반적으로:** 기본값 사용.
+
+더 자세한 옵션은 아래에서 확인 가능합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름          | 기본값(예시)             | 역할/언제 중요한지                                                |
+|-------------------|--------------------------|-------------------------------------------------------------------|
+| local_ip          | 10.0.0.10 등             | VXLAN/GRE/Geneve 터널의 로컬 엔드포인트 IP입니다.                  |
+| tunnel_types      | vxlan, gre, geneve 등    | 어떤 종류의 터널 네트워크를 사용할지 결정합니다.                   |
+| bridge_mappings   | provider:br-provider 등  | provider 네트워크를 어떤 OVS 브리지에 연결할지 매핑합니다.          |
+| integration_bridge| br-int                   | 테넌트 포트가 연결되는 통합 브리지 이름입니다.                      |
+| tunnel_bridge     | br-tun                   | 터널 인터페이스가 붙는 브리지 이름입니다.                          |
+
+## [6-1-6] sriov_agent.ini
+
+역할 요약
+
+- SR-IOV NIC를 사용하여, 인스턴스에 **가상 기능(VF)** 를 직접 할당하는 L2 에이전트입니다.
+- 고성능/저지연 네트워크가 필요한 워크로드에서 사용합니다.
+
+언제 쓰는지
+
+- 호스트에 SR-IOV 지원 NIC가 있고, 인스턴스에 **직접 VF를 붙여야 할 때** 사용합니다.
+- 일반적인 가상 스위치(Linux Bridge, OVS) 경로를 우회하여 네트워크 성능을 끌어올리는 경우에 적용합니다.
+
+주요 옵션 (개요 수준)
+
+- ‎**`physical_device_mappings`**
+    - **역할:** 논리 네트워크 이름 → 물리 SR-IOV NIC 매핑.
+    - **예시:** ‎`physnet1:eth2`
+    - **의미:** ‎`physnet1` 네트워크는 호스트의 ‎`eth2` SR-IOV NIC를 사용.
+- ‎**`exclude_devices`**
+    - **역할:** SR-IOV 관리 대상에서 제외할 VF 목록.
+    - **예시:** ‎`eth2:0000:03:10.1;0000:03:10.2`
+    - **사용 이유:** 특정 VF는 호스트 용도로 예약하거나, 다른 용도로 사용할 때.
+
+더 자세한 옵션은 아래에서 확인 가능합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름                 | 기본값(예시)              | 역할/언제 중요한지                                             |
+|--------------------------|---------------------------|----------------------------------------------------------------|
+| physical_device_mappings | physnet1:eth2 등          | 논리 네트워크(physnet)를 어느 SR-IOV 물리 NIC(PF)에 매핑할지 정의합니다. |
+| exclude_devices          | eth2:0000:03:10.1;... 등  | SR-IOV 관리 대상에서 제외할 VF 목록입니다.                     |
+| polling_interval         | 2                         | SR-IOV 디바이스 상태를 얼마나 자주 폴링할지(초 단위) 결정합니다.      |
+| report_interval          | 30                        | Neutron 서버에 상태를 얼마나 자주 보고할지(초 단위) 결정합니다.      |
+
+## [6-1-7] metering_agent.ini
+
+역할 요약
+
+- Neutron 라우터를 기준으로 **트래픽 사용량(미터링 정보)** 을 수집하는 에이전트입니다.
+- 대역폭 사용량, 과금/통계 등의 용도로 활용할 수 있는 데이터를 제공합니다.
+
+언제 쓰는지
+
+- 테넌트별/라우터별 트래픽 사용량을 기록해야 하는 환경에서 사용합니다.
+- 미터링/과금/리포팅 기능을 활성화할 때 유용합니다.
+
+주요 옵션 (개요 수준)
+
+- ‎**`driver`**
+    - **역할:** 어떤 미터링 드라이버를 사용할지 지정.
+    - **예시:** ‎`neutron.services.metering.drivers.iptables.iptables_driver.IptablesMeteringDriver` 등
+- ‎**`interface_driver`**
+    - **역할:** l3/dhcp와 마찬가지로 네임스페이스 내 인터페이스를 관리하기 위한 드라이버.
+    - **예시:** OVS 환경이면 ‎`neutron.agent.linux.interface.OVSInterfaceDriver`
+- ‎**`measure_interval`**
+    - **역할:** 트래픽을 측정하는 간격(초 단위).
+    - **예시:** ‎`measure_interval = 30`
+- ‎**`report_interval`**
+    - **역할:** 수집된 미터링 데이터를 보고(전송)하는 간격.
+
+더 자세한 옵션은 아래에서 확인 가능합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름          | 기본값(예시)                                           | 역할/언제 중요한지                                         |
+|-------------------|--------------------------------------------------------|------------------------------------------------------------|
+| driver            | iptables 기반 드라이버 등                               | 어떤 방식으로 트래픽을 계측(미터링)할지 결정합니다.          |
+| interface_driver  | OVSInterfaceDriver 등                                   | L3/DHCP와 마찬가지로 네임스페이스 내부 인터페이스를 관리합니다. |
+| measure_interval  | 30                                                      | 트래픽을 얼마나 자주 측정할지(초 단위) 결정합니다.           |
+| report_interval   | (환경에 따라 설정)                                      | 수집된 미터링 데이터를 얼마나 자주 보고(전송)할지 결정합니다.  |
+
+## [6-1-8] ml2_conf.ini
+
+- **역할:** ML2(플러그형 L2 플러그인)의 동작을 정의하는 핵심 설정 파일입니다.
+- **주요 내용:**
+    - 사용할 네트워크 타입: ‎`type_drivers` (예: ‎`local,flat,vlan,vxlan`)
+    - 테넌트 네트워크에 허용할 타입: ‎`tenant_network_types`
+    - 사용할 메커니즘 드라이버: ‎`mechanism_drivers` (예: ‎`openvswitch`, ‎`linuxbridge`, ‎`sriovnicswitch`)
+    - 물리 네트워크와 실제 인터페이스/브리지 매핑: ‎`ml2_type_flat`, ‎`ml2_type_vlan` 섹션 등.
+
+이 파일에서 “어떤 L2 기술/드라이버를 쓸지”를 결정하고,
+
+각 호스트에서는 해당하는 에이전트(linuxbridge-agent, openvswitch-agent, sriov-agent 등)가 실제 동작을 담당합니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름 | 예시 값 | 역할/언제 중요한지 |
+|-----------|---------|--------------------|
+| type_drivers | local,flat,vlan,vxlan,geneve | 지원할 L2 네트워크 타입 전체를 선언합니다. |
+| tenant_network_types | vxlan,vlan,flat,local | 테넌트 네트워크에 허용할 타입을 제한합니다. |
+| mechanism_drivers | openvswitch,linuxbridge,sriovnicswitch,ovn | 실제 L2 구현(바인딩) 드라이버를 선택합니다. |
+| extension_drivers | port_security,qos,trunk | 추가 기능(보안그룹, QoS, Trunk 등)을 활성화합니다. |
+| ml2_type_flat.flat_networks | provider,public | flat 네트워크로 허용할 물리 네트워크(physnet) 목록입니다. |
+| ml2_type_vlan.network_vlan_ranges | provider:100:200 | VLAN에 사용할 physnet별 VLAN ID 범위입니다. |
+| ml2_type_vxlan.vni_ranges | 10:10000 | VXLAN VNI 범위를 지정합니다. |
+
+## [6-1-9] neutron.conf
+
+- **역할:** Neutron 서비스 전체에 공통적으로 적용되는 설정 파일입니다.
+- **대표적으로 포함되는 항목:**
+    - 사용 플러그인: ‎`core_plugin`, ‎`service_plugins`
+    - 데이터베이스 연결 정보: ‎`connection`
+    - 메시지 큐(RabbitMQ 등) 설정
+    - Keystone 인증 관련 설정(‎`[keystone_authtoken]` 섹션)
+    - 로그/디버그/프로세스 관련 옵션 등
+
+에이전트별 ‎`*.ini` 파일이 “각 에이전트의 역할과 옵션”을 정의한다면,
+
+‎`neutron.conf`는 Neutron 전체 프로세스의 **공통 기반 설정**을 제공한다고 보면 됩니다.
+
+### 핵심 옵션 요약
+
+| 옵션 이름 | 예시 값 | 역할/언제 중요한지 |
+|-----------|---------|--------------------|
+| core_plugin | neutron.plugins.ml2.plugin.Ml2Plugin | 코어 플러그인(대부분 ML2)을 지정합니다. |
+| service_plugins | router,metering,qos,trunk | 추가 서비스 플러그인들을 활성화합니다. |
+| [database] connection | mysql+pymysql://user:pass@host/neutron | Neutron DB 연결 문자열입니다. |
+| transport_url (또는 [oslo_messaging_rabbit]) | rabbit://user:pass@mq:5672/ | 메시지 버스(RabbitMQ 등) 연결을 지정합니다. |
+| allow_overlapping_ips | true | 테넌트 네트워크 간 중복 IP 대역 허용 여부입니다. |
+| notify_nova_on_port_* | true | 포트 상태/데이터 변경 시 Nova에 알림을 보냅니다. |
+| auth_strategy | keystone | API 인증 전략(Keystone 사용)입니다. |
+
+# 참조
+
+[Red Hat OSP 16.2 Neutron 설정 레퍼런스 — 에이전트, ML2, OVS, SR-IOV, neutron.conf 옵션 상세](https://docs.redhat.com/ko/documentation/red_hat_openstack_platform/16.2/html/configuration_reference/neutron_2)

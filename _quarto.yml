@@ -28,6 +28,20 @@ website:
           file: lectures/ch1_lec.qmd
         - text: "2장. 오픈스택 설치 가이드"
           file: lectures/ch2_lec.qmd
+        - section: "6장. Neutron"
+          contents:
+            - text: "6장. Neutron 개요"
+              file: lectures/ch6_lec.qmd
+            - text: "SNAT/DNAT 개념"
+              file: lectures/ch6/snat_dnat.qmd
+            - text: "Neutron Agent 종류 정리"
+              file: lectures/ch6/neutron_agents.qmd
+            - text: "OVS/VXLAN 가상 네트워크 만들기"
+              file: lectures/ch6/ovs_vxlan_vpn.qmd
+
+
+
+
 
 format:
   html:

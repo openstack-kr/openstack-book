@@ -81,4 +81,28 @@ main {
 .bi {
     color : white;
     margin-right: 0.2rem;
-} 
+}
+
+// -----------------------------------------------------------------------------
+// 코드 블록 / ASCII 다이어그램 스타일
+// -----------------------------------------------------------------------------
+
+// 모든 코드 블록에 공통 배경/여백/폰트 적용 (언어와 무관)
+pre code,
+pre.sourceCode {
+    display: block;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 6px;
+    background-color: #f8f9fb;
+    font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-x: auto;
+}
+
+// ASCII 다이어그램(예: ```text)도 코드 블록처럼 보이도록 별도 보정
+code.language-text,
+code.sourceCode.text {
+    background-color: #f5f5f7;
+}
