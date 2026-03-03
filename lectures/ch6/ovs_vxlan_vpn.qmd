@@ -1,6 +1,7 @@
 ---
-title: "OVS와 VXLAN으로 가상 네트워크 구성하기"
+title: "6-15 OVS와 VXLAN으로 가상 네트워크 구성하기"
 description: "여러 VM에 Open vSwitch(OVS)를 설치하고 VXLAN 터널을 구성하여, 물리적으로 떨어진 노드들 사이에 VPN과 유사한 가상 L2 네트워크를 만드는 방법과 트러블슈팅 포인트를 정리합니다."
+code: "6-15"
 ---
 
 # 요구사항
@@ -24,7 +25,7 @@ sudo systemctl status openvswitch-switch
 
 각 노드마다 아래의 명령어를 실행해줍니다.
 
-![노드 브릿지 추가 시각화](images/ovs_vxlan_vpn/image.png)
+![그림 6-15-1. 노드 브리지 추가 시각화](images/ovs_vxlan_vpn/image.png)
 
 ```bash
 sudo ovs-vsctl add-br br0
@@ -68,7 +69,7 @@ sudo ovs-vsctl add-port br0 vx-vm3 -- set interface vx-vm3 type=vxlan options:re
 
 - Full Mesh 구조입니다
 
-![구축한 구조 - Full Mesh](images/ovs_vxlan_vpn/image 1.png)
+![그림 6-15-2. 구축한 Full Mesh 구조](images/ovs_vxlan_vpn/image 1.png)
 
 # 트러블 슈팅
 
@@ -108,7 +109,7 @@ ARP, Reply vxlan-2 is-at 5a:49:50:c8:7d:4f (oui Unknown), length 28
 
 ARP Flood가 왜 일어날까요?
 
-![image.png](images/ovs_vxlan_vpn/image 2.png)
+![그림 6-15-3. ARP Flood 발생 상황 예시](images/ovs_vxlan_vpn/image 2.png)
 
 1. VM-A가 동일한 VNI(VXLAN Network Identifier)에 있는 VM-B와 통신하고 싶어 합니다. 하지만 VM-B의 MAC 주소를 모르기 때문에 **ARP Request**를 보냅니다.
 2. ARP Request는 브로드캐스트 패킷입니다. VXLAN에서 브로드캐스트, 멀티캐스트, 알 수 없는 유니캐스트(BUM)는 모든 목적지에 전달되어야 합니다.
@@ -126,7 +127,7 @@ sudo ovs-vsctl set bridge br0 stp_enable=true
 
 **Spanning Tree Protocol는 뭘까요?**
 
-![image.png](images/ovs_vxlan_vpn/image 3.png)
+![그림 6-15-4. STP를 활용한 루프 방지 개념](images/ovs_vxlan_vpn/image 3.png)
 
 - STP의 역할은 루프 방지입니다. 네트워크에 경로가 여러 개 있을 때, 패킷이 한 방향으로 가지 않고 뱅글뱅글 도는 '루프' 현상이 발생하면 네트워크는 즉시 마비됩니다.
 - STP는 이 루프를 감지해서 특정 경로를 논리적으로 차단(Blocking)했다가, 주 경로가 끊기면 다시 여는 역할을 합니다.
@@ -138,11 +139,11 @@ sudo ovs-vsctl set bridge br0 stp_enable=true
 sudo tcpdump -i ens18 udp port 4789
 ```
 
-![image.png](images/ovs_vxlan_vpn/image 4.png)
+![그림 6-15-5. STP 적용 후 VXLAN 트래픽 예시 1](images/ovs_vxlan_vpn/image 4.png)
 
-![image.png](images/ovs_vxlan_vpn/image 5.png)
+![그림 6-15-6. STP 적용 후 VXLAN 트래픽 예시 2](images/ovs_vxlan_vpn/image 5.png)
 
-![image.png](images/ovs_vxlan_vpn/image 6.png)
+![그림 6-15-7. STP 적용 후 VXLAN 트래픽 예시 3](images/ovs_vxlan_vpn/image 6.png)
 
 잘 보내집니다.
 
@@ -165,9 +166,9 @@ sudo tcpdump -i ens18 udp port 4789
 
 ## L2 Population (L2Pop)
 
-![image.png](images/ovs_vxlan_vpn/image 7.png)
+![그림 6-15-8. L2 Population(L2Pop) 동작 개념 1](images/ovs_vxlan_vpn/image 7.png)
 
-![image.png](images/ovs_vxlan_vpn/image 8.png)
+![그림 6-15-9. L2 Population(L2Pop) 동작 개념 2](images/ovs_vxlan_vpn/image 8.png)
 
 - Neutron ML2 플러그인 + OVS에서 쓰는 메커니즘 드라이버로, 중앙 Neutron 서버가 VM의 MAC/IP 위치를 모든 노드에 RPC로 미리 푸시합니다.
 - BUM(Broadcast/Unknown/Multicast) 트래픽을 **unicast source replication**으로 바꿔 전체 flooding 대신 "대상 노드 하나로만" 패킷 전송.
@@ -175,7 +176,7 @@ sudo tcpdump -i ens18 udp port 4789
 
 ## EVPN-VXLAN (BGP EVPN)
 
-![image.png](images/ovs_vxlan_vpn/image 9.png)
+![그림 6-15-10. BGP EVPN-VXLAN 제어 플레인 개념](images/ovs_vxlan_vpn/image 9.png)
 
 - BGP EVPN 컨트롤 플레인으로 VTEP(Leaf 스위치 등) 간 MAC/IP 정보를 자동 동기화합니다. Type-2 route로 엔드포인트 학습합니다.
 - **ARP Suppression**: VTEP이 이미 BGP에서 알던 MAC/IP로 ARP request를 로컬 proxy reply. Flooding 최소화.
