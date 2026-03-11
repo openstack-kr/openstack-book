@@ -1,0 +1,19 @@
+---
+title: "6장. neutron 개요"
+---
+
+
+## 강의 구성
+1. [6-6장. Neutron Plugin과 ML2 구조](ch6/ch6_6_lec.qmd)
+   - 개발 및 테스트 환경에 적합
+   - 단일 노드 구성
+   - 빠른 설치와 테스트
+
+## 준비사항
+- Linux 기본 명령어 이해
+- 가상화 개념 이해
+- 네트워크 기본 지식
+
+## 참고 자료
+- [환경 설정 가이드](/guides/basic.html)
+- [문제 해결 가이드](/guides/advanced.html) 

@@ -15,4 +15,4 @@ title: "오픈스택 강의 자료"
 - [4장. Nova]()
   - [4-1장. nova의 서비스 종류]()
 - [5장. Glance]()
-- [6장. neutron]()
+- [6장. neutron](ch6_lec.qmd)
