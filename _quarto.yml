@@ -28,6 +28,8 @@ website:
           file: lectures/ch1_lec.qmd
         - text: "2장. 오픈스택 설치 가이드"
           file: lectures/ch2_lec.qmd
+        - text: "6장. neutron"
+          file: lectures/ch6_lec.qmd
 
 format:
   html:
