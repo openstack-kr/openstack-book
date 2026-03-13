@@ -1,0 +1,106 @@
+---
+title: "Image Metadata 구조"
+---
+
+# OpenStack Glance Image Metadata 구조 및 체계 분석
+
+## 1. 개요
+클라우드 환경에 이미지를 업로드하면 용량이나 디스크 포맷(QCOW2 등) 같은 '물리적인 기본 정보'는 자동으로 기록됩니다. 하지만 수십, 수백 개의 이미지가 운영되는 실제 환경에서는 이런 기본 정보만으로 인프라를 제대로 통제하기 어렵습니다. 실제(실무) 환경에서는 배치 문제, 보안 통제, 자원 관리와 같은 실무적인 고민들이 발생할 수 있습니다. 이러한 문제를 해결하기 위해, 관리자가 직접 이미지에 세밀한 '꼬리표(태그)'를 달아 목적에 맞게 분류하고 제어하는 기능이 바로 사용자 정의 메타데이터(Custom Metadata)입니다. 
+
+## 2. 사용자 정의 메타데이터 관리 명령어 CRUD
+오픈스택 CLI에서는 '추가'와 '수정'이 하나의 명령어(set)로 통합되어 동작하는 것이 특징입니다. 
+
+### 2.1 추가 및 수정 (Add / Update)
+* **명령어**: `set` 
+* **원리**: 입력한 키(Key)가 기존에 없으면 새롭게 추가되고, 이미 존재하는 키라면 입력한 값(Value)으로 수정(덮어쓰기) 됩니다. 
+
+```bash
+# 사용법
+openstack image set-property <키>=<값> <이미지ID_또는_이름> 
+
+# 예시 (해당 이미지가 프론트엔드 부서용임을 추가/수정할 때)
+openstack image set-property department=frontend_dev ubuntu-24.04-custom 
+```
+
+### 2.2 삭제 (Delete)
+* **명령어**: `unset` 
+* **원리**: 더 이상 필요 없는 사용자 정의 속성을 지정하여 이미지에서 완전히 떼어냅니다. 
+
+```bash
+# 사용법
+openstack image unset-property <키> <이미지ID_또는_이름> 
+
+# 예시 (부서 지정 속성을 삭제할 때)
+openstack image unset-property department ubuntu-24.04-custom 
+```
+
+### 2.3 적용 결과 확인 (Read / Verify)
+* **명령어**: `show` 
+* **원리**: 메타데이터를 조작한 후에는 반드시 해당 이미지의 전체 정보를 조회하여 properties 항목에 변경 사항이 잘 들어갔는지 확인해야 합니다. 
+
+```bash
+# 사용법 (결과창의 properties 필드 확인)
+openstack image show ubuntu-24.04-custom 
+```
+
+> **💡 TIP**: OpenStack CLI 환경에서는 메타데이터의 '추가'와 '수정'을 별도의 명령어 구분 없이 `set` 명령어 하나로 처리합니다. 키(Key)의 존재 여부에 따라 자동으로 분기되기 때문에, 작업 후에는 반드시 `show` 명령어로 검증하는 습관이 필요합니다. 
+
+## 3. Metadata 논리 구조도
+아래 다이어그램은 Glance 데이터베이스 내에서 기본 속성과 사용자 정의 속성이 어떻게 구조화되어 관리되는지 보여줍니다. 
+
+```mermaid
+graph TD
+    %% 전체 서비스 구조
+    GlanceDB[(Glance Database)] --- ImageObject[Image Object Entity] 
+
+    %% 이미지 객체 하위 구조
+    ImageObject --> BaseProps[Base Properties<br/>기본 속성 - 필수/고정]
+    ImageObject --> CustomProps[User-defined Properties<br/>사용자 정의 속성 - 선택/가변]
+
+    %% 기본 속성 세부 항목
+    subgraph "System Mandatory Fields"
+        BaseProps --> B1[UUID / Name]
+        BaseProps --> B2[Status: active, saving...]
+        BaseProps --> B3[Disk Format: RAW, QCOW2...]
+        BaseProps --> B4[Container Format: bare...]
+        BaseProps --> B5[Min RAM / Min Disk]
+    end
+
+    %% 사용자 정의 속성 세부 항목
+    subgraph "Customizable Metadata Schema"
+        CustomProps --> C1[OS Distro: Ubuntu, Windows...]
+        CustomProps --> C2[Architecture: x86_64, ARM64...]
+        CustomProps --> C3[HW Virtualization: hw_scsi_model...]
+        CustomProps --> C4[Visibility: Public, Private, Shared]
+    end
+
+    %% 실제 데이터와 연결
+    ImageObject -->|Pointer| BackendStore{Glance Backend Store<br/>Actual Image Binary Data}
+
+    %% 스타일 정의
+    style ImageObject fill:#f9f,stroke:#333,stroke-width:2px
+    style GlanceDB fill:#e1f5fe,stroke:#01579b
+    style BackendStore fill:#fff3e0,stroke:#e65100
+```
+
+## 4. Metadata 아키텍처 및 저장 원리
+Glance의 이미지는 '이미지 바이너리 데이터'와 이를 설명하는 '메타데이터'로 분리되어 관리됩니다. 
+
+* **데이터베이스 관리**: 메타데이터는 빠른 검색과 인덱싱을 위해 Glance 데이터베이스(DB) 내에 구조화된 형태로 저장됩니다. 
+* **스토어 분리**: 실제 대용량 이미지 파일은 Glance 백엔드 스토어(Backend Store)에 보관되며, 메타데이터는 이 위치를 가리키는 포인터 정보를 포함합니다. 
+* **검증 프로세스**: 사용자가 VM 생성을 요청할 시, 시스템은 메타데이터를 우선 조회하여 하드웨어 사양(Min RAM 등)의 적합성 여부를 검토합니다. 
+
+## 5. 주요 구성 범주 분석 
+
+### 5.1 시스템 기본 속성 (Base Properties) 
+이미지 등록 시 시스템에 의해 필수적으로 요구되거나 생성되는 고유 속성입니다. 
+* **ID / Name**: 이미지의 고유 식별 번호 및 명칭 
+* **Status**: 현재 이미지의 가용 상태 (예: active, queued) 
+* **Disk Format**: 가상 디스크 저장 방식 (예: RAW, QCOW2) 
+* **Resource Constraints**: 구동에 필요한 최소 RAM 및 디스크 용량 명시 
+
+### 5.2 사용자 정의 속성 (Image Properties) 
+운영 효율성을 위해 관리자가 임의로 부여하는 키-값(Key-Value) 형태의 메타데이터입니다. 
+* **OS Information**: 운영체제의 배포판 및 버전 정보 
+* **Hardware Properties**: 특정 가상 하드웨어 모델(NIC, 디스크 컨트롤러) 지정 
+* **Visibility**: 이미지의 공개 및 공유 범위 정의 (Public, Private, Shared)
