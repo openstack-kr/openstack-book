@@ -1,4 +1,6 @@
 /.quarto/
-docs/*
+/docs/*
+
+/tools/imports/**/*.zip
 
 **/*.quarto_ipynb
