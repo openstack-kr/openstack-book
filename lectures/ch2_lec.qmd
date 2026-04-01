@@ -10,10 +10,10 @@ title: "2장. 오픈스택 설치 가이드"
    - 단일 노드 구성
    - 빠른 설치와 테스트
 
-2. [2-2장. Kolla-Ansible로 구성하기](ch2/ch2_2_lec.qmd)
-   - 프로덕션 환경에 적합
-   - 멀티 노드 구성
-   - 컨테이너 기반 배포
+2. [2-2장. VMWare 네트워크 설정](ch2/ch2_2_lec.qmd)
+   - VMware Fusion 기반 실습 환경 구성
+   - MGMT/Tenant/Provider 네트워크 분리
+   - 정적 IP 및 네트워크 검증
 
 ## 준비사항
 - Linux 기본 명령어 이해
@@ -22,4 +22,4 @@ title: "2장. 오픈스택 설치 가이드"
 
 ## 참고 자료
 - [환경 설정 가이드](/guides/basic.html)
-- [문제 해결 가이드](/guides/advanced.html) 
+- [문제 해결 가이드](/guides/advanced.html)
