@@ -1,18 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git rm --cached -r docs/)",
-      "Bash(git add .gitignore .github/workflows/publish.yml)",
-      "Bash(git commit:*)",
-      "Bash(git push origin main)",
-      "Bash(git add index.qmd README.md)",
-      "Bash(git add -A)",
-      "Bash(git add:*)",
+      "Bash(git:*)",
       "Bash(gh:*)",
       "Skill(update-config)",
-      "Skill(update-config:*)",
-      "Bash(git stash:*)",
-      "Bash(git checkout:*)"
+      "Skill(update-config:*)"
     ]
   }
 }
