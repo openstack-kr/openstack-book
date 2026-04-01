@@ -1,46 +1,34 @@
 [
   {
-    "objectID": "lectures/ch2_lec.html",
-    "href": "lectures/ch2_lec.html",
-    "title": "2장. 오픈스택 설치 가이드",
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "OpenStack 학습 자료실",
     "section": "",
-    "text": "이 강의에서는 오픈스택을 설치하는 두 가지 주요 방법을 다룹니다:",
-    "crumbs": [
-      "목록",
-      "2장. 오픈스택 설치 가이드"
-    ]
+    "text": "이 사이트는 오픈스택을 학습하는데 필요한 다양한 자료들을 제공합니다.\n\n\n이 콘텐츠는 OpenInfra Korea User Group과 아주대학교 소학회 아올다(Aolda)가 함께 만들어가고 있습니다.\n\n\n\n\n\n\n오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
   },
   {
-    "objectID": "lectures/ch2_lec.html#강의-구성",
-    "href": "lectures/ch2_lec.html#강의-구성",
-    "title": "2장. 오픈스택 설치 가이드",
-    "section": "강의 구성",
-    "text": "강의 구성\n\n2-1장. DevStack으로 구성하기\n\n개발 및 테스트 환경에 적합\n단일 노드 구성\n빠른 설치와 테스트\n\n2-2장. Kolla-Ansible로 구성하기\n\n프로덕션 환경에 적합\n멀티 노드 구성\n컨테이너 기반 배포",
-    "crumbs": [
-      "목록",
-      "2장. 오픈스택 설치 가이드"
-    ]
+    "objectID": "index.html#함께-만드는-곳",
+    "href": "index.html#함께-만드는-곳",
+    "title": "OpenStack 학습 자료실",
+    "section": "",
+    "text": "이 콘텐츠는 OpenInfra Korea User Group과 아주대학교 소학회 아올다(Aolda)가 함께 만들어가고 있습니다."
   },
   {
-    "objectID": "lectures/ch2_lec.html#준비사항",
-    "href": "lectures/ch2_lec.html#준비사항",
-    "title": "2장. 오픈스택 설치 가이드",
-    "section": "준비사항",
-    "text": "준비사항\n\nLinux 기본 명령어 이해\n가상화 개념 이해\n네트워크 기본 지식",
-    "crumbs": [
-      "목록",
-      "2장. 오픈스택 설치 가이드"
-    ]
+    "objectID": "index.html#주요-콘텐츠",
+    "href": "index.html#주요-콘텐츠",
+    "title": "OpenStack 학습 자료실",
+    "section": "",
+    "text": "오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
   },
   {
-    "objectID": "lectures/ch2_lec.html#참고-자료",
-    "href": "lectures/ch2_lec.html#참고-자료",
-    "title": "2장. 오픈스택 설치 가이드",
-    "section": "참고 자료",
-    "text": "참고 자료\n\n환경 설정 가이드\n문제 해결 가이드",
+    "objectID": "lectures/index.html",
+    "href": "lectures/index.html",
+    "title": "오픈스택 강의 자료",
+    "section": "",
+    "text": "강의 목록\n\n1장. 오픈스택 개요\n2장. 오픈스택 설치 해보기\n\n2-1장. VirtualBox으로 기본 환경 구성하기\n2-2장. VMWare Fusion으로 기본 환경 구성하기\n2-3장. Proxmox로 기본 환경 구성하기\n2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기\n\n3장. Keystone\n\n3-1장. Keystone 토큰\n\n4장. Nova\n\n4-1장. nova의 서비스 종류\n\n5장. Glance\n6장. Neutron\n\nSNAT/DNAT 개념\nNeutron Agent 종류 정리\nOVS/VXLAN 가상 네트워크 만들기",
     "crumbs": [
       "목록",
-      "2장. 오픈스택 설치 가이드"
+      "목차"
     ]
   },
   {
@@ -72,36 +60,206 @@
     "text": "강의 슬라이드\n실습 가이드"
   },
   {
-    "objectID": "lectures/index.html",
-    "href": "lectures/index.html",
-    "title": "오픈스택 강의 자료",
+    "objectID": "lectures/ch6_lec.html",
+    "href": "lectures/ch6_lec.html",
+    "title": "6장. Neutron",
     "section": "",
-    "text": "강의 목록\n\n1장. 오픈스택 개요\n2장. 오픈스택 설치 해보기\n\n2-1장. VirtualBox으로 기본 환경 구성하기\n2-2장. VMWare Fusion으로 기본 환경 구성하기\n2-3장. Proxmox로 기본 환경 구성하기\n2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기\n\n3장. Keystone\n\n3-1장. Keystone 토큰\n\n4장. Nova\n\n4-1장. nova의 서비스 종류\n\n5장. Glance\n6장. neutron",
+    "text": "Neutron은 오픈스택의 네트워킹 서비스입니다. 이 장에서는 Neutron의 핵심 개념들을 다룹니다.\n\n\n\n6-1 Neutron 에이전트 종류 정리\n6-12 SNAT/DNAT 개념\n6-15 OVS/VXLAN 가상 네트워크 만들기",
     "crumbs": [
       "목록",
-      "목차"
+      "6장. Neutron"
     ]
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "OpenStack 학습 자료실",
+    "objectID": "lectures/ch6_lec.html#하위-목차",
+    "href": "lectures/ch6_lec.html#하위-목차",
+    "title": "6장. Neutron",
     "section": "",
-    "text": "이 사이트는 오픈스택을 학습하는데 필요한 다양한 자료들을 제공합니다.\n\n\n이 콘텐츠는 OpenInfra Korea User Group과 아주대학교 소학회 아올다(Aolda)가 함께 만들어가고 있습니다.\n\n\n\n\n\n\n오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
+    "text": "6-1 Neutron 에이전트 종류 정리\n6-12 SNAT/DNAT 개념\n6-15 OVS/VXLAN 가상 네트워크 만들기",
+    "crumbs": [
+      "목록",
+      "6장. Neutron"
+    ]
   },
   {
-    "objectID": "index.html#함께-만드는-곳",
-    "href": "index.html#함께-만드는-곳",
-    "title": "OpenStack 학습 자료실",
+    "objectID": "lectures/ch6/snat_dnat.html",
+    "href": "lectures/ch6/snat_dnat.html",
+    "title": "6-12. SNAT/DNAT란?",
     "section": "",
-    "text": "이 콘텐츠는 OpenInfra Korea User Group과 아주대학교 소학회 아올다(Aolda)가 함께 만들어가고 있습니다."
+    "text": "일단 SNAT, DNAT를 설명하기 전에 NAT에 대해서 먼저 설명하겠습니다.\nNAT은 “여러 사설 IP를 적은 수(또는 한 개)의 공인 IP로 바꿔서 외부와 통신하게 해 주는 주소 변환 장치/기능”입니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-12. SNAT/DNAT란?"
+    ]
   },
   {
-    "objectID": "index.html#주요-콘텐츠",
-    "href": "index.html#주요-콘텐츠",
-    "title": "OpenStack 학습 자료실",
+    "objectID": "lectures/ch6/snat_dnat.html#실제-어디서-쓰이는지",
+    "href": "lectures/ch6/snat_dnat.html#실제-어디서-쓰이는지",
+    "title": "6-12. SNAT/DNAT란?",
+    "section": "[6-12-5] 실제 어디서 쓰이는지",
+    "text": "[6-12-5] 실제 어디서 쓰이는지\n\n집 공유기, 카페·회사 AP: 거의 전부 NAPT 방식 NAT\n기업 경계 라우터: 사설망(10.x, 192.168.x) ↔︎ 인터넷 사이의 주소 변환\nIDC/클라우드 내부: 특정 세그먼트 간, 또는 DMZ 구성 시도 NAT를 사용하기도 함\n\n정리하면, NAT = 내부 사설 주소 체계를 외부에서 가리고, 부족한 IPv4 주소를 아끼기 위해 경계에서 IP(그리고 포트)만 바꿔 주는 중간 통역 장치라고 보면 됩니다.\n\nSNAT과 DNAT은 “어느 주소를 바꾸느냐”와 “언제/어디에서 바꾸느냐”가 핵심입니다.\n\n\n\n그림 6-12-5-1. SNAT/DNAT 동작 원리",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-12. SNAT/DNAT란?"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/ovs_vxlan_vpn.html",
+    "href": "lectures/ch6/ovs_vxlan_vpn.html",
+    "title": "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기",
     "section": "",
-    "text": "오픈스택 개요\n\n클라우드 컴퓨팅의 기본 개념\n오픈스택 프로젝트 소개\n주요 컴포넌트 설명\n\n\n\n\n\n\n\n\n\n\n\n\nDiscord에서 실시간 대화에 참여하세요\n커뮤니티 포럼에서 질문하고 답변하세요"
+    "text": "VM 세 개를 만들어서 각각 가상 NIC를 100,200,300으로 만들어서 OVS를 설치하고 host에서 ping으로\n\n가상 네트워크에다가 ping이 가도록.\n가상 NIC끼리 서로 통신이 되도록 만드는 것.\n\n\n⇒ OVS로 VPN 서비스를 만든다(VXLAN으로).\nVM 3개를 만들고 OVS와 VXLAN으로 VPN 같은 가상 네트워크를 만들어 보기",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/ovs_vxlan_vpn.html#l2-population-l2pop",
+    "href": "lectures/ch6/ovs_vxlan_vpn.html#l2-population-l2pop",
+    "title": "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기",
+    "section": "L2 Population (L2Pop)",
+    "text": "L2 Population (L2Pop)\n\n\n\n그림 6-15-4-1. L2 Population(L2Pop) 동작 개념 1\n\n\n\n\n\n그림 6-15-4-2. L2 Population(L2Pop) 동작 개념 2\n\n\n\nNeutron ML2 플러그인 + OVS에서 쓰는 메커니즘 드라이버로, 중앙 Neutron 서버가 VM의 MAC/IP 위치를 모든 노드에 RPC로 미리 푸시합니다.\nBUM(Broadcast/Unknown/Multicast) 트래픽을 unicast source replication으로 바꿔 전체 flooding 대신 “대상 노드 하나로만” 패킷 전송.\nARP responder도 추가해 로컬에서 ARP reply 생성, 브로드캐스트를 아예 막음. OVS flow 테이블에 prepopulate.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/ovs_vxlan_vpn.html#evpn-vxlan-bgp-evpn",
+    "href": "lectures/ch6/ovs_vxlan_vpn.html#evpn-vxlan-bgp-evpn",
+    "title": "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기",
+    "section": "EVPN-VXLAN (BGP EVPN)",
+    "text": "EVPN-VXLAN (BGP EVPN)\n\n\n\n그림 6-15-4-3. BGP EVPN-VXLAN 제어 플레인 개념\n\n\n\nBGP EVPN 컨트롤 플레인으로 VTEP(Leaf 스위치 등) 간 MAC/IP 정보를 자동 동기화합니다. Type-2 route로 엔드포인트 학습합니다.\nARP Suppression: VTEP이 이미 BGP에서 알던 MAC/IP로 ARP request를 로컬 proxy reply. Flooding 최소화.\nScale-out 강점: 노드 추가 시 BGP가 자동 피어링·라우팅 업데이트. 멀티테넌트 VNI별 관리 쉬움.\n\n라고 설명하는데, 개념이 다소 어렵게 느껴질 수 있습니다. 아래 내용은 제미나이에게 질의하여 보다 이해하기 쉽게 정리한 예시입니다.\nVM-B가 VTEP-2에 생성되자마자, VTEP-2는 중앙 전산소인 RR에게 이 소식을 알립니다.\n[ VM-B (10.0.1.2) ] ----&gt; [ VTEP-2 ] ----------------&gt; [ BGP RR (전산소) ]\n      (이사 완료)         (우체국2)    \"신규 입주 신고!\"      (정보 수집)\n                                     (BGP Update)\n\nVTEP-2의 메시지: “전산소님, 제 아래에 IP 10.0.1.2, MAC BB:BB를 가진 VM-B가 들어왔습니다!”\n\n중앙 전산소(RR)는 받은 정보를 데이터베이스에 저장하고, 자신에게 연결된 모든 Client(우체국들)에게 이 정보를 반사(Reflection)합니다.\n         [ BGP RR (전산소) ]\n          /      |       \\\n (반사)  /        |        \\  (반사)\n       v         v          v\n  [ VTEP-1 ]  [ VTEP-2 ]  [ VTEP-3 ]`\n\nRR의 방송: “모두 주목! 이제부터 10.0.1.2로 가는 편지는 VTEP-2(우체국2)로 보내면 된다. 다들 자기 수첩에 적어놔!”\n결과: 모든 VTEP은 통신이 시작되기도 전에 VM-B의 위치를 이미 알게 됩니다. (Control Plane Learning)\n\n이제 VM-A가 VM-B에게 처음으로 데이터를 보냅니다. 예전 같으면 “누가 VM-B야?”라고 소리를 질렀겠지만, 이제는 다릅니다.\n1. [ VM-A ] ----&gt; \"10.0.1.2(VM-B) 누구야?\" (ARP Request) ----&gt; [ VTEP-1 ]\n\n2. [ VTEP-1 ] (수첩 확인): \n   \"잠깐, 소리 지를 필요 없어! 전산소에서 아까 말해줬지. \n    10.0.1.2는 우체국2(VTEP-2)에 있고, MAC은 BB:BB야.\" [ARP Suppression]\n\n3. [ VTEP-1 ] ---- (VXLAN 터널) ----&gt; [ VTEP-2 ] ----&gt; [ VM-B ]\n\nVTEP-1은 ARP 요청을 네트워크 전체에 뿌리지(Flood) 않고, 자기가 알고 있는 정보로 VM-A에게 바로 답장해 줍니다.\n데이터 패킷은 정확히 VTEP-2로만 1:1 유니캐스트로 전달됩니다.\n\n즉 두 가지 방식 모두 하나의 큰 소프트웨어를 두고, 특정 VTEP이 생성됐을 때 이를 감지하고 이 VTEP에 대한 네트워크 정보를 나눠 주는 주체를 두어 처리한다는 점이 동일한 것 같습니다.\n\n“중앙에서 정보를 관리하고 배포하는 주체”를 둬서, 전통적인 이더넷의 “소문내서 찾기(Flood & Learn)” 방식을 “미리 알고 알려주기(Push & Direct)” 방식으로 변경",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html",
+    "href": "lectures/ch6/neutron_agents.html",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "",
+    "text": "Neutron 에이전트는 크게 다음과 같이 역할별로 나눌 수 있습니다.\nNeutron 서버(‎neutron-server)가 API 및 데이터베이스를 통해 네트워크/서브넷/포트를 관리한다면,\n각 에이전트들은 실제 컴퓨트/네트워크 노드에서 브리지 생성, IP 할당, 라우터 구성, 메타데이터 전달 등 “실제 동작”을 담당한다고 볼 수 있습니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#dhcp_agent.ini",
+    "href": "lectures/ch6/neutron_agents.html#dhcp_agent.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-1] dhcp_agent.ini",
+    "text": "[6-1-1] dhcp_agent.ini\n역할 요약\n\nNeutron 네트워크/서브넷에 대해 DHCP 서버 역할을 수행하는 에이전트입니다.\n일반적으로 ‎dnsmasq 프로세스를 사용해 인스턴스 부팅 시 IP 주소, 게이트웨이, DNS 등 네트워크 정보를 할당합니다.\n\ndnsmasq는 복잡한 설정 없이 내부 망의 도메인 관리(DNS)와 IP 할당(DHCP)을 한 번에 해결하기 위해 만든 경량급 네트워크 백그라운드 서비스\n\n\n언제 쓰는지\n\n인스턴스가 자동으로 IP를 할당받도록 하고 싶을 때, 대부분의 OpenStack 환경에서 기본으로 사용합니다.\n각 서브넷에서 DHCP를 사용하도록 설정했을 경우, 해당 서브넷에 대한 DHCP 네임스페이스와 dnsmasq 프로세스를 관리합니다.\n\n주요 옵션\n\n‎interface_driver\n\n역할: DHCP 네임스페이스를 만들고, 내부 인터페이스를 연결할 때 사용할 L2 드라이버.\n예시 값:\n\n‎neutron.agent.linux.interface.OVSInterfaceDriver\n‎neutron.agent.linux.interface.BridgeInterfaceDriver (linuxbridge 환경)\n\n언제 설정하는지:\n\nL2 에이전트가 ‎openvswitch-agent면 OVS 관련 드라이버, ‎linuxbridge-agent면 Bridge 관련 드라이버로 맞춰줍니다.\n\n\n‎dhcp_driver\n\n역할: 실제 DHCP 구현 선택.\n일반적으로 사용: ‎neutron.agent.linux.dhcp.Dnsmasq\n비고: 특별한 요구사항이 없다면 기본 dnsmasq를 그대로 사용하는 경우가 대부분입니다.\n\n‎enable_isolated_metadata\n\n값: ‎True / ‎False\n역할: 라우터가 없는 isolated 네트워크에서도 인스턴스가 메타데이터 서비스에 접근할 수 있게 할지 여부.\n사용 예: 테스트용 네트워크를 자주 만들고, 라우터 없이도 메타데이터에 접근하도록 하고 싶을 때 ‎True로 설정.\n\n\n더 자세한 옵션은 Neutron 공식 설정 문서와 Red Hat Neutron 설정 문서를 참고합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n기본값(예시)\n역할/언제 중요한지\n\n\n\n\ninterface_driver\nopenvswitch, Bridge 등\nDHCP 네임스페이스 안에서 어떤 L2 드라이버를 쓸지 결정합니다.\n\n\ndhcp_driver\nneutron.agent.linux.dhcp.Dnsmasq\n실제 DHCP 구현 선택. 특별한 요구가 없으면 기본값을 사용합니다.\n\n\nenable_isolated_metadata\nFalse\n라우터가 없는 isolated 네트워크에서도 메타데이터를 쓸지 여부입니다.\n\n\nforce_metadata\nFalse\n라우터 유무와 상관없이 모든 네트워크에 메타데이터를 강제로 제공할지 여부입니다.\n\n\nenable_metadata_network\nFalse\n별도의 메타데이터 전용 네트워크(169.254.169.254/16 등)를 사용할지 여부입니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#l3_agent.ini",
+    "href": "lectures/ch6/neutron_agents.html#l3_agent.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-2] l3_agent.ini",
+    "text": "[6-1-2] l3_agent.ini\n역할 요약\n\nNeutron 라우터를 실제 네임스페이스 기반 L3 라우터로 구현하고,라우팅, NAT, 플로팅 IP 등을 처리하는 에이전트입니다.\n\n언제 쓰는지\n\n프로젝트 라우터를 생성하여 외부 네트워크와 통신하게 하고 싶을 때 필수입니다.\n플로팅 IP를 사용하거나, 테넌트 네트워크 간 라우팅이 필요할 때 사용됩니다.\n일반적으로 네트워크 노드(또는 컨트롤러+네트워크 통합 노드)에 배치됩니다.\n\n주요 옵션\n\n‎interface_driver\n\n역할 및 사용 방식은 ‎dhcp_agent.ini와 비슷하게, 라우터 네임스페이스 내 인터페이스 연결 방식을 결정합니다.\n\n‎agent_mode\n\n역할: L3 에이전트가 어떤 모드로 동작할지 결정.\n예시 값:\n\n‎legacy: 고전적인 단일 L3 에이전트 방식\n‎dvr_snat, ‎dvr: DVR(Distributed Virtual Routing) 환경에서 사용\n\n주의: DVR 구성 여부에 따라 반드시 일관성 있게 설정해야 합니다.\n\n‎external_network_bridge\n\n역할: 외부 네트워크와 연결될 브리지 이름.\n설정 예: OVS 환경에서 ‎br-ex 등.\n특징: 최근 구성에서는 특정 값 대신 provider network + bridge_mappings 조합으로 대체되는 경우도 많습니다.\n\n‎router_delete_namespaces\n\n역할: 라우터 삭제 시 네임스페이스를 자동으로 제거할지 여부.\n값: ‎True / ‎False\n\n\n더 자세한 옵션은 Neutron 공식 설정 문서와 Red Hat Neutron 설정 문서를 참고합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n기본값(예시)\n역할/언제 중요한지\n\n\n\n\ninterface_driver\n(환경별 상이)\n라우터 네임스페이스 내부 인터페이스를 어떤 L2 드라이버로 붙일지 결정합니다.\n\n\nagent_mode\nlegacy\nL3 에이전트가 중앙집중형인지(DVR/legacy) 등 동작 모드를 결정합니다.\n\n\nexternal_network_bridge\n(빈 값 권장)\n외부 네트워크와 연결되는 브리지 이름. 최근에는 provider network + bridge_mappings로 대체되는 경우가 많습니다.\n\n\nrouter_delete_namespaces\nTrue/False\n라우터 삭제 시 네임스페이스를 자동으로 정리할지 여부입니다.\n\n\nenable_metadata_proxy\nTrue\n각 라우터 네임스페이스 안에서 메타데이터 프록시를 띄울지 여부입니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#linuxbridge_agent.ini",
+    "href": "lectures/ch6/neutron_agents.html#linuxbridge_agent.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-3] linuxbridge_agent.ini",
+    "text": "[6-1-3] linuxbridge_agent.ini\n역할 요약\n\nLinux Bridge를 사용해 가상 스위치를 구성하고, Neutron 포트를 실제 Linux 브리지 및 물리 인터페이스에 매핑하는 L2 에이전트입니다.\n\n언제 쓰는지\n\nOVS 대신 Linux Bridge 기반의 네트워크 구성을 사용할 때.\n일반적으로 컴퓨트 노드에 배치되어 인스턴스의 vNIC을 Linux Bridge에 붙여줍니다.\n\n주요 옵션\n\n‎physical_interface_mappings\n\n역할: 논리 네트워크 이름 → 물리 NIC 이름 매핑.\n예시: ‎provider:eth1\n의미: ‎provider 네트워크 트래픽은 호스트의 ‎eth1을 통해 나감.\n\n‎bridge_mappings (버전/배포판에 따라 영역/형식이 다를 수 있음)\n\n역할: provider 네트워크와 Linux 브리지 이름 매핑.\n예시: ‎provider:br-provider\n\n‎enable_vxlan\n\n역할: VXLAN 기반의 오버레이 네트워크 사용 여부.\n값: ‎True / ‎False\n\n‎local_ip\n\n역할: VXLAN 터널 엔드포인트 IP 주소.\n예시: ‎local_ip = 10.0.0.10\n\n\n더 자세한 옵션은 아래에서 확인 가능합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n기본값(예시)\n역할/언제 중요한지\n\n\n\n\nphysical_interface_mappings\n(예: provider:eth1)\n논리 네트워크 이름을 실제 물리 NIC에 매핑합니다.\n\n\nbridge_mappings\n(예: provider:br-provider)\nprovider 네트워크를 어떤 Linux 브리지에 연결할지 결정합니다.\n\n\nenable_vxlan\nTrue/False\nVXLAN 오버레이 네트워크 사용 여부입니다.\n\n\nlocal_ip\n10.0.0.10 등\nVXLAN 터널 엔드포인트로 사용할 호스트의 IP 주소입니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#metadata_agent.ini",
+    "href": "lectures/ch6/neutron_agents.html#metadata_agent.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-4] metadata_agent.ini",
+    "text": "[6-1-4] metadata_agent.ini\n역할 요약\n\n인스턴스에서 메타데이터(유저 데이터, 인스턴스 정보 등)를 조회할 수 있도록, Neutron 네트워크와 Nova 메타데이터 서비스 사이를 프록시 해주는 에이전트입니다.\n\n언제 쓰는지\n\n인스턴스가 ‎http://169.254.169.254/ 로 메타데이터에 접근할 수 있어야 할 때 필수입니다.\n\nhttp://169.254.169.254/ 는 전 세계 모든 클라우드(AWS, GCP, OpenStack 등)에서 공통으로 사용하는 메타데이터 서버 주소\n받아오는 메타데이터 정보는 호스트네임, SSH 키와 같은 것들(다 같이 가지고 있지만, 각 인스턴스마다 값이 다를 수 있는 것들)\n즉 “이미지 하나로 수천 대의 서로 다른 서버를 찍어내기 위해” 메타데이터가 필요하고 이를 관리하는 것이 필요하다.\n\n대부분의 환경에서 기본적으로 사용합니다.\n\n주요 옵션\n\n‎nova_metadata_host\n\n역할: Nova 메타데이터 API가 떠 있는 호스트 주소.\n예시: ‎nova_metadata_host = controller.example.com 또는 컨트롤러 IP.\n\n‎nova_metadata_port\n\n역할: Nova 메타데이터 API 포트.\n기본 예시: ‎8775 등 배포판에 따라 상이.\n\n‎metadata_proxy_shared_secret\n\n역할: Neutron metadata agent와 Nova 메타데이터 서비스 간 인증에 사용되는 공유 비밀값.\n주의: Nova 측 설정(‎metadata_proxy_shared_secret)과 반드시 일치해야 합니다.\n\n\n더 자세한 옵션은 아래에서 확인 가능합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n기본값(예시)\n역할/언제 중요한지\n\n\n\n\nnova_metadata_host\ncontroller.example.com 등\nNova 메타데이터 API가 떠 있는 호스트 이름 또는 IP입니다.\n\n\nnova_metadata_port\n8775\nNova 메타데이터 API 포트 번호입니다.\n\n\nmetadata_proxy_shared_secret\n(환경에서 지정)\nNeutron metadata agent와 Nova 간 인증에 사용하는 공유 시크릿입니다.\n\n\nauth_url/auth_type 등\n(Keystone 설정 값)\nKeystone 인증 정보를 통해 메타데이터 서비스와 통신할 때 사용합니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#openvswitch_agent.ini",
+    "href": "lectures/ch6/neutron_agents.html#openvswitch_agent.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-5] openvswitch_agent.ini",
+    "text": "[6-1-5] openvswitch_agent.ini\n역할 요약\n\nOpen vSwitch(OVS)를 이용해 가상 스위치를 구성하고, Neutron 네트워크를 OVS 브리지/포트로 매핑하는 L2 에이전트입니다.\n\n언제 쓰는지\n\nOVS 기반 네트워크를 사용할 때.\nVXLAN, GRE 등 터널 네트워크를 활용하는 환경에서 가장 많이 사용되는 에이전트입니다.\n주로 컴퓨트 노드와 네트워크 노드에 배치됩니다.\n\n주요 옵션\n\n‎local_ip\n\n역할: 터널 네트워크의 엔드포인트 IP.\n예시: ‎local_ip = 10.0.0.10\n\n‎tunnel_types\n\n역할: 사용할 터널 종류 지정.\n예시 값: ‎vxlan, ‎gre, ‎geneve 등\n예시: ‎tunnel_types = vxlan\n\n‎bridge_mappings\n\n역할: provider 네트워크 → OVS 브리지 매핑.\n예시: ‎provider:br-provider\n의미: ‎provider 타입 네트워크는 호스트의 ‎br-provider 브리지를 통해 외부와 연결.\n\n‎of_interface / ‎ovsdb_interface\n\n역할: OVS와 통신할 때 사용할 인터페이스(라이브러리) 유형.\n일반적으로: 기본값 사용.\n\n\n더 자세한 옵션은 아래에서 확인 가능합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n기본값(예시)\n역할/언제 중요한지\n\n\n\n\nlocal_ip\n10.0.0.10 등\nVXLAN/GRE/Geneve 터널의 로컬 엔드포인트 IP입니다.\n\n\ntunnel_types\nvxlan, gre, geneve 등\n어떤 종류의 터널 네트워크를 사용할지 결정합니다.\n\n\nbridge_mappings\nprovider:br-provider 등\nprovider 네트워크를 어떤 OVS 브리지에 연결할지 매핑합니다.\n\n\nintegration_bridge\nbr-int\n테넌트 포트가 연결되는 통합 브리지 이름입니다.\n\n\ntunnel_bridge\nbr-tun\n터널 인터페이스가 붙는 브리지 이름입니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#sriov_agent.ini",
+    "href": "lectures/ch6/neutron_agents.html#sriov_agent.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-6] sriov_agent.ini",
+    "text": "[6-1-6] sriov_agent.ini\n역할 요약\n\nSR-IOV NIC를 사용하여, 인스턴스에 가상 기능(VF) 를 직접 할당하는 L2 에이전트입니다.\n고성능/저지연 네트워크가 필요한 워크로드에서 사용합니다.\n\n언제 쓰는지\n\n호스트에 SR-IOV 지원 NIC가 있고, 인스턴스에 직접 VF를 붙여야 할 때 사용합니다.\n일반적인 가상 스위치(Linux Bridge, OVS) 경로를 우회하여 네트워크 성능을 끌어올리는 경우에 적용합니다.\n\n주요 옵션 (개요 수준)\n\n‎physical_device_mappings\n\n역할: 논리 네트워크 이름 → 물리 SR-IOV NIC 매핑.\n예시: ‎physnet1:eth2\n의미: ‎physnet1 네트워크는 호스트의 ‎eth2 SR-IOV NIC를 사용.\n\n‎exclude_devices\n\n역할: SR-IOV 관리 대상에서 제외할 VF 목록.\n예시: ‎eth2:0000:03:10.1;0000:03:10.2\n사용 이유: 특정 VF는 호스트 용도로 예약하거나, 다른 용도로 사용할 때.\n\n\n더 자세한 옵션은 아래에서 확인 가능합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n기본값(예시)\n역할/언제 중요한지\n\n\n\n\nphysical_device_mappings\nphysnet1:eth2 등\n논리 네트워크(physnet)를 어느 SR-IOV 물리 NIC(PF)에 매핑할지 정의합니다.\n\n\nexclude_devices\neth2:0000:03:10.1;… 등\nSR-IOV 관리 대상에서 제외할 VF 목록입니다.\n\n\npolling_interval\n2\nSR-IOV 디바이스 상태를 얼마나 자주 폴링할지(초 단위) 결정합니다.\n\n\nreport_interval\n30\nNeutron 서버에 상태를 얼마나 자주 보고할지(초 단위) 결정합니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#metering_agent.ini",
+    "href": "lectures/ch6/neutron_agents.html#metering_agent.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-7] metering_agent.ini",
+    "text": "[6-1-7] metering_agent.ini\n역할 요약\n\nNeutron 라우터를 기준으로 트래픽 사용량(미터링 정보) 을 수집하는 에이전트입니다.\n대역폭 사용량, 과금/통계 등의 용도로 활용할 수 있는 데이터를 제공합니다.\n\n언제 쓰는지\n\n테넌트별/라우터별 트래픽 사용량을 기록해야 하는 환경에서 사용합니다.\n미터링/과금/리포팅 기능을 활성화할 때 유용합니다.\n\n주요 옵션 (개요 수준)\n\n‎driver\n\n역할: 어떤 미터링 드라이버를 사용할지 지정.\n예시: ‎neutron.services.metering.drivers.iptables.iptables_driver.IptablesMeteringDriver 등\n\n‎interface_driver\n\n역할: l3/dhcp와 마찬가지로 네임스페이스 내 인터페이스를 관리하기 위한 드라이버.\n예시: OVS 환경이면 ‎neutron.agent.linux.interface.OVSInterfaceDriver\n\n‎measure_interval\n\n역할: 트래픽을 측정하는 간격(초 단위).\n예시: ‎measure_interval = 30\n\n‎report_interval\n\n역할: 수집된 미터링 데이터를 보고(전송)하는 간격.\n\n\n더 자세한 옵션은 아래에서 확인 가능합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n기본값(예시)\n역할/언제 중요한지\n\n\n\n\ndriver\niptables 기반 드라이버 등\n어떤 방식으로 트래픽을 계측(미터링)할지 결정합니다.\n\n\ninterface_driver\nOVSInterfaceDriver 등\nL3/DHCP와 마찬가지로 네임스페이스 내부 인터페이스를 관리합니다.\n\n\nmeasure_interval\n30\n트래픽을 얼마나 자주 측정할지(초 단위) 결정합니다.\n\n\nreport_interval\n(환경에 따라 설정)\n수집된 미터링 데이터를 얼마나 자주 보고(전송)할지 결정합니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#ml2_conf.ini",
+    "href": "lectures/ch6/neutron_agents.html#ml2_conf.ini",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-8] ml2_conf.ini",
+    "text": "[6-1-8] ml2_conf.ini\n\n역할: ML2(플러그형 L2 플러그인)의 동작을 정의하는 핵심 설정 파일입니다.\n주요 내용:\n\n사용할 네트워크 타입: ‎type_drivers (예: ‎local,flat,vlan,vxlan)\n테넌트 네트워크에 허용할 타입: ‎tenant_network_types\n사용할 메커니즘 드라이버: ‎mechanism_drivers (예: ‎openvswitch, ‎linuxbridge, ‎sriovnicswitch)\n물리 네트워크와 실제 인터페이스/브리지 매핑: ‎ml2_type_flat, ‎ml2_type_vlan 섹션 등.\n\n\n이 파일에서 “어떤 L2 기술/드라이버를 쓸지”를 결정하고,\n각 호스트에서는 해당하는 에이전트(linuxbridge-agent, openvswitch-agent, sriov-agent 등)가 실제 동작을 담당합니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n예시 값\n역할/언제 중요한지\n\n\n\n\ntype_drivers\nlocal,flat,vlan,vxlan,geneve\n지원할 L2 네트워크 타입 전체를 선언합니다.\n\n\ntenant_network_types\nvxlan,vlan,flat,local\n테넌트 네트워크에 허용할 타입을 제한합니다.\n\n\nmechanism_drivers\nopenvswitch,linuxbridge,sriovnicswitch,ovn\n실제 L2 구현(바인딩) 드라이버를 선택합니다.\n\n\nextension_drivers\nport_security,qos,trunk\n추가 기능(보안그룹, QoS, Trunk 등)을 활성화합니다.\n\n\nml2_type_flat.flat_networks\nprovider,public\nflat 네트워크로 허용할 물리 네트워크(physnet) 목록입니다.\n\n\nml2_type_vlan.network_vlan_ranges\nprovider:100:200\nVLAN에 사용할 physnet별 VLAN ID 범위입니다.\n\n\nml2_type_vxlan.vni_ranges\n10:10000\nVXLAN VNI 범위를 지정합니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
+  },
+  {
+    "objectID": "lectures/ch6/neutron_agents.html#neutron.conf",
+    "href": "lectures/ch6/neutron_agents.html#neutron.conf",
+    "title": "6-1. Neutron의 agent에 대해 알아보기",
+    "section": "[6-1-9] neutron.conf",
+    "text": "[6-1-9] neutron.conf\n\n역할: Neutron 서비스 전체에 공통적으로 적용되는 설정 파일입니다.\n대표적으로 포함되는 항목:\n\n사용 플러그인: ‎core_plugin, ‎service_plugins\n데이터베이스 연결 정보: ‎connection\n메시지 큐(RabbitMQ 등) 설정\nKeystone 인증 관련 설정(‎[keystone_authtoken] 섹션)\n로그/디버그/프로세스 관련 옵션 등\n\n\n에이전트별 ‎*.ini 파일이 “각 에이전트의 역할과 옵션”을 정의한다면,\n‎neutron.conf는 Neutron 전체 프로세스의 공통 기반 설정을 제공한다고 보면 됩니다.\n\n핵심 옵션 요약\n\n\n\n\n\n\n\n\n옵션 이름\n예시 값\n역할/언제 중요한지\n\n\n\n\ncore_plugin\nneutron.plugins.ml2.plugin.Ml2Plugin\n코어 플러그인(대부분 ML2)을 지정합니다.\n\n\nservice_plugins\nrouter,metering,qos,trunk\n추가 서비스 플러그인들을 활성화합니다.\n\n\n[database] connection\nmysql+pymysql://user:pass@host/neutron\nNeutron DB 연결 문자열입니다.\n\n\ntransport_url (또는 [oslo_messaging_rabbit])\nrabbit://user:pass@mq:5672/\n메시지 버스(RabbitMQ 등) 연결을 지정합니다.\n\n\nallow_overlapping_ips\ntrue\n테넌트 네트워크 간 중복 IP 대역 허용 여부입니다.\n\n\nnotify_nova_on_port_*\ntrue\n포트 상태/데이터 변경 시 Nova에 알림을 보냅니다.\n\n\nauth_strategy\nkeystone\nAPI 인증 전략(Keystone 사용)입니다.",
+    "crumbs": [
+      "목록",
+      "6장. Neutron",
+      "6-1. Neutron의 agent에 대해 알아보기"
+    ]
   },
   {
     "objectID": "lectures/ch2/ch2_1_lec.html",
@@ -173,6 +331,50 @@
     "crumbs": [
       "목록",
       "1장. 오픈스택 개요"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html",
+    "href": "lectures/ch2_lec.html",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "",
+    "text": "이 강의에서는 오픈스택을 설치하는 두 가지 주요 방법을 다룹니다:",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#강의-구성",
+    "href": "lectures/ch2_lec.html#강의-구성",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "강의 구성",
+    "text": "강의 구성\n\n2-1장. DevStack으로 구성하기\n\n개발 및 테스트 환경에 적합\n단일 노드 구성\n빠른 설치와 테스트\n\n2-2장. Kolla-Ansible로 구성하기\n\n프로덕션 환경에 적합\n멀티 노드 구성\n컨테이너 기반 배포",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#준비사항",
+    "href": "lectures/ch2_lec.html#준비사항",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "준비사항",
+    "text": "준비사항\n\nLinux 기본 명령어 이해\n가상화 개념 이해\n네트워크 기본 지식",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
+    ]
+  },
+  {
+    "objectID": "lectures/ch2_lec.html#참고-자료",
+    "href": "lectures/ch2_lec.html#참고-자료",
+    "title": "2장. 오픈스택 설치 가이드",
+    "section": "참고 자료",
+    "text": "참고 자료\n\n환경 설정 가이드\n문제 해결 가이드",
+    "crumbs": [
+      "목록",
+      "2장. 오픈스택 설치 가이드"
     ]
   }
 ]

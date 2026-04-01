@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Neutron 네트워크 서비스를 구성할 때 사용하는 주요 에이전트(dhcp, L3, Linux Bridge, OVS, SR-IOV, metering 등)의 역할과 각 설정 파일(*_agent.ini, ml2_conf.ini, neutron.conf)의 핵심 옵션을 정리합니다.">
+
+<title>6-1. Neutron의 agent에 대해 알아보기 – OpenStack 학습 자료실</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-845c23b38eaddc0f92fda52bfe77a8c8.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-85fb0186e11bdba84245cffdcc8383cd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "일치 없음",
+    "search-matching-documents-text": "일치된 문서",
+    "search-copy-link-title": "검색 링크 복사",
+    "search-hide-matches-text": "추가 검색 결과 숨기기",
+    "search-more-match-text": "추가 검색결과",
+    "search-more-matches-text": "추가 검색결과",
+    "search-clear-button-title": "제거",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "취소",
+    "search-submit-button-title": "검색",
+    "search-label": "검색"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar docked nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">OpenStack 학습 자료실</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="검색"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="탐색 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/openstack-kr/openstack-book"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.facebook.com/groups/openstack-kr"> <i class="bi bi-facebook" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://discord.gg/3ZzKMJKtPg"> <i class="bi bi-discord" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://forum.openinfra-kr.org/"> <i class="bi bi-chat-square-text" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../../lectures/ch6_lec.html">6장. Neutron</a></li><li class="breadcrumb-item"><a href="../../lectures/ch6/neutron_agents.html">6-1. Neutron의 agent에 대해 알아보기</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="검색" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="검색"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#" role="navigation" aria-expanded="true">
+ <span class="menu-text">목록</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">목차</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/ch1_lec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">1장. 오픈스택 개요</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/ch2_lec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">2장. 오픈스택 설치 가이드</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../../lectures/ch6_lec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">6장. Neutron</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/ch6/neutron_agents.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">6-1. Neutron의 agent에 대해 알아보기</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/ch6/snat_dnat.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">6-12. SNAT/DNAT란?</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../lectures/ch6/ovs_vxlan_vpn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">목차</h2>
+   
+  <ul>
+  <li><a href="#dhcp_agent.ini" id="toc-dhcp_agent.ini" class="nav-link active" data-scroll-target="#dhcp_agent.ini">[6-1-1] dhcp_agent.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약" id="toc-핵심-옵션-요약" class="nav-link" data-scroll-target="#핵심-옵션-요약">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#l3_agent.ini" id="toc-l3_agent.ini" class="nav-link" data-scroll-target="#l3_agent.ini">[6-1-2] l3_agent.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-1" id="toc-핵심-옵션-요약-1" class="nav-link" data-scroll-target="#핵심-옵션-요약-1">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#linuxbridge_agent.ini" id="toc-linuxbridge_agent.ini" class="nav-link" data-scroll-target="#linuxbridge_agent.ini">[6-1-3] linuxbridge_agent.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-2" id="toc-핵심-옵션-요약-2" class="nav-link" data-scroll-target="#핵심-옵션-요약-2">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#metadata_agent.ini" id="toc-metadata_agent.ini" class="nav-link" data-scroll-target="#metadata_agent.ini">[6-1-4] metadata_agent.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-3" id="toc-핵심-옵션-요약-3" class="nav-link" data-scroll-target="#핵심-옵션-요약-3">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#openvswitch_agent.ini" id="toc-openvswitch_agent.ini" class="nav-link" data-scroll-target="#openvswitch_agent.ini">[6-1-5] openvswitch_agent.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-4" id="toc-핵심-옵션-요약-4" class="nav-link" data-scroll-target="#핵심-옵션-요약-4">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#sriov_agent.ini" id="toc-sriov_agent.ini" class="nav-link" data-scroll-target="#sriov_agent.ini">[6-1-6] sriov_agent.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-5" id="toc-핵심-옵션-요약-5" class="nav-link" data-scroll-target="#핵심-옵션-요약-5">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#metering_agent.ini" id="toc-metering_agent.ini" class="nav-link" data-scroll-target="#metering_agent.ini">[6-1-7] metering_agent.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-6" id="toc-핵심-옵션-요약-6" class="nav-link" data-scroll-target="#핵심-옵션-요약-6">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#ml2_conf.ini" id="toc-ml2_conf.ini" class="nav-link" data-scroll-target="#ml2_conf.ini">[6-1-8] ml2_conf.ini</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-7" id="toc-핵심-옵션-요약-7" class="nav-link" data-scroll-target="#핵심-옵션-요약-7">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#neutron.conf" id="toc-neutron.conf" class="nav-link" data-scroll-target="#neutron.conf">[6-1-9] neutron.conf</a>
+  <ul class="collapse">
+  <li><a href="#핵심-옵션-요약-8" id="toc-핵심-옵션-요약-8" class="nav-link" data-scroll-target="#핵심-옵션-요약-8">핵심 옵션 요약</a></li>
+  </ul></li>
+  <li><a href="#참조" id="toc-참조" class="nav-link" data-scroll-target="#참조">참조</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../lectures/index.html">목록</a></li><li class="breadcrumb-item"><a href="../../lectures/ch6_lec.html">6장. Neutron</a></li><li class="breadcrumb-item"><a href="../../lectures/ch6/neutron_agents.html">6-1. Neutron의 agent에 대해 알아보기</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">6-1. Neutron의 agent에 대해 알아보기</h1>
+</div>
+
+<div>
+  <div class="description">
+    Neutron 네트워크 서비스를 구성할 때 사용하는 주요 에이전트(dhcp, L3, Linux Bridge, OVS, SR-IOV, metering 등)의 역할과 각 설정 파일(*_agent.ini, ml2_conf.ini, neutron.conf)의 핵심 옵션을 정리합니다.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Neutron 에이전트는 크게 다음과 같이 역할별로 나눌 수 있습니다.</p>
+<ul>
+<li><strong>L2 (Layer 2) 관련</strong>
+<ul>
+<li>‎linuxbridge-agent</li>
+<li>‎openvswitch-agent</li>
+<li>‎sriov-agent</li>
+</ul></li>
+<li><strong>L3 (Layer 3, 라우팅/NAT) 관련</strong>
+<ul>
+<li>‎l3-agent</li>
+</ul></li>
+<li><strong>서비스 관련</strong>
+<ul>
+<li>‎dhcp-agent</li>
+<li>‎metadata-agent</li>
+<li>‎metering-agent</li>
+</ul></li>
+</ul>
+<p>Neutron 서버(‎<code>neutron-server</code>)가 API 및 데이터베이스를 통해 네트워크/서브넷/포트를 관리한다면,</p>
+<p>각 에이전트들은 실제 컴퓨트/네트워크 노드에서 <strong>브리지 생성, IP 할당, 라우터 구성, 메타데이터 전달</strong> 등 <strong><code>“실제 동작”</code></strong>을 담당한다고 볼 수 있습니다.</p>
+<blockquote class="blockquote">
+<p>참고: 본 문서는 각 섹션의 “핵심 옵션 요약”만 남겼습니다. 세부 옵션은 배포판/버전별 공식 문서를 참고하세요.</p>
+</blockquote>
+<section id="dhcp_agent.ini" class="level2">
+<h2 class="anchored" data-anchor-id="dhcp_agent.ini">[6-1-1] dhcp_agent.ini</h2>
+<p><strong>역할 요약</strong></p>
+<ul>
+<li>Neutron 네트워크/서브넷에 대해 <strong>DHCP 서버 역할</strong>을 수행하는 에이전트입니다.</li>
+<li>일반적으로 ‎<strong><code>dnsmasq</code></strong> 프로세스를 사용해 인스턴스 부팅 시 IP 주소, 게이트웨이, DNS 등 네트워크 정보를 할당합니다.
+<ul>
+<li><strong><code>dnsmasq</code></strong>는 복잡한 설정 없이 <strong>내부 망의 도메인 관리(DNS)와 IP 할당(DHCP)을 한 번에 해결하기 위해 만든 경량급 네트워크 백그라운드 서비스</strong></li>
+</ul></li>
+</ul>
+<p><strong>언제 쓰는지</strong></p>
+<ul>
+<li>인스턴스가 <strong>자동으로 IP를 할당받도록</strong> 하고 싶을 때, 대부분의 OpenStack 환경에서 <strong>기본으로 사용</strong>합니다.</li>
+<li>각 서브넷에서 DHCP를 사용하도록 설정했을 경우, 해당 서브넷에 대한 DHCP 네임스페이스와 dnsmasq 프로세스를 관리합니다.</li>
+</ul>
+<p><strong>주요 옵션</strong></p>
+<ul>
+<li>‎<strong><code>interface_driver</code></strong>
+<ul>
+<li><strong>역할:</strong> DHCP 네임스페이스를 만들고, 내부 인터페이스를 연결할 때 사용할 L2 드라이버.</li>
+<li><strong>예시 값:</strong>
+<ul>
+<li>‎<code>neutron.agent.linux.interface.OVSInterfaceDriver</code></li>
+<li>‎<code>neutron.agent.linux.interface.BridgeInterfaceDriver</code> (linuxbridge 환경)</li>
+</ul></li>
+<li><strong>언제 설정하는지:</strong>
+<ul>
+<li>L2 에이전트가 ‎<code>openvswitch-agent</code>면 OVS 관련 드라이버, ‎<code>linuxbridge-agent</code>면 Bridge 관련 드라이버로 맞춰줍니다.</li>
+</ul></li>
+</ul></li>
+<li><strong><code>‎dhcp_driver</code></strong>
+<ul>
+<li><strong>역할:</strong> 실제 DHCP 구현 선택.</li>
+<li><strong>일반적으로 사용:</strong> ‎<code>neutron.agent.linux.dhcp.Dnsmasq</code></li>
+<li><strong>비고:</strong> 특별한 요구사항이 없다면 기본 dnsmasq를 그대로 사용하는 경우가 대부분입니다.</li>
+</ul></li>
+<li>‎<strong><code>enable_isolated_metadata</code></strong>
+<ul>
+<li><strong>값:</strong> ‎<code>True</code> / ‎<code>False</code></li>
+<li><strong>역할:</strong> 라우터가 없는 <strong>isolated 네트워크</strong>에서도 인스턴스가 메타데이터 서비스에 접근할 수 있게 할지 여부.</li>
+<li><strong>사용 예:</strong> 테스트용 네트워크를 자주 만들고, 라우터 없이도 메타데이터에 접근하도록 하고 싶을 때 ‎<code>True</code>로 설정.</li>
+</ul></li>
+</ul>
+<p>더 자세한 옵션은 Neutron 공식 설정 문서와 Red Hat Neutron 설정 문서를 참고합니다.</p>
+<section id="핵심-옵션-요약" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 29%">
+<col style="width: 49%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>기본값(예시)</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>interface_driver</td>
+<td>openvswitch, Bridge 등</td>
+<td>DHCP 네임스페이스 안에서 어떤 L2 드라이버를 쓸지 결정합니다.</td>
+</tr>
+<tr class="even">
+<td>dhcp_driver</td>
+<td>neutron.agent.linux.dhcp.Dnsmasq</td>
+<td>실제 DHCP 구현 선택. 특별한 요구가 없으면 기본값을 사용합니다.</td>
+</tr>
+<tr class="odd">
+<td>enable_isolated_metadata</td>
+<td>False</td>
+<td>라우터가 없는 isolated 네트워크에서도 메타데이터를 쓸지 여부입니다.</td>
+</tr>
+<tr class="even">
+<td>force_metadata</td>
+<td>False</td>
+<td>라우터 유무와 상관없이 모든 네트워크에 메타데이터를 강제로 제공할지 여부입니다.</td>
+</tr>
+<tr class="odd">
+<td>enable_metadata_network</td>
+<td>False</td>
+<td>별도의 메타데이터 전용 네트워크(169.254.169.254/16 등)를 사용할지 여부입니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="l3_agent.ini" class="level2">
+<h2 class="anchored" data-anchor-id="l3_agent.ini">[6-1-2] l3_agent.ini</h2>
+<p>역할 요약</p>
+<ul>
+<li>Neutron 라우터를 실제 <strong>네임스페이스 기반 L3 라우터</strong>로 구현하고,<strong>라우팅, NAT, 플로팅 IP</strong> 등을 처리하는 에이전트입니다.</li>
+</ul>
+<p>언제 쓰는지</p>
+<ul>
+<li>프로젝트 라우터를 생성하여 <strong>외부 네트워크와 통신</strong>하게 하고 싶을 때 필수입니다.</li>
+<li>플로팅 IP를 사용하거나, 테넌트 네트워크 간 라우팅이 필요할 때 사용됩니다.</li>
+<li>일반적으로 네트워크 노드(또는 컨트롤러+네트워크 통합 노드)에 배치됩니다.</li>
+</ul>
+<p><strong>주요 옵션</strong></p>
+<ul>
+<li>‎<strong><code>interface_driver</code></strong>
+<ul>
+<li>역할 및 사용 방식은 ‎<code>dhcp_agent.ini</code>와 비슷하게, 라우터 네임스페이스 내 인터페이스 연결 방식을 결정합니다.</li>
+</ul></li>
+<li>‎<strong><code>agent_mode</code></strong>
+<ul>
+<li><strong>역할:</strong> L3 에이전트가 어떤 모드로 동작할지 결정.</li>
+<li><strong>예시 값:</strong>
+<ul>
+<li>‎<code>legacy</code>: 고전적인 단일 L3 에이전트 방식</li>
+<li>‎<code>dvr_snat</code>, ‎<code>dvr</code>: DVR(Distributed Virtual Routing) 환경에서 사용</li>
+</ul></li>
+<li><strong>주의:</strong> DVR 구성 여부에 따라 반드시 일관성 있게 설정해야 합니다.</li>
+</ul></li>
+<li>‎<strong><code>external_network_bridge</code></strong>
+<ul>
+<li><strong>역할:</strong> 외부 네트워크와 연결될 브리지 이름.</li>
+<li><strong>설정 예:</strong> OVS 환경에서 ‎<code>br-ex</code> 등.</li>
+<li><strong>특징:</strong> 최근 구성에서는 특정 값 대신 provider network + bridge_mappings 조합으로 대체되는 경우도 많습니다.</li>
+</ul></li>
+<li>‎<strong><code>router_delete_namespaces</code></strong>
+<ul>
+<li><strong>역할:</strong> 라우터 삭제 시 네임스페이스를 자동으로 제거할지 여부.</li>
+<li><strong>값:</strong> ‎<code>True</code> / ‎<code>False</code></li>
+</ul></li>
+</ul>
+<p>더 자세한 옵션은 Neutron 공식 설정 문서와 Red Hat Neutron 설정 문서를 참고합니다.</p>
+<section id="핵심-옵션-요약-1" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-1">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 12%">
+<col style="width: 66%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>기본값(예시)</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>interface_driver</td>
+<td>(환경별 상이)</td>
+<td>라우터 네임스페이스 내부 인터페이스를 어떤 L2 드라이버로 붙일지 결정합니다.</td>
+</tr>
+<tr class="even">
+<td>agent_mode</td>
+<td>legacy</td>
+<td>L3 에이전트가 중앙집중형인지(DVR/legacy) 등 동작 모드를 결정합니다.</td>
+</tr>
+<tr class="odd">
+<td>external_network_bridge</td>
+<td>(빈 값 권장)</td>
+<td>외부 네트워크와 연결되는 브리지 이름. 최근에는 provider network + bridge_mappings로 대체되는 경우가 많습니다.</td>
+</tr>
+<tr class="even">
+<td>router_delete_namespaces</td>
+<td>True/False</td>
+<td>라우터 삭제 시 네임스페이스를 자동으로 정리할지 여부입니다.</td>
+</tr>
+<tr class="odd">
+<td>enable_metadata_proxy</td>
+<td>True</td>
+<td>각 라우터 네임스페이스 안에서 메타데이터 프록시를 띄울지 여부입니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="linuxbridge_agent.ini" class="level2">
+<h2 class="anchored" data-anchor-id="linuxbridge_agent.ini">[6-1-3] linuxbridge_agent.ini</h2>
+<p>역할 요약</p>
+<ul>
+<li>Linux Bridge를 사용해 가상 스위치를 구성하고, Neutron 포트를 실제 Linux 브리지 및 물리 인터페이스에 매핑하는 L2 에이전트입니다.</li>
+</ul>
+<p>언제 쓰는지</p>
+<ul>
+<li>OVS 대신 <strong>Linux Bridge 기반의 네트워크 구성</strong>을 사용할 때.</li>
+<li>일반적으로 컴퓨트 노드에 배치되어 인스턴스의 vNIC을 Linux Bridge에 붙여줍니다.</li>
+</ul>
+<p><strong>주요 옵션</strong></p>
+<ul>
+<li>‎<strong><code>physical_interface_mappings</code></strong>
+<ul>
+<li><strong>역할:</strong> 논리 네트워크 이름 → 물리 NIC 이름 매핑.</li>
+<li><strong>예시:</strong> ‎<code>provider:eth1</code></li>
+<li><strong>의미:</strong> ‎<code>provider</code> 네트워크 트래픽은 호스트의 ‎<code>eth1</code>을 통해 나감.</li>
+</ul></li>
+<li>‎<strong><code>bridge_mappings</code></strong> (버전/배포판에 따라 영역/형식이 다를 수 있음)
+<ul>
+<li><strong>역할:</strong> provider 네트워크와 Linux 브리지 이름 매핑.</li>
+<li><strong>예시:</strong> ‎<code>provider:br-provider</code></li>
+</ul></li>
+<li>‎<strong><code>enable_vxlan</code></strong>
+<ul>
+<li><strong>역할:</strong> VXLAN 기반의 오버레이 네트워크 사용 여부.</li>
+<li><strong>값:</strong> ‎<code>True</code> / ‎<code>False</code></li>
+</ul></li>
+<li>‎<strong><code>local_ip</code></strong>
+<ul>
+<li><strong>역할:</strong> VXLAN 터널 엔드포인트 IP 주소.</li>
+<li><strong>예시:</strong> ‎<code>local_ip = 10.0.0.10</code></li>
+</ul></li>
+</ul>
+<p>더 자세한 옵션은 아래에서 확인 가능합니다.</p>
+<section id="핵심-옵션-요약-2" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-2">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 24%">
+<col style="width: 17%">
+<col style="width: 57%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>기본값(예시)</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>physical_interface_mappings</td>
+<td>(예: provider:eth1)</td>
+<td>논리 네트워크 이름을 실제 물리 NIC에 매핑합니다.</td>
+</tr>
+<tr class="even">
+<td>bridge_mappings</td>
+<td>(예: provider:br-provider)</td>
+<td>provider 네트워크를 어떤 Linux 브리지에 연결할지 결정합니다.</td>
+</tr>
+<tr class="odd">
+<td>enable_vxlan</td>
+<td>True/False</td>
+<td>VXLAN 오버레이 네트워크 사용 여부입니다.</td>
+</tr>
+<tr class="even">
+<td>local_ip</td>
+<td>10.0.0.10 등</td>
+<td>VXLAN 터널 엔드포인트로 사용할 호스트의 IP 주소입니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="metadata_agent.ini" class="level2">
+<h2 class="anchored" data-anchor-id="metadata_agent.ini">[6-1-4] metadata_agent.ini</h2>
+<p>역할 요약</p>
+<ul>
+<li>인스턴스에서 메타데이터(유저 데이터, 인스턴스 정보 등)를 조회할 수 있도록, Neutron 네트워크와 Nova 메타데이터 서비스 사이를 <strong>프록시</strong> 해주는 에이전트입니다.</li>
+</ul>
+<p>언제 쓰는지</p>
+<ul>
+<li>인스턴스가 ‎<code>http://169.254.169.254/</code> 로 메타데이터에 접근할 수 있어야 할 때 필수입니다.
+<ul>
+<li><a href="http://169.254.169.254/">http://169.254.169.254/</a> 는 전 세계 모든 클라우드(AWS, GCP, OpenStack 등)에서 공통으로 사용하는 <strong>메타데이터 서버 주소</strong></li>
+<li>받아오는 메타데이터 정보는 호스트네임, SSH 키와 같은 것들(다 같이 가지고 있지만, 각 인스턴스마다 값이 다를 수 있는 것들)</li>
+<li><strong>즉 “이미지 하나로 수천 대의 서로 다른 서버를 찍어내기 위해”</strong> 메타데이터가 필요하고 이를 관리하는 것이 필요하다.</li>
+</ul></li>
+<li>대부분의 환경에서 기본적으로 사용합니다.</li>
+</ul>
+<p><strong>주요 옵션</strong></p>
+<ul>
+<li>‎<strong><code>nova_metadata_host</code></strong>
+<ul>
+<li><strong>역할:</strong> Nova 메타데이터 API가 떠 있는 호스트 주소.</li>
+<li><strong>예시:</strong> ‎<code>nova_metadata_host = controller.example.com</code> 또는 컨트롤러 IP.</li>
+</ul></li>
+<li>‎<strong><code>nova_metadata_port</code></strong>
+<ul>
+<li><strong>역할:</strong> Nova 메타데이터 API 포트.</li>
+<li><strong>기본 예시:</strong> ‎<code>8775</code> 등 배포판에 따라 상이.</li>
+</ul></li>
+<li>‎<strong><code>metadata_proxy_shared_secret</code></strong>
+<ul>
+<li><strong>역할:</strong> Neutron metadata agent와 Nova 메타데이터 서비스 간 인증에 사용되는 공유 비밀값.</li>
+<li><strong>주의:</strong> Nova 측 설정(‎<code>metadata_proxy_shared_secret</code>)과 반드시 일치해야 합니다.</li>
+</ul></li>
+</ul>
+<p>더 자세한 옵션은 아래에서 확인 가능합니다.</p>
+<section id="핵심-옵션-요약-3" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-3">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 27%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>기본값(예시)</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>nova_metadata_host</td>
+<td>controller.example.com 등</td>
+<td>Nova 메타데이터 API가 떠 있는 호스트 이름 또는 IP입니다.</td>
+</tr>
+<tr class="even">
+<td>nova_metadata_port</td>
+<td>8775</td>
+<td>Nova 메타데이터 API 포트 번호입니다.</td>
+</tr>
+<tr class="odd">
+<td>metadata_proxy_shared_secret</td>
+<td>(환경에서 지정)</td>
+<td>Neutron metadata agent와 Nova 간 인증에 사용하는 공유 시크릿입니다.</td>
+</tr>
+<tr class="even">
+<td>auth_url/auth_type 등</td>
+<td>(Keystone 설정 값)</td>
+<td>Keystone 인증 정보를 통해 메타데이터 서비스와 통신할 때 사용합니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="openvswitch_agent.ini" class="level2">
+<h2 class="anchored" data-anchor-id="openvswitch_agent.ini">[6-1-5] openvswitch_agent.ini</h2>
+<p>역할 요약</p>
+<ul>
+<li>Open vSwitch(OVS)를 이용해 가상 스위치를 구성하고, Neutron 네트워크를 OVS 브리지/포트로 매핑하는 L2 에이전트입니다.</li>
+</ul>
+<p>언제 쓰는지</p>
+<ul>
+<li><strong>OVS 기반 네트워크</strong>를 사용할 때.</li>
+<li>VXLAN, GRE 등 터널 네트워크를 활용하는 환경에서 가장 많이 사용되는 에이전트입니다.</li>
+<li>주로 컴퓨트 노드와 네트워크 노드에 배치됩니다.</li>
+</ul>
+<p>주요 옵션</p>
+<ul>
+<li>‎<strong><code>local_ip</code></strong>
+<ul>
+<li><strong>역할:</strong> 터널 네트워크의 엔드포인트 IP.</li>
+<li><strong>예시:</strong> ‎<code>local_ip = 10.0.0.10</code></li>
+</ul></li>
+<li>‎<strong><code>tunnel_types</code></strong>
+<ul>
+<li><strong>역할:</strong> 사용할 터널 종류 지정.</li>
+<li><strong>예시 값:</strong> ‎<code>vxlan</code>, ‎<code>gre</code>, ‎<code>geneve</code> 등</li>
+<li><strong>예시:</strong> ‎<code>tunnel_types = vxlan</code></li>
+</ul></li>
+<li>‎<strong><code>bridge_mappings</code></strong>
+<ul>
+<li><strong>역할:</strong> provider 네트워크 → OVS 브리지 매핑.</li>
+<li><strong>예시:</strong> ‎<code>provider:br-provider</code></li>
+<li><strong>의미:</strong> ‎<code>provider</code> 타입 네트워크는 호스트의 ‎<code>br-provider</code> 브리지를 통해 외부와 연결.</li>
+</ul></li>
+<li>‎<strong><code>of_interface</code></strong> / ‎<strong><code>ovsdb_interface</code></strong>
+<ul>
+<li><strong>역할:</strong> OVS와 통신할 때 사용할 인터페이스(라이브러리) 유형.</li>
+<li><strong>일반적으로:</strong> 기본값 사용.</li>
+</ul></li>
+</ul>
+<p>더 자세한 옵션은 아래에서 확인 가능합니다.</p>
+<section id="핵심-옵션-요약-4" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-4">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 23%">
+<col style="width: 59%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>기본값(예시)</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>local_ip</td>
+<td>10.0.0.10 등</td>
+<td>VXLAN/GRE/Geneve 터널의 로컬 엔드포인트 IP입니다.</td>
+</tr>
+<tr class="even">
+<td>tunnel_types</td>
+<td>vxlan, gre, geneve 등</td>
+<td>어떤 종류의 터널 네트워크를 사용할지 결정합니다.</td>
+</tr>
+<tr class="odd">
+<td>bridge_mappings</td>
+<td>provider:br-provider 등</td>
+<td>provider 네트워크를 어떤 OVS 브리지에 연결할지 매핑합니다.</td>
+</tr>
+<tr class="even">
+<td>integration_bridge</td>
+<td>br-int</td>
+<td>테넌트 포트가 연결되는 통합 브리지 이름입니다.</td>
+</tr>
+<tr class="odd">
+<td>tunnel_bridge</td>
+<td>br-tun</td>
+<td>터널 인터페이스가 붙는 브리지 이름입니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="sriov_agent.ini" class="level2">
+<h2 class="anchored" data-anchor-id="sriov_agent.ini">[6-1-6] sriov_agent.ini</h2>
+<p>역할 요약</p>
+<ul>
+<li>SR-IOV NIC를 사용하여, 인스턴스에 <strong>가상 기능(VF)</strong> 를 직접 할당하는 L2 에이전트입니다.</li>
+<li>고성능/저지연 네트워크가 필요한 워크로드에서 사용합니다.</li>
+</ul>
+<p>언제 쓰는지</p>
+<ul>
+<li>호스트에 SR-IOV 지원 NIC가 있고, 인스턴스에 <strong>직접 VF를 붙여야 할 때</strong> 사용합니다.</li>
+<li>일반적인 가상 스위치(Linux Bridge, OVS) 경로를 우회하여 네트워크 성능을 끌어올리는 경우에 적용합니다.</li>
+</ul>
+<p>주요 옵션 (개요 수준)</p>
+<ul>
+<li>‎<strong><code>physical_device_mappings</code></strong>
+<ul>
+<li><strong>역할:</strong> 논리 네트워크 이름 → 물리 SR-IOV NIC 매핑.</li>
+<li><strong>예시:</strong> ‎<code>physnet1:eth2</code></li>
+<li><strong>의미:</strong> ‎<code>physnet1</code> 네트워크는 호스트의 ‎<code>eth2</code> SR-IOV NIC를 사용.</li>
+</ul></li>
+<li>‎<strong><code>exclude_devices</code></strong>
+<ul>
+<li><strong>역할:</strong> SR-IOV 관리 대상에서 제외할 VF 목록.</li>
+<li><strong>예시:</strong> ‎<code>eth2:0000:03:10.1;0000:03:10.2</code></li>
+<li><strong>사용 이유:</strong> 특정 VF는 호스트 용도로 예약하거나, 다른 용도로 사용할 때.</li>
+</ul></li>
+</ul>
+<p>더 자세한 옵션은 아래에서 확인 가능합니다.</p>
+<section id="핵심-옵션-요약-5" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-5">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 22%">
+<col style="width: 23%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>기본값(예시)</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>physical_device_mappings</td>
+<td>physnet1:eth2 등</td>
+<td>논리 네트워크(physnet)를 어느 SR-IOV 물리 NIC(PF)에 매핑할지 정의합니다.</td>
+</tr>
+<tr class="even">
+<td>exclude_devices</td>
+<td>eth2:0000:03:10.1;… 등</td>
+<td>SR-IOV 관리 대상에서 제외할 VF 목록입니다.</td>
+</tr>
+<tr class="odd">
+<td>polling_interval</td>
+<td>2</td>
+<td>SR-IOV 디바이스 상태를 얼마나 자주 폴링할지(초 단위) 결정합니다.</td>
+</tr>
+<tr class="even">
+<td>report_interval</td>
+<td>30</td>
+<td>Neutron 서버에 상태를 얼마나 자주 보고할지(초 단위) 결정합니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="metering_agent.ini" class="level2">
+<h2 class="anchored" data-anchor-id="metering_agent.ini">[6-1-7] metering_agent.ini</h2>
+<p>역할 요약</p>
+<ul>
+<li>Neutron 라우터를 기준으로 <strong>트래픽 사용량(미터링 정보)</strong> 을 수집하는 에이전트입니다.</li>
+<li>대역폭 사용량, 과금/통계 등의 용도로 활용할 수 있는 데이터를 제공합니다.</li>
+</ul>
+<p>언제 쓰는지</p>
+<ul>
+<li>테넌트별/라우터별 트래픽 사용량을 기록해야 하는 환경에서 사용합니다.</li>
+<li>미터링/과금/리포팅 기능을 활성화할 때 유용합니다.</li>
+</ul>
+<p>주요 옵션 (개요 수준)</p>
+<ul>
+<li>‎<strong><code>driver</code></strong>
+<ul>
+<li><strong>역할:</strong> 어떤 미터링 드라이버를 사용할지 지정.</li>
+<li><strong>예시:</strong> ‎<code>neutron.services.metering.drivers.iptables.iptables_driver.IptablesMeteringDriver</code> 등</li>
+</ul></li>
+<li>‎<strong><code>interface_driver</code></strong>
+<ul>
+<li><strong>역할:</strong> l3/dhcp와 마찬가지로 네임스페이스 내 인터페이스를 관리하기 위한 드라이버.</li>
+<li><strong>예시:</strong> OVS 환경이면 ‎<code>neutron.agent.linux.interface.OVSInterfaceDriver</code></li>
+</ul></li>
+<li>‎<strong><code>measure_interval</code></strong>
+<ul>
+<li><strong>역할:</strong> 트래픽을 측정하는 간격(초 단위).</li>
+<li><strong>예시:</strong> ‎<code>measure_interval = 30</code></li>
+</ul></li>
+<li>‎<strong><code>report_interval</code></strong>
+<ul>
+<li><strong>역할:</strong> 수집된 미터링 데이터를 보고(전송)하는 간격.</li>
+</ul></li>
+</ul>
+<p>더 자세한 옵션은 아래에서 확인 가능합니다.</p>
+<section id="핵심-옵션-요약-6" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-6">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 41%">
+<col style="width: 44%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>기본값(예시)</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>driver</td>
+<td>iptables 기반 드라이버 등</td>
+<td>어떤 방식으로 트래픽을 계측(미터링)할지 결정합니다.</td>
+</tr>
+<tr class="even">
+<td>interface_driver</td>
+<td>OVSInterfaceDriver 등</td>
+<td>L3/DHCP와 마찬가지로 네임스페이스 내부 인터페이스를 관리합니다.</td>
+</tr>
+<tr class="odd">
+<td>measure_interval</td>
+<td>30</td>
+<td>트래픽을 얼마나 자주 측정할지(초 단위) 결정합니다.</td>
+</tr>
+<tr class="even">
+<td>report_interval</td>
+<td>(환경에 따라 설정)</td>
+<td>수집된 미터링 데이터를 얼마나 자주 보고(전송)할지 결정합니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="ml2_conf.ini" class="level2">
+<h2 class="anchored" data-anchor-id="ml2_conf.ini">[6-1-8] ml2_conf.ini</h2>
+<ul>
+<li><strong>역할:</strong> ML2(플러그형 L2 플러그인)의 동작을 정의하는 핵심 설정 파일입니다.</li>
+<li><strong>주요 내용:</strong>
+<ul>
+<li>사용할 네트워크 타입: ‎<code>type_drivers</code> (예: ‎<code>local,flat,vlan,vxlan</code>)</li>
+<li>테넌트 네트워크에 허용할 타입: ‎<code>tenant_network_types</code></li>
+<li>사용할 메커니즘 드라이버: ‎<code>mechanism_drivers</code> (예: ‎<code>openvswitch</code>, ‎<code>linuxbridge</code>, ‎<code>sriovnicswitch</code>)</li>
+<li>물리 네트워크와 실제 인터페이스/브리지 매핑: ‎<code>ml2_type_flat</code>, ‎<code>ml2_type_vlan</code> 섹션 등.</li>
+</ul></li>
+</ul>
+<p>이 파일에서 “어떤 L2 기술/드라이버를 쓸지”를 결정하고,</p>
+<p>각 호스트에서는 해당하는 에이전트(linuxbridge-agent, openvswitch-agent, sriov-agent 등)가 실제 동작을 담당합니다.</p>
+<section id="핵심-옵션-요약-7" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-7">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 27%">
+<col style="width: 22%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>예시 값</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>type_drivers</td>
+<td>local,flat,vlan,vxlan,geneve</td>
+<td>지원할 L2 네트워크 타입 전체를 선언합니다.</td>
+</tr>
+<tr class="even">
+<td>tenant_network_types</td>
+<td>vxlan,vlan,flat,local</td>
+<td>테넌트 네트워크에 허용할 타입을 제한합니다.</td>
+</tr>
+<tr class="odd">
+<td>mechanism_drivers</td>
+<td>openvswitch,linuxbridge,sriovnicswitch,ovn</td>
+<td>실제 L2 구현(바인딩) 드라이버를 선택합니다.</td>
+</tr>
+<tr class="even">
+<td>extension_drivers</td>
+<td>port_security,qos,trunk</td>
+<td>추가 기능(보안그룹, QoS, Trunk 등)을 활성화합니다.</td>
+</tr>
+<tr class="odd">
+<td>ml2_type_flat.flat_networks</td>
+<td>provider,public</td>
+<td>flat 네트워크로 허용할 물리 네트워크(physnet) 목록입니다.</td>
+</tr>
+<tr class="even">
+<td>ml2_type_vlan.network_vlan_ranges</td>
+<td>provider:100:200</td>
+<td>VLAN에 사용할 physnet별 VLAN ID 범위입니다.</td>
+</tr>
+<tr class="odd">
+<td>ml2_type_vxlan.vni_ranges</td>
+<td>10:10000</td>
+<td>VXLAN VNI 범위를 지정합니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="neutron.conf" class="level2">
+<h2 class="anchored" data-anchor-id="neutron.conf">[6-1-9] neutron.conf</h2>
+<ul>
+<li><strong>역할:</strong> Neutron 서비스 전체에 공통적으로 적용되는 설정 파일입니다.</li>
+<li><strong>대표적으로 포함되는 항목:</strong>
+<ul>
+<li>사용 플러그인: ‎<code>core_plugin</code>, ‎<code>service_plugins</code></li>
+<li>데이터베이스 연결 정보: ‎<code>connection</code></li>
+<li>메시지 큐(RabbitMQ 등) 설정</li>
+<li>Keystone 인증 관련 설정(‎<code>[keystone_authtoken]</code> 섹션)</li>
+<li>로그/디버그/프로세스 관련 옵션 등</li>
+</ul></li>
+</ul>
+<p>에이전트별 ‎<code>*.ini</code> 파일이 “각 에이전트의 역할과 옵션”을 정의한다면,</p>
+<p>‎<code>neutron.conf</code>는 Neutron 전체 프로세스의 <strong>공통 기반 설정</strong>을 제공한다고 보면 됩니다.</p>
+<section id="핵심-옵션-요약-8" class="level3">
+<h3 class="anchored" data-anchor-id="핵심-옵션-요약-8">핵심 옵션 요약</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 27%">
+<col style="width: 22%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>옵션 이름</th>
+<th>예시 값</th>
+<th>역할/언제 중요한지</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>core_plugin</td>
+<td>neutron.plugins.ml2.plugin.Ml2Plugin</td>
+<td>코어 플러그인(대부분 ML2)을 지정합니다.</td>
+</tr>
+<tr class="even">
+<td>service_plugins</td>
+<td>router,metering,qos,trunk</td>
+<td>추가 서비스 플러그인들을 활성화합니다.</td>
+</tr>
+<tr class="odd">
+<td>[database] connection</td>
+<td>mysql+pymysql://user:pass@host/neutron</td>
+<td>Neutron DB 연결 문자열입니다.</td>
+</tr>
+<tr class="even">
+<td>transport_url (또는 [oslo_messaging_rabbit])</td>
+<td>rabbit://user:pass@mq:5672/</td>
+<td>메시지 버스(RabbitMQ 등) 연결을 지정합니다.</td>
+</tr>
+<tr class="odd">
+<td>allow_overlapping_ips</td>
+<td>true</td>
+<td>테넌트 네트워크 간 중복 IP 대역 허용 여부입니다.</td>
+</tr>
+<tr class="even">
+<td>notify_nova_on_port_*</td>
+<td>true</td>
+<td>포트 상태/데이터 변경 시 Nova에 알림을 보냅니다.</td>
+</tr>
+<tr class="odd">
+<td>auth_strategy</td>
+<td>keystone</td>
+<td>API 인증 전략(Keystone 사용)입니다.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="참조" class="level1">
+<h1>참조</h1>
+<p><a href="https://docs.redhat.com/ko/documentation/red_hat_openstack_platform/16.2/html/configuration_reference/neutron_2">Red Hat OSP 16.2 Neutron 설정 레퍼런스 — 에이전트, ML2, OVS, SR-IOV, neutron.conf 옵션 상세</a></p>
+
+
+</section>
+
+</main> <!-- /main -->
+<footer class="footer">
+    <div class="container">
+        <p>© <span id="current-year"></span> 오픈인프라 한국 사용자 모임. All Rights Reserved.</p>
+    </div>
+</footer>
+
+<script>
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+</script> 
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "복사완료!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "복사완료!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
