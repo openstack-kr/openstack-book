@@ -1,5 +1,5 @@
 ---
-title: "[6-1] Neutron 에이전트 설정 파일 정리"
+title: "6-1. Neutron의 agent에 대해 알아보기"
 description: "Neutron 네트워크 서비스를 구성할 때 사용하는 주요 에이전트(dhcp, L3, Linux Bridge, OVS, SR-IOV, metering 등)의 역할과 각 설정 파일(*_agent.ini, ml2_conf.ini, neutron.conf)의 핵심 옵션을 정리합니다."
 code: "6-1"
 ---

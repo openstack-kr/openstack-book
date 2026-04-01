@@ -1,5 +1,5 @@
 ---
-title: "[6-12] SNAT, DNAT 개념 정리"
+title: "6-12. SNAT/DNAT란?"
 description: "IPv4 주소 절약과 주소 은닉을 위해 사용하는 NAT의 기본 원리와, 그중에서도 SNAT과 DNAT가 각각 언제 어디에서 어떤 방식으로 동작하는지 정리합니다."
 code: "6-12"
 ---

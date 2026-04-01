@@ -1,5 +1,5 @@
 ---
-title: "[6-15] OVS와 VXLAN으로 가상 네트워크 구성하기"
+title: "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기"
 description: "여러 VM에 Open vSwitch(OVS)를 설치하고 VXLAN 터널을 구성하여, 물리적으로 떨어진 노드들 사이에 VPN과 유사한 가상 L2 네트워크를 만드는 방법과 트러블슈팅 포인트를 정리합니다."
 code: "6-15"
 ---
