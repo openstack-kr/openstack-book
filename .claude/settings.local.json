@@ -6,7 +6,13 @@
       "Bash(git commit:*)",
       "Bash(git push origin main)",
       "Bash(git add index.qmd README.md)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(git add:*)",
+      "Bash(gh:*)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
