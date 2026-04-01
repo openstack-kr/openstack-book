@@ -1,28 +1,29 @@
-# OpenStack 실습 데모 페이지 with Quarto
+# OpenStack Korea Community Book
 
-Quarto를 이용한 OpenStack Korea Community 의 Book 컨텐츠 프로젝트입니다.
+OpenInfra Korea User Group과 **아주대학교 소학회 아올다**([aoldacloud.com](http://aoldacloud.com/))가 함께 만드는 오픈스택 학습 자료입니다.
 
-## Quarto를 이용한 Book 프로젝트 구조
+Quarto를 이용해 작성하며, GitHub Actions를 통해 [book.openinfra-kr.org](https://book.openinfra-kr.org)에 자동 배포됩니다.
+
+## 프로젝트 구조
 
 ```
 .
-├── _quarto.yml     # Quarto 설정 파일
-├── index.qmd       # 메인 페이지
-├── lectures/       # 강의 자료
-│   ├── short_lec.qmd   # 단편 강의자료
-│   ├──  long_lec/       # 장편 강의자료
-│   │  └── long_lec1.qmd # 장편 강의자료 속편
-│   └── long_lec.qmd    # 장편 강의자료 메인페이지 (소개, 속편 링크 가이드)
-├── community.qmd   # 커뮤니티 페이지
-├── styles.css      # 커스텀 스타일
-└── docs/          # 빌드된 사이트 (자동 생성)
+├── _quarto.yml          # Quarto 설정 파일
+├── index.qmd            # 메인 페이지
+├── custom.scss          # 커스텀 스타일
+├── _footer.html         # 공통 푸터
+├── lectures/            # 강의 자료
+└── .github/workflows/
+    └── publish.yml      # GitHub Actions 배포 워크플로우
 ```
 
-## 기여 시작하기
+> `docs/`는 빌드 결과물로 git에서 제외됩니다. GitHub Actions가 자동으로 빌드 후 `gh-pages` 브랜치에 배포합니다.
 
-1. Quarto 설치
+## 로컬 개발 환경 설정
 
-```
+### Quarto 설치
+
+```bash
 # macOS
 brew install quarto
 
@@ -30,17 +31,29 @@ brew install quarto
 choco install quarto
 
 # Linux
-wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.6.0/quarto-1.6.0-linux-amd64.deb
-sudo dpkg -i quarto-1.6.0-linux-amd64.deb
+wget https://github.com/quarto-dev/quarto-cli/releases/latest/download/quarto-linux-amd64.deb
+sudo dpkg -i quarto-linux-amd64.deb
 ```
 
-## 강의 및 실습 가이드 기여 방법
+### 로컬 프리뷰
 
-### Github Issue 생성
-
-1. .qmd 파일 생성하기
-
+```bash
+quarto preview
 ```
+
+### 빌드
+
+```bash
+quarto render
+```
+
+## 기여 방법
+
+### 강의 자료 추가
+
+1. `lectures/` 아래에 `.qmd` 파일 생성
+
+```markdown
 ---
 title: "페이지 제목"
 ---
@@ -48,66 +61,22 @@ title: "페이지 제목"
 # 내용 작성
 ```
 
-2. `_quarto.yml`에 네비게이션 추가
+2. `_quarto.yml`의 `sidebar.contents`에 항목 추가
 
-```
-website:
-  navbar:
-    left:
-      - text: "새 메뉴"
-        file: path/to/new.qmd
+```yaml
+- text: "새 강의 제목"
+  file: lectures/new_lec.qmd
 ```
 
+3. PR 생성 → 머지되면 자동 배포
 
-### 강의 자료 추가
+### 이미지 파일
 
-1. PDF 파일을 `media/pdf/` 디렉토리에 저장
-2. `lectures/<lecutre>.qmd`에 링크 추가
+이미지는 해당 강의 디렉토리의 `images/` 폴더에 저장하고 상대 경로로 참조합니다.
 
-## 사이트 빌드 및 배포
+## 배포
 
-### 로컬 프리뷰
-
-```
-quarto preview
-```
-
-### 사이트 빌드
-
-```
-quarto render
-```
-
-빌드된 파일은 `docs/` 디렉토리에 생성됩니다.
-
-### GitHub Pages 배포
-
-1. `docs/` 디렉토리를 Git에 커밋
-2. GitHub 저장소 설정에서 GitHub Pages 소스를 `docs/` 폴더로 설정
-
-## 다국어 지원
-
-한글 콘텐츠 작성을 위해 `_quarto.yml`에 다음 설정이 되어있습니다:
-
-```
-format:
-  html:
-    lang: ko
-```
-
-
-## 문서 스타일 가이드
-
-- 제목은 `#`부터 시작
-- 코드 블록은 ``` 사용
-- 이미지는 `images/` 디렉토리에 저장
-- 링크는 상대 경로 사용
-
-## 도움말
-
-- [Quarto 공식 문서](https://quarto.org/docs/guide/)
-- [GitHub Discussions](https://github.com/openstack-kr/community-site/discussions)
-- [Slack 채널](https://openstack-kr.slack.com)
+`main` 브랜치에 push하면 GitHub Actions가 자동으로 빌드 후 `gh-pages` 브랜치에 배포합니다.
 
 ## 라이선스
 
