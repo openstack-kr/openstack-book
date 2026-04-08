@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="250" viewBox="0 0 1180 250">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#51606d"/>
+    </marker>
+  </defs>
+  <style>
+    .box { stroke-width: 2.5; rx: 18; ry: 18; }
+    .label { font: 700 20px sans-serif; fill: #1f2933; text-anchor: middle; dominant-baseline: middle; }
+    .small { font: 600 15px sans-serif; fill: #52606d; text-anchor: middle; }
+    .arrow { stroke: #51606d; stroke-width: 3; marker-end: url(#arrow); }
+  </style>
+  <rect x="30" y="78" width="150" height="96" fill="#f0eaff" stroke="#6b46c1" class="box"/>
+  <text x="105" y="106" class="label">VM</text>
+  <text x="105" y="136" class="small">private IP</text>
+
+  <rect x="230" y="66" width="210" height="120" fill="#e4f7ea" stroke="#2f855a" class="box"/>
+  <text x="335" y="106" class="label">Tenant Network</text>
+  <text x="335" y="138" class="small">isolated internal network</text>
+
+  <rect x="490" y="66" width="230" height="120" fill="#fff1d6" stroke="#d48806" class="box"/>
+  <text x="605" y="100" class="label">Virtual Router</text>
+  <text x="605" y="132" class="small">SNAT</text>
+  <text x="605" y="156" class="small">private -&gt; public</text>
+
+  <rect x="770" y="66" width="210" height="120" fill="#dfeeff" stroke="#2f6db2" class="box"/>
+  <text x="875" y="106" class="label">Provider / External</text>
+  <text x="875" y="138" class="small">uplink network</text>
+
+  <rect x="1030" y="78" width="120" height="96" fill="#eef2f7" stroke="#52606d" class="box"/>
+  <text x="1090" y="126" class="label">Outside</text>
+
+  <line x1="180" y1="126" x2="230" y2="126" class="arrow"/>
+  <line x1="440" y1="126" x2="490" y2="126" class="arrow"/>
+  <line x1="720" y1="126" x2="770" y2="126" class="arrow"/>
+  <line x1="980" y1="126" x2="1030" y2="126" class="arrow"/>
+</svg>
