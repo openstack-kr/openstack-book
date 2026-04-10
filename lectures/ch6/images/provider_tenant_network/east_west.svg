@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="240" viewBox="0 0 920 240">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#51606d"/>
+    </marker>
+  </defs>
+  <style>
+    .box { stroke-width: 2.5; rx: 18; ry: 18; }
+    .label { font: 700 22px sans-serif; fill: #1f2933; text-anchor: middle; dominant-baseline: middle; }
+    .small { font: 600 16px sans-serif; fill: #52606d; text-anchor: middle; }
+    .arrow { stroke: #51606d; stroke-width: 3; marker-end: url(#arrow); }
+  </style>
+  <rect x="60" y="72" width="180" height="96" fill="#f0eaff" stroke="#6b46c1" class="box"/>
+  <text x="150" y="102" class="label">VM1</text>
+  <text x="150" y="134" class="small">10.0.0.5</text>
+
+  <rect x="300" y="58" width="320" height="124" fill="#e4f7ea" stroke="#2f855a" class="box"/>
+  <text x="460" y="104" class="label">Tenant Network</text>
+  <text x="460" y="138" class="small">same subnet / same L2 domain</text>
+
+  <rect x="680" y="72" width="180" height="96" fill="#f0eaff" stroke="#6b46c1" class="box"/>
+  <text x="770" y="102" class="label">VM2</text>
+  <text x="770" y="134" class="small">10.0.0.6</text>
+
+  <line x1="240" y1="120" x2="300" y2="120" class="arrow"/>
+  <line x1="620" y1="120" x2="680" y2="120" class="arrow"/>
+  <line x1="680" y1="145" x2="620" y2="145" class="arrow"/>
+  <line x1="300" y1="145" x2="240" y2="145" class="arrow"/>
+</svg>

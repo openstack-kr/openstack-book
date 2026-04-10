@@ -4,3 +4,4 @@
 /tools/imports/**/*.zip
 
 **/*.quarto_ipynb
+/.serena/

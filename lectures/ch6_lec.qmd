@@ -9,5 +9,6 @@ Neutron은 오픈스택의 네트워킹 서비스입니다. 이 장에서는 Neu
 ## 하위 목차
 
 - [6-1 Neutron 에이전트 종류 정리](ch6/neutron_agents.qmd)
+- [6-2 Provider network와 tenant network 개념 정리](ch6/provider_tenant_network.qmd)
 - [6-12 SNAT/DNAT 개념](ch6/snat_dnat.qmd)
 - [6-15 OVS/VXLAN 가상 네트워크 만들기](ch6/ovs_vxlan_vpn.qmd)

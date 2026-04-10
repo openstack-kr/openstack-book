@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="620" viewBox="0 0 820 620">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#51606d"/>
+    </marker>
+  </defs>
+  <style>
+    .box { stroke-width: 2.5; rx: 18; ry: 18; }
+    .label { font: 700 24px sans-serif; fill: #1f2933; text-anchor: middle; dominant-baseline: middle; }
+    .side { font: 600 18px sans-serif; fill: #52606d; }
+    .arrow { stroke: #51606d; stroke-width: 3; marker-end: url(#arrow); }
+  </style>
+  <rect x="255" y="50" width="310" height="72" fill="#eef6ff" stroke="#3b6ea5" class="box"/>
+  <text x="410" y="86" class="label">Physical Network</text>
+  <line x1="410" y1="122" x2="410" y2="178" class="arrow"/>
+  <text x="440" y="156" class="side">direct mapping</text>
+
+  <rect x="235" y="180" width="350" height="82" fill="#dfeeff" stroke="#2f6db2" class="box"/>
+  <text x="410" y="221" class="label">Provider Network</text>
+  <text x="610" y="226" class="side">operator-managed</text>
+  <line x1="410" y1="262" x2="410" y2="318" class="arrow"/>
+  <text x="450" y="297" class="side">routing / NAT gate</text>
+
+  <rect x="280" y="320" width="260" height="82" fill="#fff1d6" stroke="#d48806" class="box"/>
+  <text x="410" y="361" class="label">Virtual Router</text>
+  <line x1="410" y1="402" x2="410" y2="458" class="arrow"/>
+
+  <rect x="235" y="460" width="350" height="82" fill="#e4f7ea" stroke="#2f855a" class="box"/>
+  <text x="410" y="501" class="label">Tenant Network</text>
+  <text x="610" y="506" class="side">tenant-managed</text>
+  <line x1="410" y1="542" x2="410" y2="588" class="arrow"/>
+
+  <rect x="280" y="538" width="260" height="52" fill="#f0eaff" stroke="#6b46c1" class="box"/>
+  <text x="410" y="564" class="label">VM Ports / VMs</text>
+</svg>
