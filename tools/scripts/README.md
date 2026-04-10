@@ -93,8 +93,8 @@ python3 import_notion_zip.py "SNAT, DNAT 개념.zip" ch6 snat_dnat --title "SNAT
     - 예: `neutron_agents.qmd`에서는  
       `[Red Hat OpenStack Platform Neutron 설정 문서](https://docs.redhat.com/ko/documentation/red_hat_openstack_platform/16.2/html/configuration_reference/neutron_2)`  
       처럼, 공식 문서가 무엇을 다루는지 한글로 설명을 붙여 준다.
-  - 강의 본문 헤딩(`#`, `##`, `###`) 번호는 **변환 직후 반드시 확인**한다. 특히 ch6 문서는 다음 규칙을 기본값으로 삼는다.  
-    - 섹션 코드는 **frontmatter의 `code:` 필드**와 **제목(title)** 에 우선 반영한다.  
+  - 강의 본문 헤딩(`#`, `##`, `###`) 번호는 **변환 직후 반드시 확인**한다. 특히 ch6 문서는 다음 규칙을 기본값으로 삼는다.
+    - 섹션 코드는 **frontmatter의 `code:` 필드**와 **제목(title)** 에 우선 반영한다.
       - 예: `code: "6-12"`, `title: "6-12. SNAT/DNAT란?"`
     - ch6의 **주요 본문 섹션**은 plain heading으로 두지 말고, `# [6-12-1] ...`, `# [6-12-2] ...` 같은 **번호형 H1**으로 맞춘다.
       - 예: `# [6-2-1] 해당 개념들이 생기게 된 이유`
@@ -112,8 +112,8 @@ python3 import_notion_zip.py "SNAT, DNAT 개념.zip" ch6 snat_dnat --title "SNAT
     - 예: `# [6-2-4] 전체 레이어` 아래 첫 그림이면 `그림 6-2-4-1`
     - 예: `# [6-12-3] 두 가지 전통적인 NAT 방식` 아래 첫 그림이면 `그림 6-12-3-1`
     - 섹션 번호가 바뀌면 그 아래 그림/표 번호도 **같이 renumber** 되었는지 반드시 확인한다.
-  - 그림을 추가/정리할 때는 다음 형태를 기본으로 사용한다.  
-    - `![그림 6-12-3-1. NAPT 동작 원리](images/snat_dnat/image.png){width="55%" fig-align="left"}`  
+  - 그림을 추가/정리할 때는 다음 형태를 기본으로 사용한다.
+    - `![그림 6-12-3-1. NAPT 동작 원리](images/snat_dnat/image.png){width="55%" fig-align="left"}`
       → **번호 + 한 줄 설명 + 파일명 + 왼쪽 정렬**이 한 번에 정리되도록 돕는다.
   - 코드 블록(```` ``` ````) 언어 태그를 실제 내용과 맞춰 정리한다.
     - 사용자가 `@파일경로 (21-26)`처럼 특정 범위를 가리킬 때, 그 범위가 **명령어**인지 **설정 파일**인지 보고 언어를 결정한다.
