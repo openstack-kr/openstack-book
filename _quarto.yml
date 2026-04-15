@@ -33,14 +33,12 @@ website:
           contents:
             - text: "6-1. Neutron의 agent에 대해 알아보기"
               file: lectures/ch6/neutron_agents.qmd
+            - text: "6-4. OVS(Open vSwitch)란 무엇인가?"
+              file: lectures/ch6/what_is_ovs.qmd
             - text: "6-12. SNAT/DNAT란?"
               file: lectures/ch6/snat_dnat.qmd
             - text: "6-15. OVS와 VXLAN를 이용해 가상 네트워크 만들기"
               file: lectures/ch6/ovs_vxlan_vpn.qmd
-
-
-
-
 
 format:
   html:
