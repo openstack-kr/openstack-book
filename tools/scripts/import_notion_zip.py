@@ -233,7 +233,7 @@ def main():
         zip_path = Path(zip_arg).resolve()
 
     if not zip_path.exists():
-            imports_chapter = IMPORTS_DIR / chapter
+        imports_chapter = IMPORTS_DIR / chapter
         if '/' not in zip_arg and '\\' not in zip_arg and not imports_chapter.exists():
             imports_chapter.mkdir(parents=True)
             print(f"tools/imports/{chapter}/ 폴더를 생성했습니다. ZIP 파일을 넣어주세요: {imports_chapter}")
