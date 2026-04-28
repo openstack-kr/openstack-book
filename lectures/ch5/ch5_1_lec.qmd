@@ -1,0 +1,70 @@
+---
+title: "가상 이미지에 대한 이해 (raw, qcow2 등)"
+---
+
+# OpenStack Glance 서비스 및 가상 이미지 포맷 분석
+
+## 1. 개요
+* OpenStack에서 가상 머신(VM)의 근간이 되는 OS 템플릿을 관리하는 Glance 서비스와 가상 이미지 포맷의 특성을 분석합니다.
+* 클라우드 환경에서 운영체제 이미지는 단순한 파일이 아닌, 인프라의 성능과 저장 공간 효율성을 결정짓는 핵심 자산입니다.
+
+## 2. 가상 이미지(Virtual Image)의 정의 및 역할
+가상 이미지는 가상 머신(VM)을 실행하기 위해 필요한 운영체제(OS), 애플리케이션, 그리고 시스템 설정 데이터가 포함된 '디지털 템플릿' 입니다.
+
+* **기술적 정체**: 물리적 하드디스크의 상태를 하나의 파일로 캡처(Capture)한 바이너리 데이터 덩어리입니다.
+* **클라우드에서의 역할**: 매번 OS를 수동으로 설치할 필요 없이, 미리 구성된 이미지를 복제하여 수초 내에 동일한 환경의 인스턴스를 대량으로 배포하는 근간이 됩니다.
+
+## 3. 가상 이미지 포맷의 종류 및 비교 분석
+클라우드 생태계에는 다양한 하이퍼바이저(Hypervisor)가 존재하며, 각 환경에 최적화된 여러 이미지 포맷이 사용됩니다.
+
+| 포맷 | 풀 네임 | 주요 특징 및 용도 |
+|---|---|---|
+| **RAW** | Raw Binary | 가공되지 않은 순수 디스크 데이터. 구조가 단순하여 I/O 성능이 가장 뛰어나지만, 실제 데이터와 무관하게 전체 용량을 점유합니다. |
+| **QCOW2** | QEMU Copy-On-Write 2 | OpenStack의 표준 포맷. 쓴 만큼만 용량을 차지하는 'Thin Provisioning'과 '스냅샷' 기능을 지원하여 클라우드 운영 효율이 가장 높습니다. |
+| **VMDK** | Virtual Machine Disk | VMware 환경의 표준 규격입니다. 엔터프라이즈 환경에서 널리 쓰이며 오픈스택과의 호환성도 뛰어납니다. |
+| **VHD/VHDX** | Virtual Hard Disk | Microsoft Hyper-V 및 Azure에서 주로 사용되는 포맷입니다. |
+| **VDI** | VirtualBox Disk Image | Oracle VirtualBox의 네이티브 포맷으로 주로 개인 개발 환경에서 사용됩니다. |
+| **ISO** | Optical Disk Image | CD/DVD 등의 광학 미디어를 파일화한 것으로, 주로 OS 설치용 매체로 활용됩니다. |
+
+## 4. Glance의 이미지 처리 메커니즘
+Glance 서비스가 사용자로부터 이미지를 받아 저장하고 관리하는 상세 과정은 다음과 같습니다.
+
+### 4.1 이미지 등록 및 업로드 라이프 사이클
+1. **API 접수 (Request)**: 사용자가 이미지 업로드를 요청하면 Glance API가 이를 수신합니다.
+2. **메타데이터 기록 (Registry)**: 이미지의 이름, 포맷, 가시성(Visibility) 등의 정보를 Glance DB에 먼저 기록합니다. (상태: queued)
+3. **바이너리 스트리밍 (Storage)**: 실제 이미지 본체 데이터를 드라이버를 통해 Backend Store (NAS, Swift, Ceph 등)로 전송합니다. (상태: saving)
+4. **무결성 검증 (Checksum)**: 전송이 끝나면 MD5/SHA-256 해시값을 대조하여 데이터가 변조되거나 깨지지 않았는지 확인합니다.
+5. **최종 활성화 (Active)**: 검증이 완료되면 이미지를 사용할 수 있는 상태인 active 로 변경합니다.
+
+### 4.2 이미지 변환 및 배포 최적화
+* **Image Conversion**: 특정 하이퍼바이저가 지원하지 않는 포맷일 경우, Glance는 내부도구(qemu-img)를 사용하여 가상 머신이 읽을 수 있는 포맷으로 변환 과정을 거칩니다.
+* **Image Caching**: 자주 호출되는 이미지는 컴퓨팅 노드(Nova)에 캐싱하여 네트워크 트래픽을 줄이고 배포 속도를 가속화합니다.
+
+## 5. Glance 이미지 관리 논리 구조
+```{mermaid}
+graph TD
+    User((User))
+    API[Glance API]
+    DB[(Glance DB: Metadata)]
+    Store{Backend Store}
+
+    User -- "1. Upload Request" --> API
+    API -- "2. Write Metadata" --> DB
+
+    subgraph "Image Processing"
+        API -- "3. Stream Binary" --> Store
+    end
+
+    Store -- "4. Checksum" --> API
+    API -- "5. Set Status: Active" --> User
+
+    subgraph "Supported Formats"
+        F1[RAW / QCOW2]
+        F2[VMDK / VHD]
+        F3[ISO / VDI]
+    end
+
+    Store -.-> F1
+    Store -.-> F2
+    Store -.-> F3
+    ```
