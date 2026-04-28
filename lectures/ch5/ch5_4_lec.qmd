@@ -85,7 +85,7 @@ openstack image set --reject <공유받은_Image_ID>
 
 아래 다이어그램은 각 공개 범위 설정에 따라 이미지에 접근할 수 있는 프로젝트의 범위를 보여줍니다.
 
-```mermaid
+```{mermaid}
 graph TD
     subgraph "OpenStack Cloud"
         AdminProject[Admin Project]
