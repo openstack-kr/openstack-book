@@ -1,0 +1,215 @@
+---
+title: "6-8. Floating IP 동작 원리 (Neutron + OVS)"
+description: "OpenStack Neutron 환경에서 Floating IP가 어떤 구성 요소를 통해 생성·적용되는지, 특히 OVS 기반에서 NAT가 실제로 어디서 수행되는지를 구조 중심으로 정리한다."
+code: "6-8"
+---
+
+# [6-8-1] Floating IP란 무엇인가
+
+OpenStack 인스턴스는 기본적으로 테넌트 네트워크의 Fixed IP(사설 IP)를 사용한다.
+이 주소는 외부 네트워크에서 직접 접근하기 어렵다.
+
+Floating IP는 이 문제를 해결하기 위해, 외부 네트워크(Provider/External Network)의 IP를 인스턴스 포트에 1:1로 매핑해 주는 기능이다.
+
+핵심 개념은 다음과 같다.
+
+- 사용자 관점: "VM에 외부 접근 가능한 IP를 붙인다"
+- 데이터플레인 관점: "Neutron Router가 DNAT/SNAT를 수행해 그렇게 보이게 만든다"
+
+즉, Floating IP는 VM NIC에 공인 IP를 직접 박아 넣는 기능이 아니라, 라우터 NAT 기반의 주소 변환 기능이다.
+
+---
+
+# [6-8-2] Floating IP가 필요한 이유
+
+Floating IP를 쓰는 이유는 크게 세 가지이다.
+
+1. Fixed IP(사설망) 인스턴스에 외부 접근 경로를 제공하기 위함이다.
+2. VM 재생성/교체 시 동일 외부 IP를 재할당해 서비스 연속성을 확보하기 위함이다.
+3. 네트워크 분리(테넌트망/외부망)를 유지하면서도 North-South 트래픽을 제어하기 위함이다.
+
+---
+
+# [6-8-3] OVS 환경에서 "누가 무엇을 하는가"
+
+OVS를 사용하는 환경에서 Floating IP가 동작할 때, 역할은 아래처럼 분리된다.
+
+| 구성 요소 | 역할 |
+|---|---|
+| Neutron Server (API) | Floating IP 생성/연결 요청을 DB 상태로 기록한다. |
+| Neutron L3 Agent | 라우터 네임스페이스와 NAT 규칙을 실제로 반영한다. |
+| Linux Network Namespace | 라우터별 독립 라우팅/NAT 실행 공간을 제공한다. |
+| iptables/nft backend | DNAT/SNAT 규칙을 실제 커널 경로에 적용한다. |
+| OVS Agent / OVS Bridge(br-int, br-ex) | 패킷을 라우터 인터페이스/외부망으로 전달하는 L2 스위칭 경로를 제공한다. |
+
+중요한 점은 다음과 같다.
+
+- OVS 자체가 Floating IP NAT를 직접 수행하는 것이 아니다.
+- 일반적인 ML2/OVS + legacy L3-agent 구조에서는 NAT는 Linux 네임스페이스 내부 iptables 규칙으로 수행된다.
+- OVS는 "패킷 전달 경로"를 담당하고, NAT 주소 변환은 "L3 agent + 커널 NAT"가 담당한다.
+
+---
+
+# [6-8-4] Floating IP 생성 시 내부 처리 순서
+
+예시 명령은 다음과 같다.
+
+```bash
+openstack floating ip create provider
+openstack server add floating ip vm1 203.0.113.10
+```
+
+내부적으로는 보통 아래 순서로 진행된다.
+
+1. Neutron API가 Floating IP 리소스와 포트 매핑 상태를 DB에 반영한다.
+2. Neutron Server가 L3 Agent에 라우터 업데이트 이벤트(RPC)를 전달한다.
+3. L3 Agent가 해당 라우터 네임스페이스(`qrouter-*`)를 점검한다.
+4. 네임스페이스 내 NAT 규칙(DNAT/SNAT)을 갱신한다.
+5. OVS 경로(`br-int` ↔ `br-ex`, 라우터 포트 연결)를 통해 외부/내부 패킷 전달이 가능해진다.
+
+정리하면, "FIP 생성"은 API 한 번으로 끝나는 작업이 아니라,
+**DB 상태 + Agent 동기화 + 네임스페이스 NAT 규칙 반영**이 모두 맞물려야 완료되는 작업이다.
+
+---
+
+# [6-8-5] 패킷 흐름: 인바운드와 아웃바운드
+
+## 인바운드(외부 -> VM): DNAT
+
+```text
+[External Client]
+   dst=FIP(203.0.113.10)
+        |
+        v
+      [br-ex]
+        |
+        v
+ [qrouter namespace]
+   DNAT: 203.0.113.10 -> 10.0.0.5
+        |
+        v
+      [br-int]
+        |
+        v
+ [VM fixed IP=10.0.0.5]
+```
+
+## 아웃바운드(VM -> 외부): SNAT
+
+```text
+[VM fixed IP=10.0.0.5]
+        |
+        v
+      [br-int]
+        |
+        v
+ [qrouter namespace]
+   SNAT: 10.0.0.5 -> 203.0.113.10
+        |
+        v
+      [br-ex]
+        |
+        v
+ [External Network]
+```
+
+---
+
+# [6-8-6] Linux 네임스페이스가 필요한 이유
+
+Neutron이 네임스페이스를 사용하는 이유는 라우터별 독립성 때문이다.
+
+- 테넌트마다 라우터가 다수 생성될 수 있다.
+- 서로 같은 RFC1918 대역을 쓰는 겹치는 네트워크가 공존할 수 있다.
+- 라우터별로 NAT/라우팅 상태를 분리해야 충돌이 없다.
+
+따라서 legacy L3-agent 구조에서는 보통 다음처럼 동작한다.
+
+- 라우터 1개 -> `qrouter-<uuid>` 네임스페이스 1개
+- 라우터 NAT 규칙 -> 해당 네임스페이스 내부 iptables 체인
+
+---
+
+# [6-8-7] OVS 사용 시 기술 포인트
+
+OVS 기반 Floating IP를 이해할 때 자주 혼동되는 지점은 "OVS가 NAT를 하느냐"이다.
+아래처럼 구분하면 정확하다.
+
+## 1) OVS가 하는 일
+
+- `br-int`, `br-ex` 브리지 구성
+- 포트 연결 및 OpenFlow 기반 L2 포워딩
+- 터널(VXLAN/GRE/Geneve) 또는 provider 네트워크 전달
+
+## 2) L3 agent/커널이 하는 일
+
+- 라우터 네임스페이스 생성/관리
+- Floating IP DNAT/SNAT 규칙 생성
+- conntrack 기반 세션 상태 추적
+
+## 3) 결과적으로 보이는 현상
+
+- 사용자는 "FIP를 붙였다"고 인식한다.
+- 실제 데이터플레인은 "OVS 전달 + 라우터 네임스페이스 NAT" 조합으로 동작한다.
+
+이 구조를 이해하면, 장애 원인 분리도 쉬워진다.
+
+- FIP 할당은 되었는데 접속이 안 되면: L3 agent 상태, 라우터 네임스페이스 NAT 규칙, external 경로를 우선 점검한다.
+- 브리지/터널 문제라면: OVS 포트/플로우/브리지 매핑을 우선 점검한다.
+
+---
+
+# [6-8-8] DVR 환경에서의 차이
+
+DVR(Distributed Virtual Routing)에서는 FIP 처리 지점이 분산된다.
+
+- 중앙 네트워크 노드 한 곳에서만 처리하지 않는다.
+- VM이 존재하는 컴퓨트 노드 쪽에 FIP 처리 경로가 생긴다.
+- 이때 `fip` 네임스페이스가 별도로 등장하는 구조를 자주 보게 된다.
+
+즉, legacy 중앙집중형 대비 DVR은 North-South 병목을 줄이기 위한 분산형 설계이다.
+
+---
+
+# [6-8-9] 점검 명령어
+
+아래 명령은 "FIP가 왜 안 붙는지/왜 안 통신되는지"를 빠르게 분리하는 데 유용하다.
+
+```bash
+# 1) Neutron 리소스 확인
+openstack floating ip list
+openstack router list
+openstack port list
+
+# 2) L3 agent 상태 확인
+openstack network agent list --agent-type "L3 agent"
+
+# 3) 라우터 네임스페이스 확인 (네트워크 노드/컨트롤러)
+sudo ip netns
+sudo ip netns exec qrouter-<router_uuid> ip a
+sudo ip netns exec qrouter-<router_uuid> ip route
+
+# 4) NAT 규칙 확인
+sudo ip netns exec qrouter-<router_uuid> iptables -t nat -S
+
+# 5) OVS 경로 확인
+sudo ovs-vsctl show
+sudo ovs-ofctl dump-flows br-int
+sudo ovs-ofctl dump-flows br-ex
+```
+
+배포판에 따라 iptables 명령이 nft backend를 통해 동작할 수 있으므로,
+규칙 해석 시 시스템의 iptables 구현(legacy/nft)을 함께 확인하는 것이 안전하다.
+
+---
+
+# [6-8-10] 요약
+
+Floating IP 동작 원리를 한 줄로 정리하면 다음과 같다.
+
+- **OVS는 패킷 전달 경로를 제공한다.**
+- **Neutron L3 agent는 라우터 네임스페이스에서 NAT를 구성한다.**
+- **Floating IP는 그 조합으로 구현되는 1:1 주소 변환 기능이다.**
+
+즉, OVS 기반에서 Floating IP는 "OVS 단일 기술"이 아니라,
+**OVS(L2) + Namespace/L3 Agent(NAT) + conntrack/iptables(상태 기반 변환)**의 결합으로 완성되는 기능이다.
