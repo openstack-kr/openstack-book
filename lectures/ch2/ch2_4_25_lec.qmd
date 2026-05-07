@@ -1,0 +1,206 @@
+---
+title: "2-4장. Keystone 트러블슈팅"
+---
+
+# 에러 처리
+
+ admin-openrc.sh 내용은 **형식 자체는 완전 맞아** 
+
+```
+export OS_USERNAME=admin
+export OS_PASSWORD=1234
+export OS_PROJECT_NAME=admin
+export OS_USER_DOMAIN_NAME=Default
+export OS_PROJECT_DOMAIN_NAME=Default
+export OS_AUTH_URL=http://controller:5000/v3
+export OS_IDENTITY_API_VERSION=3
+```
+
+현재 401 오류의 주요 원인은 다음 한 가지다:
+
+> Keystone 안에 저장된
+> 
+> 
+> **admin 계정 비밀번호 ≠ 1234**
+> 
+
+> (우리가 DB keystone 유저 비번은 1234로 맞췄지만,
+> 
+
+> 관리자(admin) 유저 비번은 따로 있고 그걸 안 바꾼 상태
+> 
+
+따라서 `OS_PASSWORD=1234` 로 로그인 시도하면 401 오류가 발생한다.
+
+---
+
+## **해결 전략**
+
+### **선택지 1. bootstrap 시 사용한 비밀번호를 정확히 확인한다**
+
+그럼 제일 쉬워:
+
+1. admin-openrc.sh 에서 OS_PASSWORD 를 **그때 썼던 비번으로 교체**
+2. 다시:
+
+```
+source /root/admin-openrc.sh
+openstack token issue
+```
+
+여기서 1차 점검이 끝난다.
+
+---
+
+### **선택지 2. (비밀번호를 기억하지 못하는 경우) Keystone 초기화 후 재설정 (권장)**
+
+지금은 다른 서비스(Glance/Nova/Neutron)도 안 깔았으니까
+
+**Keystone만 밀고 다시 bootstrap 하는 게 제일 깔끔해.**
+
+아래 순서대로 controller에서 root로 실행하면 된다.
+
+---
+
+### **1) Apache 잠깐 멈추기**
+
+```
+systemctl stop apache2
+```
+
+---
+
+### **2) keystone DB 초기화 + keystone 유저 비번 1234로 확정**
+
+```
+mysql -u root -p
+```
+
+안에서:
+
+```
+DROP DATABASE IF EXISTS keystone;
+CREATE DATABASE keystone;
+
+DROP USER IF EXISTS 'keystone'@'controller';
+DROP USER IF EXISTS 'keystone'@'localhost';
+DROP USER IF EXISTS 'keystone'@'%';
+
+CREATE USER 'keystone'@'controller' IDENTIFIED BY '1234';
+CREATE USER 'keystone'@'localhost' IDENTIFIED BY '1234';
+CREATE USER 'keystone'@'%' IDENTIFIED BY '1234';
+
+GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'controller';
+GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost';
+GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%';
+
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+---
+
+### **3) Keystone 키 리포지토리 비우기**
+
+```
+rm -rf /etc/keystone/fernet-keys/*
+rm -rf /etc/keystone/credential-keys/*
+```
+
+---
+
+### **4)**
+
+### **/etc/keystone/keystone.conf**
+
+### **확인**
+
+[database] / [token] 부분만 맞춰져 있으면 됨:
+
+```
+[database]
+connection = mysql+pymysql://keystone:1234@controller/keystone
+
+[token]
+provider = fernet
+```
+
+(이미 이렇게 돼 있으면 수정 필요 없음)
+
+---
+
+### **5) DB 마이그레이션 + 키 재생성**
+
+```
+su -s /bin/sh -c "keystone-manage db_sync" keystone
+
+keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
+keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
+```
+
+---
+
+### **6) bootstrap (여기서**
+
+### **admin 비번을 1234로 확정**
+
+### **수행 절차**
+
+```
+keystone-manage bootstrap --bootstrap-password 1234 \
+ --bootstrap-admin-url http://controller:5000/v3/ \
+ --bootstrap-internal-url http://controller:5000/v3/ \
+ --bootstrap-public-url http://controller:5000/v3/ \
+ --bootstrap-region-id RegionOne
+```
+
+이제 **admin 계정 비밀번호 = 1234** 가 된다.
+
+---
+
+### **7) Apache 다시 시작**
+
+```
+systemctl start apache2
+```
+
+버전 체크:
+
+```
+curl -v http://controller:5000/v3/
+```
+
+200 OK 나오면 성공.
+
+---
+
+### **8)**
+
+### **admin-openrc.sh**
+
+### **그대로 쓰고 토큰 다시 요청**
+
+지금 admin-openrc.sh 내용이 이미:
+
+```
+export OS_PASSWORD=1234
+```
+
+로 되어 있으니까:
+
+```
+source /root/admin-openrc.sh
+openstack token issue
+```
+
+이제 **토큰 정보 표가 정상 출력되면 성공**이다.
+
+---
+
+요약하면:
+
+- 파일 위치/형식은 맞음.
+- **문제는 Keystone 안에 저장된 admin 비밀번호랑 openrc의 OS_PASSWORD 가 달랐던 것.**
+- 위 단계대로 Keystone 한 번 리셋하고 bootstrap을 1234로 다시 잡으면,
+ 
+ 이제 `admin-openrc.sh` 를 그대로 사용할 수 있으며, 401 오류도 해소된다.

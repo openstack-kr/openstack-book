@@ -1,0 +1,177 @@
+---
+title: "2-4장. Glance 트러블슈팅 (DB 권한)"
+---
+
+# 에러 해결
+
+ 
+
+```yaml
+root@controller:~# su -s /bin/sh -c "glance-manage db_sync" glance
+2025-11-22 15:36:38.457 32139 CRITICAL glance [-] Unhandled error: sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'glance'@'controller' (using password: YES)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-11-22 15:36:38.457 32139 ERROR glance Traceback (most recent call last):
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/base.py", line 146, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance self._dbapi_connection = engine.raw_connection()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+2025-11-22 15:36:38.457 32139 ERROR glance return self.pool.connect()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 449, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance return _ConnectionFairy._checkout(self)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 1263, in _checkout
+2025-11-22 15:36:38.457 32139 ERROR glance fairy = _ConnectionRecord.checkout(pool)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 712, in checkout
+2025-11-22 15:36:38.457 32139 ERROR glance rec = pool._do_get()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+2025-11-22 15:36:38.457 32139 ERROR glance with util.safe_reraise():
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+2025-11-22 15:36:38.457 32139 ERROR glance raise exc_value.with_traceback(exc_tb)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+2025-11-22 15:36:38.457 32139 ERROR glance return self._create_connection()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+2025-11-22 15:36:38.457 32139 ERROR glance return _ConnectionRecord(self)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 674, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance self.__connect()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 900, in __connect
+2025-11-22 15:36:38.457 32139 ERROR glance with util.safe_reraise():
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+2025-11-22 15:36:38.457 32139 ERROR glance raise exc_value.with_traceback(exc_tb)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 896, in __connect
+2025-11-22 15:36:38.457 32139 ERROR glance self.dbapi_connection = connection = pool._invoke_creator(self)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/create.py", line 646, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance return dialect.connect(*cargs, **cparams)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/default.py", line 622, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance return self.loaded_dbapi.connect(*cargs, **cparams)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 353, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance self.connect()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 633, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance self._request_authentication()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 907, in _request_authentication
+2025-11-22 15:36:38.457 32139 ERROR glance auth_packet = self._read_packet()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 725, in _read_packet
+2025-11-22 15:36:38.457 32139 ERROR glance packet.raise_for_error()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/protocol.py", line 221, in raise_for_error
+2025-11-22 15:36:38.457 32139 ERROR glance err.raise_mysql_exception(self._data)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/err.py", line 143, in raise_mysql_exception
+2025-11-22 15:36:38.457 32139 ERROR glance raise errorclass(errno, errval)
+2025-11-22 15:36:38.457 32139 ERROR glance pymysql.err.OperationalError: (1045, "Access denied for user 'glance'@'controller' (using password: YES)")
+2025-11-22 15:36:38.457 32139 ERROR glance
+2025-11-22 15:36:38.457 32139 ERROR glance The above exception was the direct cause of the following exception:
+2025-11-22 15:36:38.457 32139 ERROR glance
+2025-11-22 15:36:38.457 32139 ERROR glance Traceback (most recent call last):
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/bin/glance-manage", line 10, in <module>
+2025-11-22 15:36:38.457 32139 ERROR glance sys.exit(main())
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/glance/cmd/manage.py", line 558, in main
+2025-11-22 15:36:38.457 32139 ERROR glance return CONF.command.action_fn()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/glance/cmd/manage.py", line 392, in sync
+2025-11-22 15:36:38.457 32139 ERROR glance self.command_object.sync(CONF.command.version)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/glance/cmd/manage.py", line 151, in sync
+2025-11-22 15:36:38.457 32139 ERROR glance curr_heads = alembic_migrations.get_current_alembic_heads()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/glance/db/sqlalchemy/alembic_migrations/__init__.py", line 50, in get_current_alembic_heads
+2025-11-22 15:36:38.457 32139 ERROR glance engine = db_api.get_engine()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/glance/db/sqlalchemy/api.py", line 98, in get_engine
+2025-11-22 15:36:38.457 32139 ERROR glance facade = _create_facade_lazily()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/glance/db/sqlalchemy/api.py", line 85, in _create_facade_lazily
+2025-11-22 15:36:38.457 32139 ERROR glance _FACADE = oslo_db_session.EngineFacade.from_config(
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/oslo_db/sqlalchemy/enginefacade.py", line 1518, in from_config
+2025-11-22 15:36:38.457 32139 ERROR glance return cls(
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/oslo_db/sqlalchemy/enginefacade.py", line 1443, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance self._factory._start(
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/oslo_db/sqlalchemy/enginefacade.py", line 530, in _start
+2025-11-22 15:36:38.457 32139 ERROR glance self._setup_for_connection(
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/oslo_db/sqlalchemy/enginefacade.py", line 647, in _setup_for_connection
+2025-11-22 15:36:38.457 32139 ERROR glance engine = engines.create_engine(
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/debtcollector/renames.py", line 41, in decorator
+2025-11-22 15:36:38.457 32139 ERROR glance return wrapped(*args, **kwargs)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/oslo_db/sqlalchemy/engines.py", line 271, in create_engine
+2025-11-22 15:36:38.457 32139 ERROR glance _test_connection(engine_event_target, max_retries, retry_interval)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/oslo_db/sqlalchemy/engines.py", line 169, in _test_connection
+2025-11-22 15:36:38.457 32139 ERROR glance conn = engine.connect()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/base.py", line 3274, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance return self._connection_cls(self)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/base.py", line 148, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance Connection._handle_dbapi_exception_noconnection(
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/base.py", line 2436, in _handle_dbapi_exception_noconnection
+2025-11-22 15:36:38.457 32139 ERROR glance raise newraise.with_traceback(exc_info[2]) from e
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/base.py", line 146, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance self._dbapi_connection = engine.raw_connection()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+2025-11-22 15:36:38.457 32139 ERROR glance return self.pool.connect()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 449, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance return _ConnectionFairy._checkout(self)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 1263, in _checkout
+2025-11-22 15:36:38.457 32139 ERROR glance fairy = _ConnectionRecord.checkout(pool)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 712, in checkout
+2025-11-22 15:36:38.457 32139 ERROR glance rec = pool._do_get()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+2025-11-22 15:36:38.457 32139 ERROR glance with util.safe_reraise():
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+2025-11-22 15:36:38.457 32139 ERROR glance raise exc_value.with_traceback(exc_tb)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+2025-11-22 15:36:38.457 32139 ERROR glance return self._create_connection()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+2025-11-22 15:36:38.457 32139 ERROR glance return _ConnectionRecord(self)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 674, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance self.__connect()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 900, in __connect
+2025-11-22 15:36:38.457 32139 ERROR glance with util.safe_reraise():
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+2025-11-22 15:36:38.457 32139 ERROR glance raise exc_value.with_traceback(exc_tb)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/pool/base.py", line 896, in __connect
+2025-11-22 15:36:38.457 32139 ERROR glance self.dbapi_connection = connection = pool._invoke_creator(self)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/create.py", line 646, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance return dialect.connect(*cargs, **cparams)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/sqlalchemy/engine/default.py", line 622, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance return self.loaded_dbapi.connect(*cargs, **cparams)
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 353, in __init__
+2025-11-22 15:36:38.457 32139 ERROR glance self.connect()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 633, in connect
+2025-11-22 15:36:38.457 32139 ERROR glance self._request_authentication()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 907, in _request_authentication
+2025-11-22 15:36:38.457 32139 ERROR glance auth_packet = self._read_packet()
+2025-11-22 15:36:38.457 32139 ERROR glance ^^^^^^^^^^^^^^^^^^^
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/connections.py", line 725, in _read_packet
+2025-11-22 15:36:38.457 32139 ERROR glance packet.raise_for_error()
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/protocol.py", line 221, in raise_for_error
+2025-11-22 15:36:38.457 32139 ERROR glance err.raise_mysql_exception(self._data)
+2025-11-22 15:36:38.457 32139 ERROR glance File "/usr/lib/python3/dist-packages/pymysql/err.py", line 143, in raise_mysql_exception
+2025-11-22 15:36:38.457 32139 ERROR glance raise errorclass(errno, errval)
+2025-11-22 15:36:38.457 32139 ERROR glance sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1045, "Access denied for user 'glance'@'controller' (using password: YES)")
+2025-11-22 15:36:38.457 32139 ERROR glance (Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-11-22 15:36:38.457 32139 ERROR glance
+```
+
+또 비밀번호 오류였다고 한다… 
+
+비밀번호가 각 섹션에 정확히 입력되었는지 다시 확인한다.

@@ -1,0 +1,325 @@
+---
+title: "2-4장. Horizon 설치"
+---
+
+# Horizon
+
+좋은 타이밍에 Horizon까지 왔다 
+
+이제부터는 “클라우드가 정상 동작하는지”를 CLI가 아닌 **웹 화면에서 확인하는 단계**이다.
+
+---
+
+## **1. Horizon이 뭐 하는 애냐**
+
+한 줄 정의:
+
+> Horizon = OpenStack 공식 대시보드(web UI)
+> 
+
+> Nova, Neutron, Cinder, Swift, Keystone 같은 서비스들을 브라우저에서 클릭으로 관리하게 해주는 프론트엔드.
+> 
+
+특징을 정리하면:
+
+- **Keystone 기반 로그인**
+ - 사용자는 Keystone 계정(admin, demo, 프로젝트 유저 등)으로 로그인
+ - 로그인 후 “어떤 프로젝트로 들어갈지” 선택
+- **주요 작업을 전부 UI로**
+ - 인스턴스 생성 / 삭제 (Nova)
+ - 이미지 업로드 (Glance)
+ - 네트워크 / 서브넷 / 라우터 / Floating IP 설정 (Neutron)
+ - 볼륨 생성/Attach (Cinder)
+ - Object Storage 컨테이너/오브젝트 관리 (Swift)
+- **두 가지 시점**
+ - 사용자 대시보드 (프로젝트 내에서 리소스 보는 화면)
+ - 관리자 대시보드 (모든 프로젝트/사용자/쿼터 보는 화면)
+- **플러그인 구조**
+ - Magnum, Octavia, Designate 등 각 서비스용 Horizon plugin을 붙이면 메뉴가 늘어나는 구조
+
+아키텍처적으로 보면:
+
+- Horizon은 **Django 웹앱**이고,
+- **REST API를 써서 Keystone/Nova/Neutron 등에 직접 붙는 클라이언트** 한 계층으로 이해하면 된다.
+- 컨트롤러 노드에서 Apache + mod_wsgi로 서비스하는 게 기본 패턴.
+
+---
+
+## **2. 설치 가이드가 전제로 깔고 있는 것들**
+
+Horizon 설치 가이드 첫 문장부터 이렇게 적혀 있어:
+
+- “이 섹션은 **컨트롤러 노드에 대시보드를 설치/구성하는 방법**을 설명한다.”
+- “**유일하게 필수인 코어 서비스는 Identity(Keystone)**이다.”
+- 하지만 보통은 Image / Compute / Networking이 같이 있어야 UI에서 할 게 많음.
+- 전제:
+ - Keystone이 **Apache HTTPD + Memcached** 로 이미 잘 돌아가고 있어야 한다.
+
+즉, 지금 네 상태처럼:
+
+- Keystone / Glance / Placement / Nova / Neutron이 다 올라간 뒤,
+- 마지막에 “Dashboard – Horizon”을 설치하는 흐름이 공식 권장 순서다.
+
+---
+
+## **3. 설치 가이드 구조 (큰 그림)**
+
+Horizon 설치 문서 메인 페이지를 보면 이렇게 나눠져 있어:
+
+1. **System Requirements**
+ - 브라우저 지원, Python/Django 버전, DB/캐시(memcached) 등 기본 요구사항
+2. **Installing from Packages**
+ - Debian 계열 (Debian, Ubuntu)
+ - RHEL 계열
+ - openSUSE / SLES
+ - 각자 “패키지 + 설정 파일 수정 + Apache 재시작 + 동작 확인” 구조
+3. **Installing from Source (Manual installation)**
+ - git clone해서 pip로 설치
+ - local_settings.py 직접 작성
+ - collectstatic / compress / 웹 서버 설정
+4. **Horizon plugins**
+ - “Plugin Registry” 링크
+ - 플러그인 설치하면 Horizon 메뉴에 기능이 추가됨
+
+너는 Ubuntu 24.04 + Epoxy라서 **“Install and configure for Ubuntu”** 섹션이 메인 타깃.
+
+---
+
+## **4. Ubuntu 기준 설치 흐름 요약**
+
+문서 내용 그대로, controller에서 하는 작업만 정리해볼게.
+
+### **4-1. 패키지 설치**
+
+컨트롤러에서:
+
+```
+apt install openstack-dashboard
+```
+
+패키지 설치가 완료되면 `/etc/openstack-dashboard` 아래에 Django 프로젝트(`horizon + openstack_dashboard`)가 배치된다.
+
+Apache site config까지 같이 제공해 줌.
+
+---
+
+### **4-2.**
+
+### **local_settings.py**
+
+### **핵심 설정 포인트**
+
+문서는 /etc/openstack-dashboard/local_settings.py 를 열고 다음을 꼭 손보라고 함:
+
+1. **Keystone 위치**
+
+```
+OPENSTACK_HOST = "controller"
+```
+
+- Keystone endpoint가 http://controller:5000 기준이라고 가정.
+- 포트까지 지정하려면 OPENSTACK_KEYSTONE_URL에서 조정.
+1. **ALLOWED_HOSTS**
+
+```
+ALLOWED_HOSTS = ['one.example.com', 'two.example.com']
+# 또는 개발용으로 ['*']
+
+이 설정은 `controller` 또는 `10.100.100.11`로 접속하도록 맞춰야 한다. 따라서 아래와 같이 설정한다.
+ALLOWED_HOSTS = ['10.100.100.11', 'controller', 'localhost']
+```
+
+- Django 기본 보안 설정. 허용할 호스트 이름들 나열.
+- 문서에서는 “Ubuntu 섹션의 ALLOWED_HOSTS는 수정하지 않고, 대시보드 설정 섹션 값을 수정하라”고 안내한다.
+1. **memcached 세션 스토리지**
+
+```
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+CACHES = {
+ 'default': {
+ 'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+ 'LOCATION': 'controller:11211',
+ }
+}
+```
+
+- “다른 세션 설정은 주석 처리해라”라고 문서에 나와 있음.
+- 이미 Keystone도 memcached 쓰고 있기 때문에, 여기서도 memcached를 공유.
+1. **Keystone v3 API 활성화**
+
+```
+OPENSTACK_KEYSTONE_URL = "http://%s/identity/v3" % OPENSTACK_HOST
+# 또는 keystone 5000포트 쓴다면:
+# OPENSTACK_KEYSTONE_URL = "http://%s:5000/identity/v3" % OPENSTACK_HOST
+```
+
+- 최신 OpenStack는 Keystone v3가 기본이므로, 이 URL이 중요하다.
+1. **도메인 지원**
+
+```
+OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True
+OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = "Default"
+```
+
+- 우리가 Keystone 부트스트랩할 때 썼던 기본 도메인과 매칭.
+1. **API 버전 설정**
+
+```
+OPENSTACK_API_VERSIONS = {
+ "identity": 3,
+ "image": 2,
+ "volume": 3,
+}
+```
+
+- Epoxy 기준으로 Identity v3, Glance v2, Cinder v3가 기본.
+1. **Neutron 옵션 1(Provider)일 땐 L3 기능 끄기 (선택)**
+
+문서에서는 “설치 가이드의 networking option 1(Provider only)인 경우 L3 기능을 비활성화하라”고 안내한다:
+
+```
+OPENSTACK_NEUTRON_NETWORK = {
+ ...
+ 'enable_router': False,
+ 'enable_quotas': False,
+ 'enable_ipv6': False,
+ 'enable_distributed_router': False,
+ 'enable_ha_router': False,
+ 'enable_fip_topology_check': False,
+}
+```
+
+- self-service(L3) 옵션까지 구성할 경우, 이 부분은 굳이 False로 내릴 필요 없이 default 기능을 사용하면 된다.
+1. **TIME_ZONE 설정 (옵션)**
+
+```
+TIME_ZONE = "Asia/Seoul"
+```
+
+- 문서에 “TIME_ZONE을 적절한 값으로 바꿔라”라고 나와 있고,
+ 
+ 예시는 위키 타임존 리스트 링크 달아놓음.
+ 
+
+---
+
+### **4-3. Apache 설정 보정**
+
+Ubuntu 문서에는 아래 한 줄 추가를 안내한다:
+
+```
+echo 'WSGIApplicationGroup %{GLOBAL}' >> /etc/apache2/conf-available/openstack-dashboard.conf
+```
+
+혹은 파일 열어서 수동으로 추가.
+
+이건 Django/memcached/모듈들이 같은 프로세스 그룹에서 동작하도록 보장하는 설정.
+
+---
+
+### **4-4. 마무리**
+
+```
+systemctl reload apache2
+```
+
+여기까지가 Ubuntu 설치 가이드 범위이다.
+
+이제 웹 브라우저에서:
+
+- URL: http://controller/horizon (또는 /dashboard)
+- 로그인: admin / ADMIN_PASS, 혹은 demo / DEMO_PASS
+
+하면 **Epoxy 클러스터가 웹 UI에 표시된다.**
+
+---
+
+## **5. “Installing from Source” 흐름 (개념만)**
+
+패키지 방식 대신 Git + pip 기반 설치를 원하면 “Manual installation” 문서를 참고한다:
+
+대략적인 흐름은:
+
+1. Horizon git clone
+
+```
+git clone https://opendev.org/openstack/horizon -b stable/<release> --depth=1
+cd horizon
+```
+
+1. Python 모듈 설치
+
+```
+sudo pip install -c https://opendev.org/openstack/requirements/raw/branch/stable/<release>/upper-constraints.txt .
+```
+
+1. 설정
+- openstack_dashboard/local/local_settings.py.example 복사해서 local_settings.py 만들고
+- 위에서 언급한 OPENSTACK_HOST, ALLOWED_HOSTS, CACHES, OPENSTACK_KEYSTONE_URL 등 설정
+1. Django static 파일/압축
+
+```
+python manage.py collectstatic
+python manage.py compress
+```
+
+1. Apache/Nginx + mod_wsgi(or uWSGI)로 서비스
+- WSGI entrypoint: openstack_dashboard.wsgi:application
+- VirtualHost에 적절히 붙이고, endpoint 공개
+
+이 루트는 **개발/커스텀 테마/플러그인 작업할 때** 많이 쓰고,
+
+단순 Epoxy PoC엔 패키지 설치가 훨씬 편함.
+
+---
+
+## **6. Horizon plugins**
+
+설치 가이드 마지막에는 “Horizon plugins” 섹션이 있고, Plugin registry 링크만 달려 있어:
+
+- 예:
+ - heat-dashboard (Orchestration)
+ - magnum-ui (Container Infra)
+ - octavia-dashboard (LBaaS)
+- 방식:
+ - 해당 플러그인 패키지 설치
+ - INSTALLED_APPS 또는 enabled 파일에 등록
+ - 웹 서버 재시작 → 메뉴에 새 탭/패널이 추가
+
+향후 AOD나 상용 서비스 환경으로 확장하면 Horizon theme + plugin custom을 다룰 일이 생길 수 있으므로, “플러그인 레이어가 별도로 있다”는 점을 기억해두면 도움이 된다.
+
+---
+
+## **7. Horizon의 역할 정리**
+
+지금 네 상태:
+
+- Epoxy 기준으로
+ 
+ Keystone / Glance / Placement / Nova / Neutron / (OVS or Linuxbridge)까지 전부 수동 설치 진행 중
+ 
+- **CLI로는 이미 인스턴스 / 네트워크 생성이 가능할 정도**로 갈 거고,
+- 그 다음 단계가 바로:
+ - Horizon 설치 → http://controller/horizon 접속
+ - admin / demo 계정으로 로그인해서
+ - 같은 작업(VM 생성 / 네트워크 설정)을 **UI로도 할 수 있게 만드는 것**
+
+그래서 Horizon은:
+
+- 클러스터 입문 단계에서 **“서비스 연결 상태를 시각적으로 확인하는 대시보드”** 역할
+- 이후엔:
+ - 팀원에게 “AoldaCloud 콘솔” 형태로 제공할 수 있는
+ - **실제 사용자 포털 레이어**로 이해하면 된다.
+
+---
+
+원하면 다음 턴에서:
+
+- 네 Epoxy 랩 기준으로
+ - openstack-dashboard 설치
+ - local_settings.py를 “controller / 10.100.100.11 / Asia/Seoul / Keystone v3” 에 맞게
+ 
+ 구체적인 입력 방식은 **실제 예시 파일** 형태로 바로 제시한다. 
+ 
+
+[Horizon 오류 해결](ch2_4_29_lec.qmd)

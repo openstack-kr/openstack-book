@@ -1,0 +1,37 @@
+---
+title: "2-4장. Epoxy 버전 OpenStack 서비스 설치 순서"
+---
+
+# 9. 이제 본격적으로 에폭시 버전 오픈스택 설치!
+
+https://docs.openstack.org/install-guide/openstack-services.html
+
+**OpenStack 서비스 설치 (Epoxy)**
+
+### **Epoxy 최소 구성 설치 순서 (공식)**
+
+1. Identity – **Keystone** 설치
+2. Image – **Glance** 설치
+3. **Placement** 설치
+4. Compute – **Nova** 설치
+5. Networking – **Neutron** 설치
+
+그 다음 권장 컴포넌트는 Horizon(대시보드), Cinder(블록스토리지)이다.
+
+이번 답변에서는 **1번 Keystone을 공식 문서 순서대로** 순서대로 진행한다
+
+(Keystone까지 완전히 돼야 Glance/Nova/Neutron에서 openstack CLI가 제대로 먹음.)
+
+---
+
+[Keystone 설치](ch2_4_17_lec.qmd)
+
+[Glance 설치](ch2_4_18_lec.qmd)
+
+[Placement](ch2_4_19_lec.qmd)
+
+[Nova](ch2_4_20_lec.qmd)
+
+[Neutron](ch2_4_21_lec.qmd)
+
+[Horizon](ch2_4_22_lec.qmd)

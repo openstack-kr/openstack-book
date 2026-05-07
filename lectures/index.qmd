@@ -9,7 +9,7 @@ title: "오픈스택 강의 자료"
   - [2-1장. VirtualBox으로 기본 환경 구성하기](ch2/ch2_1_lec.qmd)
   - [2-2장. VMWare Fusion으로 기본 환경 구성하기](ch2/ch2_2_lec.qmd)
   - [2-3장. Proxmox로 기본 환경 구성하기](ch2/ch2_2_lec.qmd)
-  - [2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기](ch2/ch2_2_lec.qmd)
+  - [2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기](ch2/ch2_4_lec.qmd)
 - [3장. Keystone]()
   - [3-1장. Keystone 토큰]()
 - [4장. Nova]()

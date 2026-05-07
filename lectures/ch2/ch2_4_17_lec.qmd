@@ -1,0 +1,344 @@
+---
+title: "2-4장. Keystone 설치"
+---
+
+# Keystone 설치
+
+## **0. Keystone 공식 문서 링크 (Ubuntu)**
+
+- Epoxy 기준 Keystone 설치 (Ubuntu):
+ 
+ https://docs.openstack.org/keystone/2025.1/install/keystone-install-ubuntu.html
+ 
+
+이 페이지에 나오는 순서를 기준으로,
+
+**우리 환경(컨트롤러=controller, DB/MQ/Memcached/Etcd 이미 설치 완료, 10.100.100.11)** 에 맞춰 번역해서 설명할게.
+
+> 앞으로 나오는 모든 Keystone 관련 명령은 **controller 노드에서 root로**
+> 
+
+---
+
+## **1. Keystone DB 만들기 (MariaDB 쪽)**
+
+**공식 문서의 “Prerequisites” 1~4번** 단계.
+
+**목적**
+
+Keystone도 자기 상태/유저/토큰 메타데이터를 DB에 저장하니까
+
+먼저 keystone 데이터베이스랑 계정을 만들어 줘야 함.
+
+관련 문서: https://docs.openstack.org/keystone/2025.1/install/get-started-ubuntu.html
+
+### **1-1. controller에서 MariaDB 접속**
+
+```
+sudo -i # 아직 root 아니면
+mysql
+```
+
+### **1-2. keystone DB 생성**
+
+```
+CREATE DATABASE keystone;
+```
+
+### **1-3. keystone용 DB 계정/권한 부여**
+
+KEYSTONE_DBPASS 자리에 **아까 Security 단계에서 적어둔 keystone DB 비밀번호** 넣기.
+
+```
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' \
+IDENTIFIED BY 'KEYSTONE_DBPASS';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' \
+IDENTIFIED BY 'KEYSTONE_DBPASS';
+```
+
+> **`KEYSTONE_DBPASS`**적절한 비밀번호로 바꾸세요 .
+여기서 '%' 는 “어떤 호스트에서 접속하든 다 허용”이라는 뜻인데,
+> 
+
+> PoC/랩 환경에서는 이대로 사용 가능하며, 운영 서비스에서는 보안 정책을 더 강화해야 한다.
+> 
+
+마지막으로: 
+데이터베이스 액세스 클라이언트를 종료한다.
+
+```
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+이러면 데이터베이스 탈출!
+
+---
+
+## **2. Keystone 패키지 설치**
+
+**공식 문서 “Install and configure components” 1번**.
+
+Ubuntu 24.04 + Epoxy에서:
+
+```
+# controller, root
+apt update
+apt install -y keystone
+```
+
+> Apache2 + mod_wsgi는 keystone 패키지가 의존성으로 같이 깔린다고 문서에 나와 있음.
+> 
+
+(예전에 rocky 문서처럼 apache2 libapache2-mod-wsgi-py3를 따로 깔던 시절이 있었는데,
+
+Epoxy 문서 기준으로는 apt install keystone만으로 처리.)
+
+---
+
+## **3. /etc/keystone/keystone.conf 설정**
+
+**공식 문서 “Install and configure components” 2번**.
+
+### **3-1. [database] 섹션**
+
+```
+vi /etc/keystone/keystone.conf
+```
+
+[database] 섹션을 찾아서 이렇게 맞춰줘:
+
+```
+[database]
+# ...
+connection = mysql+pymysql://keystone:KEYSTONE_DBPASS@controller/keystone
+```
+
+- KEYSTONE_DBPASS → 아까 만든 keystone DB 비밀번호
+- @controller → /etc/hosts 에서 controller -> 10.100.100.11 로 매핑했으므로 이 이름을 그대로 사용해도 된다.
+
+**중요:**
+
+[database] 안에 예전 기본값 connection = sqlite:////... 같은 거 있으면 **주석 처리하거나 삭제**.
+
+### **3-2. [token] 섹션 (Fernet 토큰)**
+
+같은 파일에서 [token] 섹션 쪽에:
+
+```
+[token]
+# ...
+provider = fernet
+```
+
+이렇게 넣어줘. (없으면 섹션 새로 만들어도 됨)
+
+> [개념]
+> 
+
+> Keystone이 발급하는 토큰 포맷을 Fernet으로 쓰겠다는 의미.
+> 
+
+> 요게 최신 기본이기도 하고, 공식 가이드가 이걸 기준으로 설명함.
+> 
+
+저장 후 종료.
+
+---
+
+## **4. Keystone DB 동기화**
+
+**공식 문서 “Populate the Identity service database”** 부분.
+
+```
+# controller, root
+su -s /bin/sh -c "keystone-manage db_sync" keystone
+```
+
+- su -s /bin/sh : keystone 시스템 유저 권한으로
+- db_sync : 방금 설정한 MariaDB에 테이블 생성/마이그레이션 수행
+
+에러 없이 끝나면 OK.
+
+---
+
+## **5. Fernet/credential 키 저장소 초기화**
+
+**공식 문서 4번 “Initialize Fernet key repositories”**.
+
+```
+keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
+keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
+```
+
+- /etc/keystone/fernet-keys/, /etc/keystone/credential-keys/ 디렉토리에 키가 생성된다.
+- 나중에 HA 구성에서는 이 키들을 노드 간에 동기화해야 하지만, 현재는 단일 controller 구성이므로 추가 고려하지 않아도 된다.
+
+---
+
+## **6. Keystone bootstrap (admin 계정/엔드포인트 생성)**
+
+**공식 문서 5번 “Bootstrap the Identity service”**.
+
+이 단계가 가장 중요한 핵심 포인트이다.
+
+여기서 **admin 유저, admin 프로젝트, service 프로젝트, API endpoint(내부/공개)** 를 일괄 생성한다.
+
+```
+keystone-manage bootstrap --bootstrap-password ADMIN_PASS \
+ --bootstrap-admin-url http://controller:5000/v3/ \
+ --bootstrap-internal-url http://controller:5000/v3/ \
+ --bootstrap-public-url http://controller:5000/v3/ \
+ --bootstrap-region-id RegionOne
+```
+
+- ADMIN_PASS → 이후 openstack CLI에서 admin 로그인 시 사용할 관리자 비밀번호(실습 환경에 맞춰 별도로 생성해 사용)
+- URL은 다 http://controller:5000/v3/ (우리는 아직 SSL 안 씀)
+
+> 여기까지 끝나면 Keystone 내부에:
+> 
+- admin user
+- admin project
+- admin role
+- service project
+- 기본 RegionOne
+ 
+ > 이 기본 세트로 구성된다.
+ > 
+
+---
+
+## **7. Apache 설정 (ServerName)**
+
+**공식 문서 “Configure the Apache HTTP server”**.
+
+```
+vi /etc/apache2/apache2.conf
+```
+
+맨 아래쪽이나 적당한 곳에 한 줄 추가: (저거 없어서 걍 추가했삼!)
+
+```
+ServerName controller
+```
+
+- controller → hostnamectl에서 설정한 이름 (/etc/hosts 에 10.100.100.11 controller 매핑돼 있어야 함)
+
+저장 후:
+
+```
+service apache2 restart
+```
+
+> Apache가 5000 포트에서 Keystone WSGI를 서비스하게 되고,
+> 
+
+> http://controller:5000/v3 로 API가 열린 상태가 된다.
+> 
+
+---
+
+## **8. admin용 환경 변수 (admin-openrc.sh 만들기)**
+
+**공식 문서 “Finalize the installation” 2번**에서는 `export` 사용 방법을 설명한다.
+
+우리는 매번 타이핑하기 귀찮으니까 파일로 만들어 두자.
+
+### **8-1.**
+
+### **/root/admin-openrc.sh**
+
+### **생성**
+
+```
+cat >/root/admin-openrc.sh << 'EOF'
+export OS_USERNAME=admin
+export OS_PASSWORD=ADMIN_PASS
+export OS_PROJECT_NAME=admin
+export OS_USER_DOMAIN_NAME=Default
+export OS_PROJECT_DOMAIN_NAME=Default
+export OS_AUTH_URL=http://controller:5000/v3
+export OS_IDENTITY_API_VERSION=3
+EOF
+
+chmod 600 /root/admin-openrc.sh
+```
+
+- ADMIN_PASS → bootstrap 때 쓴 그 비밀번호로 수정
+- controller 이름이랑 URL은 그대로.
+
+### **8-2. 적용 + 테스트**
+
+```
+source /root/admin-openrc.sh
+openstack token issue
+```
+
+- 토큰 정보가 JSON 형식으로 출력되면 Keystone이 정상 동작 중인 상태다.
+- 여기까지가 **Keystone 설치 + 기본 admin 계정/엔드포인트까지 완료**.
+
+## OpenStack Token Issue 오류가 발생한 경우
+
+grep -n "^\[database\]" -n /etc/keystone/keystone.conf
+grep -n "^connection = " /etc/keystone/keystone.conf
+710:[database]
+711:connection = mysql+pymysql://keystone:KEYSTONE_DBPASS@controller/keystone
+root@controller:~# vi /etc/keystone/keystone.conf
+
+알고보니 ..keystone.conf 파일에서 비번 써야하는 부분을 그대로 복붙했다 ..
+
+굉장히 사소해서 부끄럽다 …
+
+결국 비번이 계속 안맞아서 비밀번호 찾는 과정을 진행했다. ..
+
+그결과.. 비밀번호는 YES…
+
+```yaml
+mysql -ukeystone -p -h controller keystone
+Enter password:
+ERROR 1045 (28000): Access denied for user 'keystone'@'controller' (using password: YES)
+```
+
+---
+
+## **9. 공식 문서 기준, 다음 단계 예고**
+
+openstack-services.html 기준으로 이제 다음 순서는:
+
+1. **Glance (Image 서비스)** – https://docs.openstack.org/glance/2025.1/install/
+2. **Placement** – https://docs.openstack.org/placement/2025.1/install/
+3. **Nova** – https://docs.openstack.org/nova/2025.1/install/
+4. **Neutron** – https://docs.openstack.org/neutron/2025.1/install/
+
+이 서비스들 설치 문서를 보면 전부:
+
+- “먼저 admin으로 openstack user create, openstack role add, openstack service create, openstack endpoint create …”
+- 그 다음 각 서비스 패키지 설치/설정
+
+이 흐름으로 되어 있어서,
+
+**현재 Keystone admin CLI가 동작하는 상태가 필수 요구사항**이다.
+
+---
+
+## **정리 체크리스트 (Keystone 편)**
+
+controller에서:
+
+- keystone DB + keystone@localhost/% 계정 생성 (KEYSTONE_DBPASS)
+- apt install keystone
+- /etc/keystone/keystone.conf
+ - [database].connection = mysql+pymysql://keystone:KEYSTONE_DBPASS@controller/keystone
+ - [token].provider = fernet
+- keystone-manage db_sync
+- keystone-manage fernet_setup ...
+- keystone-manage credential_setup ...
+- keystone-manage bootstrap --bootstrap-password ADMIN_PASS ...
+- /etc/apache2/apache2.conf 에 ServerName controller 추가 + service apache2 restart
+- /root/admin-openrc.sh 작성 후 source 하고 openstack token issue 성공
+
+이 체크 다 통과하면,
+
+이제 Glance 설치로 바로 진행할 수 있는 상태이다.
+
+[에러를 처리해요!](ch2_4_25_lec.qmd)

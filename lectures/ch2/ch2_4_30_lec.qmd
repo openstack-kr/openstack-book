@@ -1,0 +1,131 @@
+---
+title: "2-4장. 외부 접근 IP 대역 설정 가이드"
+---
+
+# 외부에서 접근 가능한 IP 대역이란?
+
+이제 네트워크 대역을 결정하는 단계다 
+
+질문 요약하면:
+
+> “--subnet-range, --allocation-pool 이런 데 넣을
+> 
+> 
+> **외부에서 접근 가능한 IP 대역**
+> 
+
+핵심만 간단히 정리한다.
+
+---
+
+## **1. “외부에서 접근 가능”이란 게 정확히 뭐냐**
+
+Neutron에서 --external 로 만드는 **provider 네트워크**는
+
+> “
+> 
+> 
+> **OpenStack 바깥 물리망**
+> 
+
+이다.
+
+집/랩 환경이면 보통:
+
+- 공유기/L3 스위치 ↔ Proxmox ↔ OpenStack VM
+
+구조일 테니까,
+
+> 공유기 ↔ Proxmox vmbr0
+> 
+
+라고 볼 수 있다.
+
+---
+
+## **2. 현재 환경의 대역 확인 (제공된 스크린샷 기준)**
+
+제공된 Proxmox 네트워크 스크린샷 기준으로 `vmbr0`는 다음과 같다:
+
+- vmbr0: 172.32.0.2/16
+- Gateway: 10.100.100.1
+
+즉:
+
+- **물리망 서브넷**: 10.100.100.0/24
+- **게이트웨이(라우터/Proxmox)**: 10.100.100.1
+
+그러면 OpenStack 입장에서는:
+
+> “외부에서 접근 가능한 IP 대역” =
+> 
+> 
+> **10.100.100.0/24 중에서 아직 안 쓰고 있는 IP 구간**
+> 
+
+이 되는 거지.
+
+---
+
+## **3. 실제로 쓸 CIDR / 풀 고르는 방법**
+
+1. **서브넷/게이트웨이 확인**
+ - Proxmox 호스트나 컨트롤러에서:
+
+```
+ip a show vmbr0 # 또는 ens18/ens19 붙어있는 브리지
+ip route | head
+```
+
+1. 
+ - 
+ - 여기서 나오는 inet 172.32.0.2/16 / default via 10.100.100.1 → 우리가 아까 본 대로.
+2. **DHCP 범위/이미 쓰고 있는 IP 체크**
+ - 공유기나 Proxmox DHCP 범위 확인 (예: 10.100.100.10–172.32.0.200 등)
+ - `arp -a` 또는 Proxmox UI에서 현재 사용 중 IP를 확인하면 도움이 된다.
+3. **그 범위를 피해 “Floating IP용 풀”을 하나 뽑기**
+ - 예를 들면:
+ - 전체 서브넷: 10.100.100.0/24
+ - 게이트웨이: 10.100.100.1
+ - 예를 들어 이미 사용 중인 구간이 `172.32.0.2~10.100.100.100` 이라면
+ - **OpenStack 전용 풀**: 172.32.200.100–172.32.200.200 이런 식으로 뒤쪽 대역 잡기
+4. **Neutron provider 네트워크 만들 때 이렇게 넣기**
+
+```
+openstack network create provider \
+ --share \
+ --external \
+ --provider-network-type flat \
+ --provider-physical-network provider
+
+openstack subnet create provider-subnet \
+ --network provider \
+ --subnet-range 10.100.100.0/24 \
+ --allocation-pool start=172.32.200.100,end=172.32.200.200 \
+ --gateway 10.100.100.1 \
+ --dns-nameserver 8.8.8.8
+```
+
+- -subnet-range → **물리망 전체 CIDR** (여기선 10.100.100.0/24)
+- -gateway → 현재 사용 중인 게이트웨이(10.100.100.1)
+- -allocation-pool → 그 중에서 **아직 안 쓰고 있는 일부 범위**
+
+이렇게만 맞춰주면, 나중에 openstack floating ip create provider 하면
+
+`172.32.200.100~172.32.200.200` 사이에서 IP를 하나 할당하고,
+
+해당 IP를 통해 로컬 노트북에서 바로 ping/ssh 접속이 가능해진다.
+
+---
+
+## **4. 한 줄 정리**
+
+- “외부에서 접근 가능한 IP 대역” = **Proxmox vmbr0 + 게이트웨이가 붙어 있는 물리 LAN 서브넷**
+- 현재 실습 기준:
+ - 서브넷: 10.100.100.0/24
+ - 게이트웨이: 10.100.100.1
+ - 풀: 해당 대역 내 미사용 구간 (예: `172.32.200.100-200`)
+
+이대로 한 번 provider 네트워크 만들고,
+
+`openstack network list` / Horizon 네트워크 탭에 `provider`가 표시되는지 확인한다.

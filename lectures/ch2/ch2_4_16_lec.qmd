@@ -1,0 +1,24 @@
+---
+title: "2-4장. 최종 확인"
+---
+
+# 10. 최종확인
+
+```bash
+source /root/admin-openrc.sh
+
+# Nova / compute 상태
+openstack compute service list
+openstack hypervisor list
+
+# Neutron 에이전트 상태
+openstack network agent list
+
+# 이미지 / flavor / 네트워크가 있는지
+openstack image list
+openstack flavor list
+openstack network list
+```
+
+![image.png](images/ch2_4_img_04.png)
+

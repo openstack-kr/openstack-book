@@ -1,0 +1,75 @@
+---
+title: "2-4장. NTP(Chrony) 동기화"
+---
+
+# 3. NTP
+
+### **공식 문서**
+
+- 환경 > NTP: https://docs.openstack.org/install-guide/environment-ntp.html
+
+[개념 정리]
+
+- 노드들 시계가 어긋나면 토큰 만료, 메시지 큐 에러 등 **문제가 발생함**.
+- 그래서 **controller는 외부 NTP 서버를 보고**,
+ 
+ 다른 노드들은 **controller를 보고** 시간 맞추게 함.
+ 
+
+### **3-1. controller 노드**
+
+https://docs.openstack.org/install-guide/environment-ntp-controller.html
+
+```yaml
+# controller
+apt update
+apt install -y chrony
+```
+
+/etc/chrony/chrony.conf 편집:
+
+```yaml
+# 예시 (맨 아래쪽에 추가)
+server 0.asia.pool.ntp.org iburst
+server 1.asia.pool.ntp.org iburst
+
+# 우리 management 네트워크 허용 (10.100.100.0/24 대역)
+allow 10.100.100.0/24
+```
+
+서비스 재시작/확인:
+
+```yaml
+service chrony restart
+chronyc sources
+```
+
+**3-2. compute1 노드**
+
+```yaml
+# compute1
+apt update
+apt install -y chrony
+```
+
+/etc/chrony/chrony.conf 에 controller를 NTP 서버로 지정:
+
+```yaml
+server controller iburst # 또는 10.100.100.11
+```
+
+서비스 재시작/확인:
+
+```yaml
+service chrony restart
+chronyc sources
+```
+
+> 핵심:
+> 
+> 
+> **모든 노드가 같은 시계를 본다**
+> 
+
+> controller는 기준 NTP 서버로 두고, 나머지 노드는 controller를 참조하도록 설정한다.
+> 
