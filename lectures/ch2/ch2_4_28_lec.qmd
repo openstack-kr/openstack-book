@@ -1,0 +1,235 @@
+---
+title: "2-4장. Neutron OVS 스위치 설정"
+---
+
+# OVS 스위치 설정
+
+정리하면, 현재 구성은 OVS 기반으로 진행하는 것이 적절하다.
+
+핵심부터 말하면:
+
+> bridge_mappings = provider:ens19 이렇게 쓰면 안 돼.
+> 
+
+> bridge_mappings에는
+> 
+> 
+> **OVS 브리지 이름**
+> 
+
+> 그 브리지에 ens19를 포트로 붙여줘야 해.
+> 
+
+> 
+> 
+
+> local_ip = 10.100.100.11 이건
+> 
+> 
+> **컨트롤러에서는 맞고**
+> 
+
+> 컴퓨트에서는 10.100.100.31 로 써야 해.
+> 
+
+---
+
+## **1. bridge_mappings 에 뭘 넣어야 하는지**
+
+지금 공식 문서가 제시하는 구조는 다음과 같다:
+
+```
+[ovs]
+bridge_mappings = provider:PROVIDER_BRIDGE_NAME
+local_ip = OVERLAY_INTERFACE_IP_ADDRESS
+```
+
+여기서
+
+- PROVIDER_BRIDGE_NAME = **OVS 브리지 이름**
+- OVERLAY_INTERFACE_IP_ADDRESS = **VXLAN 터널에 쓸 IP (보통 management IP)**
+
+**중요 포인트**
+
+OVS ML2 드라이버는 “물리 네트워크 → **OVS 브리지**”를 매핑하는 거지,
+
+**NIC 이름(ens19)** 을 직접 매핑하는 게 아냐.
+
+그래서 해야 할 건:
+
+1. OVS 브리지 하나 만들고 (예: br-provider)
+2. 거기에 ens19를 포트로 붙이고
+3. bridge_mappings에 provider:br-provider 를 넣는 것
+
+### **컨트롤러/컴퓨트 공통으로 할 작업**
+
+각 노드에서:
+
+```
+apt install -y openvswitch-switch
+
+# OVS 브리지 생성
+ovs-vsctl add-br br-provider
+
+# ens19 를 그 브리지에 붙이기
+ovs-vsctl add-port br-provider ens19
+```
+
+그 다음 openvswitch_agent.ini 의 [ovs] 섹션은 이렇게:
+
+### **컨트롤러**
+
+### **openvswitch_agent.ini**
+
+```
+[ovs]
+bridge_mappings = provider:br-provider
+local_ip = 10.100.100.11
+```
+
+### **컴퓨트**
+
+### **openvswitch_agent.ini**
+
+```
+[ovs]
+bridge_mappings = provider:br-provider
+local_ip = 10.100.100.31
+```
+
+이 구성이 **권장 표준 방식**이다.
+
+bridge_mappings = provider:ens19 로 하면 Neutron은 “provider 네트워크 → ens19 라는 *브리지*”라고 이해하려다가
+
+그 이름의 OVS 브리지 자체가 없어서 꼬일 수 있음.
+
+---
+
+## **2. local_ip 는 이렇게 쓰면 됨**
+
+이 부분 해석은 거의 정확하다:
+
+- VXLAN 터널 트래픽은 **노드 간 management 네트워크**로 흘릴 거라,
+- 예제 아키텍처에서도 “관리 인터페이스 IP를 local_ip로 써라”고 되어 있음.
+
+그래서:
+
+- 컨트롤러 → local_ip = 10.100.100.11
+- 컴퓨트 → local_ip = 10.100.100.31
+
+아래 두 항목은 이 값으로 맞춘다.
+
+---
+
+## **3. OVS로 갈 때 꼭 같이 바꿔야 하는 것들 (중요 체크리스트)**
+
+이미 Linuxbridge 설정 일부를 적용한 상태라면, OVS로 전환할 때는 아래 항목을 함께 정리해야 한다:
+
+1. **패키지**
+ - 컨트롤러/컴퓨트 둘 다:
+
+```
+apt install -y neutron-openvswitch-agent
+```
+
+1. 
+ - 
+ - neutron-linuxbridge-agent는 **비활성화**:
+
+```
+systemctl disable --now neutron-linuxbridge-agent
+```
+
+1. 
+2. **ML2 설정 (ml2_conf.ini)**
+ - 이렇게 바꿔야 함:
+
+```
+[ml2]
+type_drivers = flat,vlan,vxlan
+tenant_network_types = vxlan
+mechanism_drivers = openvswitch,l2population
+extension_drivers = port_security
+
+[ml2_type_flat]
+flat_networks = provider
+
+[ml2_type_vxlan]
+vni_ranges = 1:1000
+```
+
+1. 
+ - 
+ - 여기서 mechanism_drivers는 이제 **openvswitch** 기준.
+2. **OVS agent 설정 (openvswitch_agent.ini)**
+ - 아까 말한 대로:
+
+```
+[ovs]
+bridge_mappings = provider:br-provider
+local_ip = 10.100.100.11 # or 31 on compute
+
+[agent]
+tunnel_types = vxlan
+l2_population = true
+
+[securitygroup]
+enable_security_group = true
+firewall_driver = openvswitch
+# 또는 firewall_driver = iptables_hybrid (원하면 하이브리드)
+```
+
+1. 
+2. **서비스 재시작**
+ - 컨트롤러:
+
+```
+systemctl restart neutron-server neutron-openvswitch-agent neutron-dhcp-agent neutron-metadata-agent neutron-l3-agent nova-api
+```
+
+1. 
+ - 
+ - 컴퓨트:
+
+```
+systemctl restart neutron-openvswitch-agent nova-compute
+```
+
+1. 
+2. **agent 상태 확인**
+
+```
+source /root/admin-openrc.sh
+openstack network agent list
+```
+
+1. 여기서 이제 Open vSwitch agent 가 controller/compute 에서 UP 으로 떠야 정상.
+
+---
+
+## **4. 그래서 정리하면**
+
+> 핵심 질문:
+> 
+
+> 핵심 답변:
+> 
+- local_ip = 10.100.100.11 (컨트롤러 기준, 컴퓨트는 10.100.100.31)
+- bridge_mappings = provider:ens19 ❌
+ 
+ > →
+ > 
+ > 
+ > **반드시 OVS 브리지 이름으로 바꿔야 해서**
+ > 
+ 
+ > → bridge_mappings = provider:br-provider + ovs-vsctl add-br br-provider && ovs-vsctl add-port br-provider ens19 조합이 정답.
+ > 
+
+일단 OVS로 가기로 했으니까
+
+지금 노드별로 br-provider 만들고 저 두 줄만 반영해놓고,
+
+그 다음에 `ml2_conf.ini` / `openvswitch_agent.ini` 전체를 다시 점검한다.
+
+필요하면 현재 파일 내용을 기준으로 “수정해야 할 줄”만 추려서 바로 제시할 수 있다.

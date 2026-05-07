@@ -1,0 +1,1326 @@
+---
+title: "2-4장. Neutron 설치"
+---
+
+# Neutron
+
+ 이번 절에서는 핵심 네트워크 서비스인 **Neutron**을 체계적으로 정리한다. 
+
+질문대로 **공식 문서 흐름 그대로** 해서:
+
+1. 개요 / 아키텍처
+2. Neutron 개념
+3. Ubuntu 기준 설치 흐름 (컨트롤러 / 컴퓨트)
+4. 설치 완료 후 검증 (Provider / Self-service 둘 다)
+
+로 풀어볼게.
+
+---
+
+## **1. Neutron 설치 가이드 전체 구조**
+
+Neutron 설치 가이드는 이렇게 생겼어:
+
+- **Overview**
+- **Networking service overview**
+- **Networking (neutron) concepts**
+- **Install and configure for Ubuntu**
+ - Host networking
+ - Install & configure controller node
+ - Install & configure compute node
+ - Verify operation (Option 1: Provider / Option 2: Self-service)
+
+우리가 지금까지 한 OpenStack 설치 가이드랑 똑같이,
+
+**“교육용 2노드 PoC 아키텍처”** 기준이다. Production용이 아니라는 점도 문서에 명시되어 있다.
+
+---
+
+## **2. Overview: 예제 아키텍처 + 네트워크 옵션**
+
+### **2-1. 예제 아키텍처 (컨트롤러 / 컴퓨트 / 스토리지)**
+
+Overview에서 설명하는 “예제 아키텍처”는 현재 실습 구조와 거의 1:1로 대응된다:
+
+- **Controller**
+ - Keystone, Glance
+ - Nova의 API/스케줄러/컨덕터/novncproxy
+ - Neutron 서버 + 여러 에이전트(L3, DHCP, metadata 등)
+ - DB, MQ, Memcached, NTP 등 공통 인프라
+- **Compute**
+ - KVM 하이퍼바이저 부분 (nova-compute)
+ - 인스턴스에 붙는 Neutron L2 agent (보통 linuxbridge/OVS/OVN)
+- (옵션) Block / Object Storage 노드
+
+그리고 PoC 아키텍처의 특징 두 가지를 강조한다:
+
+1. 네트워크 에이전트가 별도 네트워크 노드가 아니라 **컨트롤러에 합쳐져 있음**
+2. self-service overlay(VXLAN 등) 트래픽이 **전용 “데이터 네트워크”가 아니라 management 네트워크를 같이 씀**
+
+→ 현재 Proxmox에서 단일 NIC를 vmbr0에 연결한 구조와 같은 맥락으로 이해할 수 있다.
+
+---
+
+### **2-2. 두 가지 네트워크 옵션**
+
+Overview 맨 아래에 **Option 1 / Option 2** 두 개가 있어:
+
+### **Option 1: Provider networks**
+
+- 최대한 심플하게:
+ - Neutron은 거의 L2 브릿지 + VLAN만 담당
+ - L3 라우팅은 **물리 스위치/라우터**가 함
+- 특징:
+ - 인스턴스 네트워크가 물리망에 거의 바로 붙음
+ - self-service(테넌트 private) 네트워크 없음
+ - Floating IP, NAT, Router 같은 L3 기능 / FWaaS 같은 advanced 기능 제한
+- 장점: 개념 단순, 트래픽 디버깅 쉬움
+- 단점: 클라우드스러움(테넌트 독립 네트워크, 라우터 등)이 떨어짐
+
+### **Option 2: Self-service networks**
+
+- Option 1에 **L3 Router + Overlay(VXLAN)** 를 얹은 버전
+- 구조:
+ - Provider network : 외부(물리)랑 이어지는 네트워크 (보통 flat/VLAN)
+ - Self-service network : 테넌트 내부에서 만드는 private 네트워크 (VXLAN 등)
+ - Router : self-service ↔ provider 사이에 NAT + 라우팅
+- 장점:
+ - 프로젝트마다 네트워크/서브넷/라우터 자유롭게 생성
+ - Floating IP, FWaaS, LBaaS 같은 기능까지 확장 가능
+- 단점:
+ - 구조 복잡, 디버깅 난이도 ↑
+- *스터디 목적 + “실제 OpenStack 흐름 이해”** 기준이라면 Option 2가 더 적합하다.
+
+우리는 Nova/Glance까지 이미 self-service 기준으로 따라왔으니까,
+
+**Neutron도 Option 2 기준으로 이해하는 걸 기본으로 둘게.**
+
+---
+
+## **3. Networking service overview: Neutron이 하는 일**
+
+이 페이지는 한 줄로 이렇게 시작해:
+
+> “OpenStack Networking(Neutron)은 다른 OpenStack 서비스가 관리하는 인터페이스들을 네트워크에 붙이게 해준다.”
+> 
+
+조금 풀어보면:
+
+- Neutron은 **“Virtual Network Infra (VNI) + 물리 네트워크 Access Layer”** 를 관리하는 서비스이다.
+- Nova, Cinder 같은 서비스가 “포트 하나 만들어줘”, “VM NIC 붙여줘” 하면
+ 
+ → Neutron이 VLAN/VXLAN/브릿지/라우터/DHCP 세팅 담당.
+ 
+
+구성 요소로는:
+
+1. **neutron-server**
+ - REST API 받는 메인 프로세스
+ - API 요청을 적절한 플러그인/드라이버에게 넘김 (ML2, OVN 등)
+2. **플러그인 + 에이전트들**
+ - L2 에이전트(OVS, Linuxbridge, OVN 등)
+ - L3 에이전트 (라우팅/NAT)
+ - DHCP 에이전트 (서브넷의 IP 할당)
+ - 기타 vendor-specific 에이전트
+ - 작업: 포트 plug/unplug, 네트워크/서브넷 생성, IP 할당 등
+3. **Message Queue (RabbitMQ 등)**
+ - neutron-server ↔ 각 agent 사이에 메시지를 중계
+ - 일부 플러그인은 MQ를 내부 상태 “DB”처럼 함께 사용하기도 함
+4. **연동 서비스**
+ - Nova: 인스턴스 NIC port 관리
+ - Keystone: 인증/엔드포인트
+ - Placement: (고급 네트워킹에서 리소스 표현)
+ - 기타: LBaaS, FWaaS 등 확장 서비스
+
+---
+
+## **4. Networking (neutron) concepts: 핵심 개념들**
+
+이 페이지는 약간 “네트워크 입문서”에 가까움. 포인트만 뽑으면:
+
+1. **VNI + PNI**
+ - Neutron은:
+ - VNI (Virtual Networking Infrastructure): VXLAN, VLAN, 가상 스위치/라우터 등
+ - PNI (Physical Networking Infrastructure)의 access layer: VLAN tag, 외부망 uplink 등
+ 
+ 둘 다를 조정해서 “OpenStack에서의 네트워크”를 완성.
+ 
+2. **Network / Subnet / Router**
+ - 네트워크: L2 broadcast domain (가상 스위치)
+ - 서브넷: 그 위에서 쓰는 IP 대역
+ - 라우터:
+ - 여러 서브넷을 L3로 연결
+ - Gateway 인터페이스는 external network에 붙음
+ - 동작은 물리 네트워크랑 똑같은 모델.
+3. **External vs Internal network**
+ - **External network**:
+ - 단순 가상 네트워크가 아니라,
+ - 실제 물리 외부망(예: 학교/집 라우터 뒷단)의 “슬라이스”를 표현
+ - 여기 IP를 floating IP 등으로 할당하면 외부에서 접근 가능
+ - **Internal/self-service network**:
+ - VXLAN 같은 overlay로 만들어지는 테넌트 전용 private 네트워크
+ - VM끼리는 직접 통신, 외부와 통신하려면 Router+NAT 필요
+4. **Router + Floating IP**
+ - 라우터:
+ - 인터널 네트워크 인터페이스들
+ - 외부 네트워크에 Gateway 하나
+ - Floating IP:
+ - external network의 IP를 internal 쪽 포트와 “1:1 매핑”
+ - 외부에서 VM에 접속할 때 이 주소로 들어옴
+5. **Port**
+ - “무언가가 subnet에 연결된 것” = Port
+ - VM NIC, 로드밸런서 VIP, 라우터 인터페이스 등
+ - Floating IP는 이 포트에 붙는 것
+6. **Security Group**
+ - 논리적인 방화벽 rule set
+ - 인스턴스는 여러 SG에 속할 수 있고,
+ 
+ → inbound/outbound 포트, IP, 프로토콜 단위로 필터링.
+ 
+
+---
+
+## **5. Install & configure for Ubuntu: 큰 흐름**
+
+Ubuntu 설치 파트 목차는 이렇게 구성돼 있어:
+
+1. Host networking
+ - Controller node
+ - Compute node
+ - (Optional) Block storage node
+ - Verify connectivity
+2. Install & configure controller node
+ - Prerequisites (DB, Keystone 인증, endpoint)
+ - Configure networking options (Option 1 / 2)
+ - Configure metadata agent
+ - Nova가 Neutron을 쓰도록 설정
+ - Finalize (서비스 재시작)
+3. Install & configure compute node
+ - 패키지 설치
+ - 공통 부분(neutron.conf) 설정
+ - 네트워크 옵션에 맞는 L2 agent 설정
+ - Nova-compute에 Neutron 연동
+4. Verify operation
+ - Option 1: Provider networks
+ - Option 2: Self-service networks
+
+실제 명령/파일은 Queens/Train 시절부터 거의 안 바뀌고,
+
+Epoxy에서도 구조는 동일해.
+
+아래는 “**어떤 단계에서 무슨 일을 왜 하는지**” 기준으로 정리한 거고,
+
+이미 컨트롤러/컴퓨트 네트워크를 구성해 둔 상태라
+
+**Host networking**은 핵심 항목 위주로 확인해도 된다.
+
+---
+
+## **6. Host networking (Ubuntu) – 공식 가이드가 요구하는 것**
+
+### **6-1. Controller host networking**
+
+가이드의 Host networking에서 요구하는 요점:
+
+- 컨트롤러에 최소 2 NIC (mgmt + provider)
+ 
+ → 현재 실습은 “VM NIC 2개 + Proxmox 브리지 1개” 방식으로 통합 구성되어 있다.
+ 
+- management NIC:
+ - DB/MQ/API 통신용
+ - IPv4 고정 IP (예: 10.100.100.11)
+- provider NIC:
+ - 외부 네트워크와 브릿지
+ - Option 2에서 external network의 uplink 용
+
+이미 너가:
+
+- controller: my_ip = 10.100.100.11
+- compute1: my_ip = 10.100.100.31
+ 
+ 로 Nova까지 맞춰놓은 상태라, 여기서 요구하는 건 이미 충족한 셈.
+ 
+
+---
+
+### **6-2. Compute host networking**
+
+가이드는 compute도 동일하게 최소 2 NIC를 요구해:
+
+- management NIC: 컨트롤러와 통신
+- provider NIC: 인스턴스에서 외부로 나가는 트래픽 브릿지/OVS에 붙음
+
+너는 지금 둘 다 vmbr0에 연결해둔 상태인데,
+
+이건 “물리 1 NIC + 가상 NIC 2개” 구조라서 논리적으로 동일한 구성으로 볼 수 있다.
+
+결론: Host networking 챕터는 **“IP/브릿지/라우팅 잘 잡았냐 체크용”**이라,
+
+지금까지만 잘 동작하면 넘어가도 된다.
+
+---
+
+## **7. Controller node: Neutron 설치 및 설정 흐름**
+
+### **7-1. Prerequisites (DB + Keystone + Endpoint)**
+
+컨트롤러에서 먼저 해야 할 것들:
+
+1. **neutron DB 생성**
+
+```
+CREATE DATABASE neutron;
+
+GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'localhost'
+ IDENTIFIED BY 'NEUTRON_DBPASS';
+GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'%'
+ IDENTIFIED BY 'NEUTRON_DBPASS';
+```
+
+- NEUTRON_DBPASS = Neutron DB용 별도 비번.
+1. **Keystone에 neutron 유저/서비스/엔드포인트 등록**
+
+```
+openstack user create --domain default --password-prompt neutron
+openstack role add --project service --user neutron admin
+
+openstack service create --name neutron \
+ --description "OpenStack Networking" network
+
+openstack endpoint create --region RegionOne \
+ network public http://controller:9696
+
+openstack endpoint create --region RegionOne \
+ network internal http://controller:9696
+
+openstack endpoint create --region RegionOne \
+ network admin http://controller:9696
+```
+
+- 여기서 NEUTRON_PASS = Keystone용 neutron 유저 비번.
+
+![image.png](images/ch2_4_img_13.png)
+
+![image.png](images/ch2_4_img_14.png)
+
+---
+
+### **7-2. Neutron 서버/에이전트 패키지 설치**
+
+Option 2(self-service) + ML2 + Linuxbridge 예제로 보면, 컨트롤러에서 보통:
+
+```
+apt install \
+ neutron-server neutron-plugin-ml2 \
+ neutron-linuxbridge-agent neutron-l3-agent \
+ neutron-dhcp-agent neutron-metadata-agent
+```
+
+- neutron-server: API 서버
+- neutron-plugin-ml2: ML2 플러그인
+- linuxbridge-agent: L2 에이전트
+- l3-agent: Router/NAT
+- dhcp-agent: 각 self-service subnet 에서 DHCP 제공
+- metadata-agent: 인스턴스 메타데이터 전달
+
+(OVS/OVN 쓸 거면 여기서 패키지가 조금 달라짐)
+
+---
+
+### **7-3.**
+
+### **/etc/neutron/neutron.conf**
+
+### **– 공통 설정**
+
+핵심 섹션:
+
+1. [database] – neutron DB 연결
+
+```
+[database]
+connection = mysql+pymysql://neutron:NEUTRON_DBPASS@controller/neutron
+```
+
+1. [DEFAULT] – 코어 플러그인, 서비스 플러그인, RabbitMQ 등
+
+```
+[DEFAULT]
+core_plugin = ml2
+service_plugins = router
+allow_overlapping_ips = true
+
+transport_url = rabbit://openstack:RABBIT_PASS@controller
+
+notify_nova_on_port_status_changes = true
+notify_nova_on_port_data_changes = true
+```
+
+1. [keystone_authtoken] – Keystone 인증
+
+```
+[keystone_authtoken]
+www_authenticate_uri = http://controller:5000
+auth_url = http://controller:5000
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = neutron
+password = NEUTRON_PASS
+```
+
+1. [nova] – Nova에게 포트 변경 알림 줄 때 사용할 인증 정보
+
+```
+[nova]
+auth_url = http://controller:5000
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+region_name = RegionOne
+project_name = service
+username = nova
+password = NOVA_PASS
+```
+
+---
+
+### **7-4. ML2 플러그인 설정 (**
+
+### **/etc/neutron/plugins/ml2/ml2_conf.ini**
+
+### **)**
+
+Option 2 + Linuxbridge 예시:
+
+```
+[ml2]
+type_drivers = flat,vlan,vxlan
+tenant_network_types = vxlan
+mechanism_drivers = linuxbridge
+extension_drivers = port_security
+
+[ml2_type_flat]
+flat_networks = provider
+
+[ml2_type_vxlan]
+vni_ranges = 1:1000
+
+[securitygroup]
+enable_ipset = true
+```
+
+- tenant_network_types = vxlan → self-service 네트워크는 VXLAN으로 만든다.
+- flat_networks = provider → provider 네트워크를 “flat” 타입으로 정의 (physical_net 이름이 provider).
+- 나중에 네트워크 만들 때 --provider:physical_network provider 라고 쓸 수 있음.
+
+---
+
+### **7-5. L2 agent (Linuxbridge) 설정 (**
+
+### **linuxbridge_agent.ini**
+
+### **)**
+
+예시:
+
+```
+[linux_bridge]
+physical_interface_mappings = provider:PROVIDER_NIC_NAME
+
+[vxlan]
+enable_vxlan = true
+local_ip = MANAGEMENT_IP_OF_CONTROLLER
+l2_population = true
+
+[securitygroup]
+enable_security_group = true
+firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+```
+
+- PROVIDER_NIC_NAME → external/provider로 쓸 NIC/브릿지 이름 (너는 vm NIC 2개를 vmbr0에 물려뒀으니, 거기 맞게 설정)
+- local_ip → VXLAN 터널에서 사용할 IP (보통 management IP = 10.100.100.11)
+
+---
+
+### **7-6. L3 agent (**
+
+### **l3_agent.ini**
+
+### **) / DHCP agent (**
+
+### **dhcp_agent.ini**
+
+### **)**
+
+- l3_agent.ini 에는 interface_driver = linuxbridge / external_network_bridge = (보통 비워둠)
+- dhcp_agent.ini 에는 interface_driver / dhcp_driver / enable_isolated_metadata 등.
+
+(문서 그대로 옮기면 되는데, 개념은 “라우터용 네임스페이스 인터페이스 드라이버 + DHCP 설정” 정도.)
+
+---
+
+### **7-7. Metadata agent (**
+
+### **metadata_agent.ini**
+
+### **)**
+
+Self-service에서 **VM → 메타데이터 → Nova** 흐름을 위해:
+
+```
+[DEFAULT]
+nova_metadata_host = controller
+metadata_proxy_shared_secret = METADATA_SECRET
+```
+
+- METADATA_SECRET = 임의의 문자열 (Nova [neutron] 섹션에서도 동일하게 써야 함)
+
+---
+
+### **7-8. Nova가 Neutron을 쓰도록 설정 (컨트롤러의**
+
+### **/etc/nova/nova.conf**
+
+### **)**
+
+이미 Nova 컨트롤러 설치 때 이 부분 얘기했는데, Neutron 가이드에서도 다시 한 번 강조함:
+
+```
+[neutron]
+url = http://controller:9696
+auth_url = http://controller:5000
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+region_name = RegionOne
+project_name = service
+username = neutron
+password = NEUTRON_PASS
+
+service_metadata_proxy = true
+metadata_proxy_shared_secret = METADATA_SECRET
+```
+
+- service_metadata_proxy = true + METADATA_SECRET = metadata agent와 Nova 사이의 shared secret.
+
+설정 바꾸고 나면:
+
+```
+service nova-api restart
+```
+
+---
+
+### **7-9. 서비스 재시작 (컨트롤러)**
+
+문서에서는 이런 느낌으로 마무리해:
+
+```
+service neutron-server restart
+service neutron-linuxbridge-agent restart
+service neutron-dhcp-agent restart
+service neutron-metadata-agent restart
+service neutron-l3-agent restart
+```
+
+(또는 systemctl restart ...)
+
+여기까지가 **컨트롤러 쪽 Neutron 완전체**.
+
+---
+
+## **8. Compute node: Neutron 설치 흐름**
+
+Compute node는 “인스턴스의 L2 연결 + SG” 담당.
+
+### **8-1. 패키지 설치**
+
+linuxbridge 기준에서:
+
+```
+apt install -y neutron-linuxbridge-agent
+```
+
+(OVS 사용 시 neutron-openvswitch-agent)
+
+---
+
+### **8-2.**
+
+### **/etc/neutron/neutron.conf**
+
+### **– 공통 설정**
+
+컨트롤러와 거의 동일하지만, DB는 안 쓰고 MQ/Keystone만:
+
+```
+[DEFAULT]
+transport_url = rabbit://openstack:RABBIT_PASS@controller
+core_plugin = ml2
+service_plugins = router
+allow_overlapping_ips = true
+
+[keystone_authtoken]
+... (컨트롤러와 동일, NEUTRON_PASS)
+
+[nova]
+... (컨트롤러와 동일, NOVA_PASS)
+```
+
+---
+
+### **8-3.**
+
+### **linuxbridge_agent.ini**
+
+### **– compute용**
+
+컨트롤러와 거의 같지만, local_ip / physical_interface_mappings 부분만 compute1에 맞게:
+
+```
+[linux_bridge]
+physical_interface_mappings = provider:PROVIDER_NIC_NAME
+
+[vxlan]
+enable_vxlan = true
+local_ip = 10.100.100.31 # compute1 management IP
+l2_population = true
+
+[securitygroup]
+enable_security_group = true
+firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+```
+
+설정 후:
+
+```
+systemctl restart neutron-linuxbridge-agent
+systemctl enable neutron-linuxbridge-agent
+```
+
+---
+
+### **8-4. Nova compute에서 Neutron 연동 확인**
+
+/etc/nova/nova.conf 의 [neutron] 섹션은 컨트롤러와 동일해야 해:
+
+```
+[neutron]
+url = http://controller:9696
+auth_url = http://controller:5000
+...
+project_name = service
+username = neutron
+password = NEUTRON_PASS
+service_metadata_proxy = true
+metadata_proxy_shared_secret = METADATA_SECRET
+```
+
+수정 후:
+
+```
+systemctl restart nova-compute
+```
+
+---
+
+## **9. 설치 후 확인 (Verify operation)**
+
+문서에서는 **Option 1 / 2 별로 “검증 시나리오”**를 나눠서 보여줘.
+
+### **9-1. 공통 기초 체크**
+
+컨트롤러에서:
+
+```
+source /root/admin-openrc.sh
+
+openstack network agent list
+```
+
+- L3 agent, DHCP agent, linuxbridge-agent(controller/compute), metadata-agent 가 모두 alive / Up 인지 확인.
+
+---
+
+### **9-2. Option 1: Provider networks 검증**
+
+(간단히만 정리)
+
+1. Provider 네트워크 생성:
+
+```
+openstack network create --share --external \
+ --provider-network-type flat \
+ --provider-physical-network provider provider
+```
+
+1. Provider 서브넷:
+
+```
+openstack subnet create --network provider \
+ --allocation-pool start=EXTERNAL_START_IP,end=EXTERNAL_END_IP \
+ --dns-nameserver 8.8.8.8 \
+ --gateway EXTERNAL_GW \
+ --subnet-range EXTERNAL_CIDR provider-subnet
+```
+
+1. 인스턴스 생성:
+- Nova/Glance 준비된 상태에서 --nic net-id=<provider-network-id> 로 인스턴스 생성
+- 보안 그룹에 ICMP/SSH 허용
+1. 외부에서 ping/ssh 테스트
+
+---
+
+### **9-3. Option 2: Self-service networks 검증 (우리가 갈 방향)**
+
+공식 설치가이드의 “Self-service networks” 챕터랑 흐름이 거의 동일해:
+
+1. **External(provider) 네트워크 + 서브넷** (위와 동일)
+2. **프로젝트 전용 self-service 네트워크 + 서브넷 생성**
+
+```
+# demo 프로젝트 환경 로드
+source demo-openrc.sh # 또는 admin에서 project 지정
+
+openstack network create selfservice
+openstack subnet create --network selfservice \
+ --dns-nameserver 8.8.8.8 \
+ --subnet-range 10.0.0.0/24 selfservice-subnet
+```
+
+1. **Router 생성 + 인터페이스/게이트웨이 설정**
+
+```
+openstack router create router1
+
+# router와 selfservice 네트워크 연결
+openstack router add subnet router1 selfservice-subnet
+
+# provider 네트워크로 게이트웨이 지정
+openstack router set router1 --external-gateway provider
+```
+
+1. **보안 그룹 / 키페어 / 인스턴스 생성**
+
+```
+openstack security group rule create --proto icmp default
+openstack security group rule create --proto tcp --dst-port 22 default
+
+openstack keypair create demo-key > demo-key.pem
+chmod 600 demo-key.pem
+
+openstack server create --flavor m1.small \
+ --image cirros \
+ --nic net-id=$(openstack network show selfservice -f value -c id) \
+ --security-group default \
+ --key-name demo-key demo-instance
+```
+
+1. **Floating IP 할당**
+
+```
+openstack floating ip create provider
+openstack server add floating ip demo-instance FLOATING_IP
+```
+
+1. **연결 테스트**
+- 외부에서 ping FLOATING_IP
+- ssh cirros@FLOATING_IP (cirros는 기본 계정/비번)
+
+해당 단계까지 완료되면 **Neutron + Nova + Glance + Keystone 전체 경로가 완성된 상태이다.**
+
+---
+
+## **10. 요약**
+
+정리하면, Neutron 설치 가이드는:
+
+- **개요(Overview)**:
+ - 2노드 PoC 아키텍처, 컨트롤러/컴퓨트 롤,
+ - Provider vs Self-service 옵션 정의
+- **서비스/개념**:
+ - neutron-server + 플러그인/에이전트 구조,
+ - Network/Subnet/Router/Port/Floating IP/Security Group 개념 잡기
+- **Ubuntu 설치**:
+ - Host networking (이미 대부분 구성한 부분)
+ - Controller: neutron DB/Keystone/Endpoint → 패키지 → neutron.conf + ml2_conf.ini + 각 agent 설정 → nova.conf [neutron] → 서비스 재시작
+ - Compute: L2 agent + neutron.conf 공통부분 → ml2 에이전트 설정 → nova-compute [neutron] 설정 → 서비스 재시작
+- **Verify**:
+ - openstack network agent list로 agent 상태 확인
+ - Provider / Self-service 시나리오별로 네트워크/서브넷/라우터/인스턴스 생성 및 ping/ssh 검증
+
+이제 여기서부터는
+
+**“우리가 만든 2노드 Proxmox 구조 + self-service Option 2 + ML2+Linuxbridge(or OVS)”** 기준으로
+
+실제 파일들(/etc/neutron/*.conf, /etc/nova/nova.conf)을 하나씩 채워 넣는 단계로 넘어가면 돼.
+
+원하면 다음 턴에서:
+
+- “우리 지금 IP/브리지 상황 기준으로 Neutron 컨트롤러 설정을 실제 파일 예시로 상세히 써줘”
+- “Self-service용 provider/self-service 네트워크/라우터를 CLI로 만드는 스크립트 템플릿 만들어줘”
+
+같은 방식으로 실전 설정 예시를 이어서 정리한다 
+
+ 이제 Neutron 실전 설정 단계로 진행한다. 
+
+(Option 2: self-service 네트워크 + ML2 + Linuxbridge 기준으로 갈게.)
+
+아래는 **“현재 실습 환경(IP, 노드 구성)”에 맞춘 실제 config 예시 + 네트워크 생성 스크립트**이다.
+
+---
+
+## **0. 전제 정리 (이 기준으로 설정 파일을 작성한다)**
+
+- 컨트롤러 노드
+ - 호스트명: controller
+ - 관리 IP: 10.100.100.11
+- 컴퓨트 노드
+ - 호스트명: compute1
+ - 관리 IP: 10.100.100.31
+- RabbitMQ
+ - 유저: openstack
+ - 패스워드: RABBIT_PASS (실습 환경에서 정한 값)
+- DB
+ - neutron DB: neutron
+ - DB 유저: neutron
+ - DB 패스워드: NEUTRON_DBPASS
+- Keystone
+ - neutron 유저: neutron / 패스: NEUTRON_PASS
+ - nova 유저: nova / 패스: NOVA_PASS
+- Metadata shared secret
+ - METADATA_SECRET = meta-secret-123 라고 예시로 둘게 (원하는 값으로 바꿔도 됨)
+- NIC 이름
+ - 관리 NIC: ens18 (172.32.0.x 물린 것)
+ - provider NIC: ens19 (IP 없이 up 상태인 NIC)
+ 
+ 실제 NIC 이름이 다르면 해당 부분만 수정하면 된다.
+ 
+
+---
+
+## **1. 컨트롤러: Neutron 설치 순서 & 설정 파일들**
+
+### **1-1. 패키지 설치 (이미 안 했다면)**
+
+```
+sudo -i
+
+apt update
+apt install -y \
+ neutron-server neutron-plugin-ml2 \
+ neutron-linuxbridge-agent neutron-l3-agent \
+ neutron-dhcp-agent neutron-metadata-agent
+```
+
+---
+
+### **1-2.**
+
+### **/etc/neutron/neutron.conf**
+
+### **(controller)**
+
+핵심 섹션만 정리한다. 나머지 기본값은 유지하면 된다.
+
+```
+[DEFAULT]
+core_plugin = ml2
+service_plugins = router
+allow_overlapping_ips = true
+
+transport_url = rabbit://openstack:RABBIT_PASS@controller
+
+# 로그 경로 강제로 안 박는 게 좋음 (문서에서도 log_dir 제거하라고 함)
+# log_dir = /var/log/neutron # 필요하면 사용
+
+# Neutron이 참조하는 auth 방식
+auth_strategy = keystone
+
+[database]
+connection = mysql+pymysql://neutron:NEUTRON_DBPASS@controller/neutron
+
+[keystone_authtoken]
+www_authenticate_uri = http://controller:5000
+auth_url = http://controller:5000
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = neutron
+password = NEUTRON_PASS
+
+[nova]
+auth_url = http://controller:5000
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+region_name = RegionOne
+project_name = service
+username = nova
+password = NOVA_PASS
+
+[oslo_concurrency]
+lock_path = /var/lib/neutron/tmp
+```
+
+- RABBIT_PASS, NEUTRON_DBPASS, NEUTRON_PASS, NOVA_PASS 는 실제 사용 중인 값으로 치환한다.
+
+---
+
+### **1-3.**
+
+### **/etc/neutron/plugins/ml2/ml2_conf.ini**
+
+### **(ML2 + vxlan self-service)**
+
+```
+[ml2]
+type_drivers = flat,vlan,vxlan
+tenant_network_types = vxlan
+mechanism_drivers = linuxbridge
+extension_drivers = port_security
+
+[ml2_type_flat]
+flat_networks = provider
+
+[ml2_type_vxlan]
+vni_ranges = 1:1000
+
+[securitygroup]
+enable_ipset = true
+```
+
+- flat_networks = provider → provider라는 이름의 물리 네트워크로 flat 네트워크를 매핑.
+- self-service 네트워크는 VXLAN으로 생성.
+
+---
+
+### **1-4.**
+
+### **/etc/neutron/plugins/ml2/linuxbridge_agent.ini**
+
+### **(controller)**
+
+```
+[linux_bridge]
+# provider 라는 물리 네트워크 이름을 ens19 NIC에 매핑
+physical_interface_mappings = provider:ens19
+
+[vxlan]
+enable_vxlan = true
+local_ip = 10.100.100.11
+l2_population = true
+
+[securitygroup]
+enable_security_group = true
+firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+```
+
+- ens19 → controller에서 provider 용으로 쓸 NIC (IP 없는 그 NIC).
+- local_ip = 터널용 IP (management IP 그대로)
+
+---
+
+### **1-5.**
+
+### **/etc/neutron/l3_agent.ini**
+
+```
+[DEFAULT]
+interface_driver = linuxbridge
+external_network_bridge =
+agent_mode = legacy
+```
+
+- external_network_bridge 는 빈 값 → 별도 브릿지 이름 사용 안 함.
+- interface_driver = linuxbridge → 라우터 네임스페이스에서 linuxbridge 사용.
+
+---
+
+### **1-6.**
+
+### **/etc/neutron/dhcp_agent.ini**
+
+```
+[DEFAULT]
+interface_driver = linuxbridge
+dhcp_driver = neutron.agent.linux.dhcp.Dnsmasq
+enable_isolated_metadata = true
+```
+
+- self-service 네트워크에 DHCP 제공.
+
+---
+
+### **1-7.**
+
+### **/etc/neutron/metadata_agent.ini**
+
+```
+[DEFAULT]
+nova_metadata_host = controller
+metadata_proxy_shared_secret = METADATA_SECRET
+```
+
+- METADATA_SECRET는 아래 Nova 설정과 반드시 동일해야 함.
+
+---
+
+### **1-8. 컨트롤러**
+
+### **/etc/nova/nova.conf**
+
+### **의 [neutron] 섹션**
+
+이미 어느 정도 써놨겠지만, Neutron 가이드 기준으로 맞춰주면:
+
+```
+[neutron]
+url = http://controller:9696
+auth_url = http://controller:5000
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+region_name = RegionOne
+project_name = service
+username = neutron
+password = NEUTRON_PASS
+
+service_metadata_proxy = true
+metadata_proxy_shared_secret = METADATA_SECRET
+```
+
+수정 후:
+
+```
+service nova-api restart
+```
+
+---
+
+### **1-9. 컨트롤러 Neutron 서비스 재시작**
+
+```
+service neutron-server restart
+service neutron-linuxbridge-agent restart
+service neutron-dhcp-agent restart
+service neutron-metadata-agent restart
+service neutron-l3-agent restart
+```
+
+systemctl status ... 로 다 active (running) 인지만 한 번 확인.
+
+---
+
+## **2. 컴퓨트 노드: Neutron 설정 파일**
+
+### **2-1. 패키지 설치**
+
+```
+sudo -i
+apt update
+apt install -y neutron-linuxbridge-agent
+```
+
+---
+
+### **2-2.**
+
+### **/etc/neutron/neutron.conf**
+
+### **(compute1)**
+
+컨트롤러보단 단순하지만, MQ/Keystone/Nova 섹션은 같이 맞춰줘야 한다.
+
+```
+[DEFAULT]
+transport_url = rabbit://openstack:RABBIT_PASS@controller
+core_plugin = ml2
+service_plugins = router
+allow_overlapping_ips = true
+auth_strategy = keystone
+
+[keystone_authtoken]
+www_authenticate_uri = http://controller:5000
+auth_url = http://controller:5000
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = neutron
+password = NEUTRON_PASS
+
+[nova]
+auth_url = http://controller:5000
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+region_name = RegionOne
+project_name = service
+username = nova
+password = NOVA_PASS
+
+[oslo_concurrency]
+lock_path = /var/lib/neutron/tmp
+```
+
+---
+
+### **2-3.**
+
+### **/etc/neutron/plugins/ml2/linuxbridge_agent.ini**
+
+### **(compute1)**
+
+```
+[linux_bridge]
+physical_interface_mappings = provider:ens19
+
+[vxlan]
+enable_vxlan = true
+local_ip = 10.100.100.31
+l2_population = true
+
+[securitygroup]
+enable_security_group = true
+firewall_driver = neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+```
+
+- ens19 → compute1에서 provider망에 붙인 NIC
+- local_ip = compute1 관리 IP
+
+---
+
+### **2-4. 컴퓨트**
+
+### **/etc/nova/nova.conf**
+
+### **의 [neutron]**
+
+컨트롤러랑 완전히 똑같이 맞추자:
+
+```
+[neutron]
+url = http://controller:9696
+auth_url = http://controller:5000
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+region_name = RegionOne
+project_name = service
+username = neutron
+password = NEUTRON_PASS
+
+service_metadata_proxy = true
+metadata_proxy_shared_secret = METADATA_SECRET
+```
+
+---
+
+### **2-5. 서비스 재시작 (compute1)**
+
+```
+systemctl restart neutron-linuxbridge-agent
+systemctl restart nova-compute
+
+systemctl enable neutron-linuxbridge-agent
+```
+
+---
+
+## **3. 설치 검증 1단계 – 에이전트 상태 확인**
+
+컨트롤러에서:
+
+```
+source /root/admin-openrc.sh
+
+openstack network agent list
+```
+
+정상 예시 느낌:
+
+```
++--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+
+| ID | Agent Type | Host | Availability Zone | Alive | State | Binary |
++--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+
+| ... | DHCP agent | controller | nova | :-) | UP | neutron-dhcp-agent |
+| ... | Linux bridge agent | controller | None | :-) | UP | neutron-linuxbridge-agent|
+| ... | Linux bridge agent | compute1 | None | :-) | UP | neutron-linuxbridge-agent|
+| ... | L3 agent | controller | nova | :-) | UP | neutron-l3-agent |
+| ... | Metadata agent | controller | None | :-) | UP | neutron-metadata-agent |
++--------------------------------------+--------------------+------------+-------------------+-------+-------+---------------------------+
+```
+
+모두 Alive = :-), State = UP 면 최소 세팅은 성공.
+
+---
+
+## **4. Self-service 네트워크 구성용 스크립트 템플릿**
+
+다음 단계는 **provider + self-service + router + floating IP 구성**이다.
+
+### **4-1. 전제 (예시 값)**
+
+외부(provider) 네트워크는 실습 환경 기준으로 다음과 같이 가정한다. (필요 시 수정)
+
+- external/provider 물리 대역: 10.100.100.0/24 (지금 vmbr0 대역)
+- 외부 gateway: 10.100.100.1 (집/랩 라우터 or Proxmox 게이트웨이)
+- Floating IP 풀: 172.32.200.100 ~ 172.32.200.200 (예시)
+
+이건 환경에 따라 다르므로 **나중에 정확한 external 대역으로 바꾸면 된다.**
+
+---
+
+### **4-2. admin용 네트워크 생성 스크립트 (provider + router까지)**
+
+컨트롤러에서 `/root/neutron-setup-admin.sh` 형태로 작성할 수 있는 템플릿은 다음과 같다:
+
+```
+#!/bin/bash
+set -e
+
+source /root/admin-openrc.sh
+
+# 1) Provider/external 네트워크 생성
+openstack network create provider \
+ --share \
+ --external \
+ --provider-network-type flat \
+ --provider-physical-network provider
+
+# 2) Provider 서브넷 생성
+openstack subnet create provider-subnet \
+ --network provider \
+ --subnet-range 172.32.200.0/24 \
+ --allocation-pool start=172.32.200.100,end=172.32.200.200 \
+ --gateway 172.32.200.1 \
+ --dns-nameserver 8.8.8.8
+```
+
+> 주의: 여기의 `172.32.200.0/24`, 게이트웨이, allocation pool 값은
+> 
+> 
+> **현재 외부망 환경에 맞게 반드시 수정해야 한다.**
+> 
+
+> 만약 외부망이 192.168.0.0/24라면 그걸로 교체.
+> 
+
+실행:
+
+```
+chmod +x /root/neutron-setup-admin.sh
+/root/neutron-setup-admin.sh
+```
+
+---
+
+### **4-3. demo 프로젝트용 self-service 네트워크 + 라우터 스크립트**
+
+demo 프로젝트가 있다 치고 (없으면 admin으로 해도됨):
+
+```
+#!/bin/bash
+set -e
+
+# demo-openrc가 있다면:
+# source /root/demo-openrc.sh
+# 없으면 admin으로 계속 해도 테스트는 가능
+
+source /root/admin-openrc.sh
+
+# 1) self-service 네트워크 + 서브넷
+openstack network create selfservice
+
+openstack subnet create selfservice-subnet \
+ --network selfservice \
+ --subnet-range 10.0.0.0/24 \
+ --dns-nameserver 8.8.8.8 \
+ --gateway 10.0.0.1
+
+# 2) 라우터 생성 후 self-service 네트워크에 연결
+openstack router create router1
+
+openstack router add subnet router1 selfservice-subnet
+
+# 3) 라우터 외부 게이트웨이를 provider 네트워크로 설정
+openstack router set router1 --external-gateway provider
+```
+
+이걸 /root/neutron-setup-selfservice.sh 로 저장해서:
+
+```
+chmod +x /root/neutron-setup-selfservice.sh
+/root/neutron-setup-selfservice.sh
+```
+
+---
+
+### **4-4. 테스트 인스턴스 + Floating IP**
+
+1. SG/키페어/인스턴스:
+
+```
+source /root/admin-openrc.sh # 또는 demo-openrc
+
+openstack security group rule create --proto icmp default
+openstack security group rule create --proto tcp --dst-port 22 default
+
+openstack keypair create demo-key > demo-key.pem
+chmod 600 demo-key.pem
+
+SELF_NET_ID=$(openstack network show selfservice -f value -c id)
+
+openstack server create demo-instance \
+ --flavor m1.small \
+ --image cirros \
+ --nic net-id=$SELF_NET_ID \
+ --security-group default \
+ --key-name demo-key
+```
+
+1. Floating IP 붙이기:
+
+```
+FIP=$(openstack floating ip create provider -f value -c floating_ip_address)
+echo "FLOATING IP = $FIP"
+
+openstack server add floating ip demo-instance "$FIP"
+```
+
+1. 노트북/호스트에서:
+
+```
+ping $FIP
+ssh cirros@$FIP # 비번: gocubsgo (cirros 기본)
+```
+
+여기까지 완료되면 Neutron+Nova+Glance+Keystone+Placement 풀 스택 동작 상태다 
+
+---
+
+## **5. 정리**
+
+- 위에 적어준 config들은 “**Epoxy + ML2 + Linuxbridge + self-service Option 2**” 공식 가이드 흐름을
+ 
+ 위 구성은 실습 환경(IP/호스트명/인터페이스)에 맞춰 상세히 정리한 것이다.
+ 
+- 실제로는:
+ 1. 컨트롤러 파일들 채우고 서비스 재시작
+ 2. 컴퓨트 파일들 채우고 서비스 재시작
+ 3. openstack network agent list 로 UP 상태 확인
+ 4. 스크립트로 provider/self-service/라우터/인스턴스까지 생성
+- 중간에 서비스 실패나 에러 로그가 나오면, 해당 로그 기준으로 디버깅하면 된다.
+
+이제부터는 “어디까지 올라갔는지” 확인하는 맛이니까,
+
+config 적용하면서 network agent list, server list, console log show 같은 거 찍어보다가 문제가 발생하면 관련 로그를 함께 확인한다! 
+
+[ovs 스위치](ch2_4_28_lec.qmd)

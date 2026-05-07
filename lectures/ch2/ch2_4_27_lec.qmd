@@ -1,0 +1,195 @@
+---
+title: "2-4장. Glance 트러블슈팅 (Quota)"
+---
+
+# 오류 해결
+
+```yaml
+glance image-create --name "cirros" \
+ --file cirros-0.4.0-x86_64-disk.img \
+ --disk-format qcow2 --container-format bare \
+ --visibility=public
+HTTP 413 Request Entity Too Large: The request returned a 413 Request Entity Too Large. This generally means that rate limiting or a quota threshold was breached.: The response body:: Project 1ba21d4331d84362bc9ed3d073b3cb23 is over a limit for [Resource image_count_total is over limit of 0 due to current usage 0 and delta 1]
+```
+
+이 현상은 실습에서 자주 발생하는 대표 사례다.
+
+에러 메시지 핵심만 보면:
+
+> Project ... is over a limit for [Resource image_count_total is over limit of 0 ...]
+> 
+
+= **“이 프로젝트의 이미지 개수 최대 허용치가 0으로 설정되어, 1개만 생성해도 quota 초과로 차단되는 상황”**이다.
+
+이는 앞서 **[oslo_limit] + use_keystone_limits** 옵션을 조정하는 과정에서 발생한 부작용이다.
+
+---
+
+## **왜 0이 됐냐?**
+
+[개념 정리]
+
+- use_keystone_limits = True 켜면
+ 
+ Glance가 **Keystone의 registered limits**를 믿고 quota를 계산함.
+ 
+- 그런데 registered limit를 제대로 만들어주지 않으면
+ 
+ → **기본이 0으로 간주**되어서
+ 
+ → 이미지 개수(image_count_total) limit=0, 현재=0, 새로 1개 만들려니까 → 초과… 해서 413.
+ 
+
+즉:
+
+> “쿼터 기능만 켜고, 실제 쿼터 값은 안 넣어서 전체 프로젝트가 이미지 0개만 허용되는 상태”
+> 
+
+라고 볼 수 있다.
+
+---
+
+## **해결 방법 두 가지 (중에서 하나 골라)**
+
+### **방법 1: 스터디 환경에서 quota 기능 비활성화 (권장)**
+
+지금은 **기능 이해/설치가 목적**이니까,
+
+Unified Limits는 과감히 꺼버리는 게 제일 깔끔해.
+
+1. Glance 설정 파일 열기
+
+```
+vi /etc/glance/glance-api.conf
+```
+
+1. 
+2. [DEFAULT] 섹션에서 아래 줄 찾아서:
+
+```
+[DEFAULT]
+...
+use_keystone_limits = True
+```
+
+1. 이걸 **주석 처리하거나 False로 바꾸기**:
+
+```
+[DEFAULT]
+...
+# use_keystone_limits = True
+use_keystone_limits = False
+```
+
+1. `[oslo_limit]` 섹션은 유지해도 되고, 실습 목적이라면 제거해도 된다.
+ 
+ 핵심은 **use_keystone_limits를 비활성화하면 Glance가 quota를 조회하지 않게 된다는 점**이다.
+ 
+2. Glance API 재시작
+
+```
+systemctl restart glance-api
+```
+
+1. 
+2. 다시 이미지 업로드 시도
+
+```
+source /root/admin-openrc.sh
+
+glance image-create --name "cirros" \
+ --file cirros-0.4.0-x86_64-disk.img \
+ --disk-format qcow2 --container-format bare \
+ --visibility=public
+
+glance image-list
+```
+
+1. → 이번엔 image_count_total over limit 0 이런 말 없이 **정상으로 올라가야 함.**
+
+---
+
+### **방법 2: 그래도 quota 기능 써보고 싶다 → registered limit 제대로 세팅하기**
+
+이 방법은 **난이도가 조금 높으며**, 핵심 개념은 다음과 같다:
+
+1. Keystone에 “이미지 관련 리소스의 기본 상한값” 정의
+2. Glance [oslo_limit] 가 그 값을 보고 enforcement
+
+아래에는 흐름만 간단히 제시한다. (quota 학습 시 재활용 가능)
+
+1. admin 권한 로드
+
+```
+source /root/admin-openrc.sh
+```
+
+1. 
+2. Glance 서비스의 registered limits 확인
+
+```
+openstack registered limit list --service glance
+```
+
+1. 
+2. 없으면 예시처럼 생성 (RegionOne 기준):
+
+```
+# 총 이미지 용량 (MiB 단위, 문서 예시는 1000 등)
+openstack registered limit create \
+ --service glance --region RegionOne \
+ --default-limit 1000 image_size_total
+
+openstack registered limit create \
+ --service glance --region RegionOne \
+ --default-limit 1000 image_stage_total
+
+openstack registered limit create \
+ --service glance --region RegionOne \
+ --default-limit 100 image_count_total
+
+openstack registered limit create \
+ --service glance --region RegionOne \
+ --default-limit 100 image_count_uploading
+```
+
+1. [oslo_limit] 섹션에서 endpoint_id / GLANCE_PASS 맞추고
+
+```
+[oslo_limit]
+auth_url = http://controller:5000
+auth_type = password
+user_domain_id = default
+username = glance
+system_scope = all
+password = GLANCE_PASS
+endpoint_id = <public endpoint ID>
+region_name = RegionOne
+```
+
+1. [DEFAULT] 에서 use_keystone_limits = True 다시 켜고
+2. systemctl restart glance-api 후 다시 업로드 테스트
+
+근데 이건 **system-scope / registered limits 개념까지 같이 물고 들어가야 해서**,
+
+현재 단계에서는 “이런 기능이 있다”는 수준으로 이해하고 넘어가면 된다.
+
+실습/설치 중에는 **방법 1 (끄기)** 로 가는 게 운영 부담이 적다 
+
+---
+
+## **결론**
+
+- 에러 메시지는 **우리가 enable한 quota 기능 때문에 이미지 개수 limit이 0으로 잡힌 것**.
+- 스터디용이면:
+ - /etc/glance/glance-api.conf에서
+ 
+ use_keystone_limits = False 로 바꾸고
+ 
+ systemctl restart glance-api
+ 
+ - 그 다음 `glance image-create ...` 를 다시 실행하면 절차가 마무리된다.
+
+이대로 한 번 적용해보고,
+
+`glance image-list`에서 `cirros`가 `active` 상태인지 확인한다.

@@ -1,0 +1,20 @@
+---
+title: "2-4장. 여기까지 체크 포인트"
+---
+
+## **여기까지 체크 포인트**
+
+이제 환경 챕터 기준으로는:
+
+- Security – 비밀번호 변수 정의, 랜덤 암호 준비
+- Host networking – controller/compute IP/라우팅/hosts 설정
+- NTP – chrony로 시간 동기화
+- OpenStack packages – cloud-archive:epoxy 활성화 + openstackclient 설치
+- SQL DB – controller에 MariaDB 설치 + bind-address 10.100.100.11
+- Message queue – controller에 RabbitMQ + openstack 유저 생성
+- Memcached – controller에 설치, 10.100.100.11 로 바인딩
+- Etcd – controller에 etcd-server 설정
+
+이 상태면 설치 가이드 목차에서 다음으로
+
+**“OpenStack 서비스 설치(Install OpenStack services)” → Minimal deployment for 2025.1 (Epoxy)** 단계로 진행한다.

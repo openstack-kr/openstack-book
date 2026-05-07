@@ -1,0 +1,44 @@
+---
+title: "2-4장. OpenStack 패키지 저장소 활성화"
+---
+
+# 4. **OpenStack 패키지 (Ubuntu Cloud Archive 활성화)**
+
+### **공식 문서**
+
+- Ubuntu용 패키지: https://docs.openstack.org/ko_KR/install-guide/environment-packages-ubuntu.html
+
+[개념 정리]
+
+- Ubuntu 24.04 기본 저장소에는 Caracal까지 들어있고,
+ 
+ **Epoxy 같은 최신 릴리즈는 Cloud Archive에서 가져와야 함.**
+ 
+- “Epoxy 릴리즈 쓰겠다”라는 선언을 각 노드에서 하는 단계.
+- 유의사항: root 에서만 깔리니 처음에 root로 진입해야함
+ 
+ ```yaml
+ sudo -i
+ ```
+ 
+
+### **4-1. 모든 OpenStack 노드 (controller, compute)**
+
+```yaml
+# 공통
+apt install -y software-properties-common
+
+# Epoxy용 Cloud Archive 활성화 (Ubuntu 24.04 기준)
+add-apt-repository cloud-archive:epoxy
+
+apt update
+```
+
+OpenStack CLI도 미리 깔아두면 편함:
+
+```yaml
+apt install -y python3-openstackclient
+```
+
+이걸 해야 나중에 apt install keystone 같은 게 **Epoxy 버전**으로 깔림.
+

@@ -1,0 +1,69 @@
+---
+title: "2-4장. SQL Database (MariaDB/MySQL)"
+---
+
+# 5. **SQL Database (MariaDB/MySQL)**
+
+### **공식 문서**
+
+- 환경 > SQL DB (Ubuntu):
+ 
+ https://docs.openstack.org/ko_KR/install-guide/environment-sql-database-ubuntu.html
+ 
+
+[개념 정리]
+
+- 거의 모든 OpenStack 서비스 상태가 **공통 DB(보통 controller)** 에 쌓임.
+- 여기서는 **MariaDB**를 controller에 설치하고,
+ 
+ **bind-address를 controller 관리 IP(10.100.100.11)** 로 맞춰줌.
+ 
+
+### **5-1. controller 노드에서만**
+
+### **① 패키지 설치**
+
+```yaml
+apt install -y mariadb-server python3-pymysql
+```
+
+### **② 설정 파일 생성**
+
+문서 기준 경로: /etc/mysql/mariadb.conf.d/99-openstack.cnf
+
+```yaml
+cat >/etc/mysql/mariadb.conf.d/99-openstack.cnf << 'EOF'
+[mysqld]
+bind-address = 10.100.100.11
+
+default-storage-engine = innodb
+innodb_file_per_table = on
+max_connections = 4096
+collation-server = utf8_general_ci
+character-set-server = utf8
+EOF
+```
+
+여기서 bind-address 를 **문서의 10.0.0.11 대신 10.100.100.11** 로 바꿔준 것만 주의.
+
+**③ 서비스 재시작 + secure 설치**
+
+```yaml
+service mysql restart
+
+mysql_secure_installation
+# 여기서 DB root 암호 = 아까 Security 단계에서 적어둔 DB_ROOT_PASS
+
+# 질문에 대한 답변
+Set root password? [Y/n] -> Y
+New password: -> DB_ROOT_PASS
+Remove anonymous users? [Y/n] -> Y
+Disallow root login remotely? [Y/n] -> Y (원격 root 필요 없음)
+Remove test database and access to it? [Y/n] -> Y
+Reload privilege tables now? [Y/n] -> Y
+```
+
+> 요 단계가 끝나면, 나중에 각 서비스 설치할 때
+mysql -u root -p 로 DB 만들고, KEYSTONE_DBPASS 같은 걸 써서 계정 만들어 줄 수 있음.
+> 
+

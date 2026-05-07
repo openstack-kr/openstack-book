@@ -1,0 +1,47 @@
+---
+title: "2-4장. Message Queue (RabbitMQ)"
+---
+
+# 6. **Message Queue (RabbitMQ)**
+
+### **공식 문서**
+
+- 환경 > 메시지 큐 > Ubuntu:
+ 
+ https://docs.openstack.org/ko_KR/install-guide/environment-messaging-ubuntu.html
+ 
+
+[개념 정리]
+
+- 서비스들 사이에서 “이 작업 해라 / 결과 이렇다” 같은 걸
+ 
+ 중앙에서 중계하는 **버스** 역할. RabbitMQ 사용.
+ 
+- 보통 controller에만 띄우고, 각 서비스 transport_url 에 접속 정보 넣는다.
+
+### **controller에서만**
+
+```yaml
+apt install -y rabbitmq-server
+```
+
+1. 사용자 **`openstack`** 을 추가한다:
+
+```yaml
+rabbitmqctl add_user openstack RABBIT_PASS
+`Creating user "openstack" ...
+**RABBIT_PASS**`적절한 비밀번호로 바꾸세요 .
+```
+
+1. 사용자 **`openstack`** 에게 구성/쓰기/읽기 권한을 부여한다.
+
+```yaml
+rabbitmqctl set_permissions openstack ".*" ".*" ".*"
+
+Setting permissions for user "openstack" in vhost "/" ...
+```
+
+> 나중에 keystone/nova/neutron 설정할 때
+transport_url = rabbit://openstack:RABBIT_PASS@controller
+이런 식으로 계속 재사용함.
+> 

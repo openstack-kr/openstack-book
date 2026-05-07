@@ -1,0 +1,310 @@
+---
+title: "2-4장. Placement 설치"
+---
+
+# Placement
+
+https://docs.openstack.org/placement/2025.1/install/
+
+Placement는 한 줄로 말하면:
+
+> “Nova가 인스턴스 스케줄링할 때 쓰는 리소스(코어/메모리/디스크) 재고 관리용 API”
+> 
+
+이라서, Nova 설치 전에 반드시 올라가 있어야 함.
+
+기준 문서: **Install and configure Placement for Ubuntu (2025.1 / Epoxy)**
+
+---
+
+## **전체 흐름 요약**
+
+전부 **controller 노드**에서 작업한다고 보면 돼.
+
+1. MariaDB에 placement DB + 계정 만들기
+2. Keystone에 placement 유저/서비스/엔드포인트 등록
+3. placement-api 패키지 설치
+4. /etc/placement/placement.conf 설정
+5. placement-manage db sync 로 DB 마이그레이션
+6. Apache 재시작
+
+이제 섹션 순서대로 풀어볼게.
+
+---
+
+## **1. Prerequisites – DB / User / Endpoint 준비**
+
+### **1-1. placement DB 생성 (MariaDB)**
+
+**어디서?** controller, root
+
+**문서: “Create Database” 섹션**
+
+```
+mysql -u root -p
+```
+
+DB 안에서:
+
+```
+CREATE DATABASE placement;
+
+GRANT ALL PRIVILEGES ON placement.* TO 'placement'@'localhost'
+ IDENTIFIED BY 'PLACEMENT_DBPASS';
+
+GRANT ALL PRIVILEGES ON placement.* TO 'placement'@'%'
+ IDENTIFIED BY 'PLACEMENT_DBPASS';
+
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+- PLACEMENT_DBPASS : **placement DB용 비밀번호** 하나 정해서 넣고, 별도로 메모해두기.
+- Keystone 때처럼 %/localhost 둘 다 열어놓는 이유는 어디서 접속해도 편하게 쓰려고.
+
+---
+
+### **1-2. placement 유저/서비스/엔드포인트 (Keystone)**
+
+**어디서?** controller, admin-openrc 로드 후
+
+**문서: “Configure User and Endpoints” 섹션**
+
+1. admin 권한 로드
+
+```
+source /root/admin-openrc.sh
+```
+
+1. placement 유저 생성 (Identity)
+
+```
+openstack user create --domain default --password-prompt placement
+```
+
+- 여기서 입력하는 비밀번호를 **PLACEMENT_PASS**라고 부를게.
+- 이는 “Keystone 내부에서 placement 유저가 자기 인증에 사용하는 비밀번호”이다. (DB 비밀번호와 별개)
+1. service 프로젝트에 admin role 부여
+
+```
+openstack role add --project service --user placement admin
+```
+
+- 출력 없음이 정상.
+1. placement 서비스 등록
+
+```
+openstack service create --name placement \
+ --description "Placement API" placement
+```
+
+- type = placement 인 서비스가 catalog에 생김.
+
+![image.png](images/ch2_4_img_07.png)
+
+1. placement 엔드포인트 3개 생성
+
+문서 예시는 port 8778 기준이라, 그대로 쓰자:
+
+```
+openstack endpoint create --region RegionOne \
+ placement public http://controller:8778
+
+openstack endpoint create --region RegionOne \
+ placement internal http://controller:8778
+
+openstack endpoint create --region RegionOne \
+ placement admin http://controller:8778
+```
+
+- 나중에 Nova가 Placement API 부를 때 이 URL을 사용함.
+
+---
+
+## **2. Install and configure components – 패키지 + 설정**
+
+### **2-1. package 설치**
+
+**어디서?** controller, root
+
+**문서: “Install the packages”**
+
+```
+apt update
+apt install -y placement-api
+```
+
+---
+
+### **2-2./etc/placement/placement.conf**
+
+### **설정**
+
+**문서: “Edit the /etc/placement/placement.conf file…”**
+
+```
+vi /etc/placement/placement.conf
+```
+
+### **(a) [placement_database] – DB 연결**
+
+```
+[placement_database]
+# ...
+connection = mysql+pymysql://placement:PLACEMENT_DBPASS@controller/placement
+```
+
+- 여기 PLACEMENT_DBPASS 는 **1-1에서 DB 만들 때 쓴 비번**이랑 같아야 함.
+- @controller 는 /etc/hosts 에서 controller → 10.100.100.11 매핑해둔 걸 그대로 사용하는 거라 OK.
+
+### **(b) [api] / [keystone_authtoken] – Keystone 연동**
+
+```
+[api]
+# ...
+auth_strategy = keystone
+
+[keystone_authtoken]
+# ...
+auth_url = http://controller:5000/v3
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = placement
+password = PLACEMENT_PASS
+```
+
+- PLACEMENT_PASS = 1-2에서 openstack user create placement 할 때 입력한 그 비번.
+- 문서에도 나오는 것처럼, [keystone_authtoken] 안에 기존에 들어있던 옵션들은 **주석 처리하거나 삭제**하는 것을 권장한다.
+- project_name = service / username = placement / Default 도메인이 Keystone 설정과 맞아야 한다고 강조되어 있음.
+
+여기까지 하면:
+
+- Placement가 MariaDB에 붙어서 placement DB를 쓰고
+- Keystone의 placement 유저 권한으로 토큰 검증을 수행하는 구조가 완성된다.
+
+---
+
+## **3. placement DB 마이그레이션**
+
+**어디서?** controller, root
+
+**문서: “Populate the placement database”**
+
+```
+su -s /bin/sh -c "placement-manage db sync" placement
+```
+
+- keystone 때랑 패턴 똑같이, placement 시스템 계정으로 DB 스키마 생성.
+- Deprecation warning 같은 건 무시하라고 문서에 써 있음.
+
+DB 비번이 틀렸으면 여기서 아까처럼 1045 에러가 뜨니까,
+
+해당 경우에는 `mysql -uplacement -p -h controller placement` 로 직접 접속해 보면 원인 파악이 수월하다.
+
+---
+
+## **4. Finalize – Apache 재시작**
+
+Placement도 Keystone처럼 Apache WSGI로 붙기 때문에, 설정 반영을 위해 Apache를 재시작해야 함.
+
+**어디서?** controller, root
+
+**문서: “Finalize installation”**
+
+```
+service apache2 restart
+```
+
+이제 Placement API는 http://controller:8778 에서 응답할 준비가 된 상태.
+
+---
+
+## **5. 설치 확인 간단 체크**
+
+공식 문서엔 간단한 verify 섹션이 없지만, 최소한 이 정도는 테스트해볼 수 있어:
+
+```
+# 1) Placement API가 살아있는지
+curl -v http://controller:8778/
+```
+
+- 보통은 404나 간단한 JSON이 오더라도, **적어도 500이 아니라는 것**만 확인하면 된다.
+
+나중에 Nova 설치하고 나면:
+
+```
+source /root/admin-openrc.sh
+openstack resource class list --sort-column name
+```
+
+처럼 openstack CLI로 Placement API를 두들겨볼 수도 있음(Nova 설치 이후).
+
+- 모든 항목이 정상인지 확인하기 위해 상태 점검을 수행한다.
+
+```yaml
+placement-status upgrade check
+```
+
+![image.png](images/ch2_4_img_08.png)
+
+- Placement API에 대해 몇 가지 명령을 실행한다.
+ - [osc-placement](https://docs.openstack.org/osc-placement/latest/) 플러그인을 설치한다:
+ 
+ [이 예제에서는 PyPI](https://pypi.org/) 와 [pip](https://docs.openstack.org/placement/2025.1/install/from-pypi.html#about-pip)를 사용한다. 배포판 패키지를 사용하는 경우에는 해당 저장소에서 패키지를 설치할 수 있다. Python3 환경에서는 **pip3** 를 사용하거나 배포판의 **python3-osc-placement** 패키지를 설치한다.
+ 
+ `pip3 install osc-placement`
+ 
+ - 사용 가능한 리소스 클래스와 특성을 나열한다.
+ 
+ ```yaml
+ openstack --os-placement-api-version 1.2 resource class list --sort-column name
+ +----------------------------+
+ | name |
+ +----------------------------+
+ | DISK_GB |
+ | IPV4_ADDRESS |
+ | ... |
+ 
+ openstack --os-placement-api-version 1.6 trait list --sort-column name
+ +---------------------------------------+
+ | name |
+ +---------------------------------------+
+ | COMPUTE_DEVICE_TAGGING |
+ | COMPUTE_NET_ATTACH_INTERFACE |
+ | ... |
+ ```
+ 
+ 
+ ![image.png](images/ch2_4_img_09.png)
+ 
+
+---
+
+## **요약 체크리스트 (Placement 편)**
+
+controller에서:
+
+1. **DB**
+ - placement DB 생성
+ - placement@localhost / placement@% 에 PLACEMENT_DBPASS 부여
+2. **Keystone**
+ - openstack user create placement (PLACEMENT_PASS)
+ - openstack role add --project service --user placement admin
+ - openstack service create placement
+ - endpoint 3개 (public/internal/admin) → http://controller:8778
+3. **패키지 / 설정**
+ - apt install placement-api
+ - /etc/placement/placement.conf
+ - [placement_database].connection = mysql+pymysql://placement:PLACEMENT_DBPASS@controller/placement
+ - [api].auth_strategy = keystone
+ - [keystone_authtoken] 블록에 Keystone 접속 정보 + password = PLACEMENT_PASS
+4. **마이그레이션 / 웹서버**
+ - placement-manage db sync (에러 없음)
+ - service apache2 restart
+
+여기까지 완료되면 Nova가 Placement에 연결되어 “어디에 얼마만큼의 vCPU/메모리/디스크가 남았는지” 조회할 준비가 완료된 상태이다.
+
+이제 다음 타이밍에는 **Nova 설치(Compute)** 를 같은 스타일로 순서대로 진행하면 된다 

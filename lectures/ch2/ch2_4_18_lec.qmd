@@ -1,0 +1,377 @@
+---
+title: "2-4장. Glance 설치"
+---
+
+# Glance 설치
+
+https://docs.openstack.org/glance/2025.1/install/install-ubuntu.html
+
+기준 문서는 **Epoxy Glance Ubuntu 설치 문서**다:
+
+> 모든 작업은 controller 노드에서, root 쉘에서 한다고 가정
+> 
+
+> (sudo -i 하고 작업하면 편함)
+> 
+
+---
+
+## **0. 전제 체크**
+
+Glance 설치 들어가기 전에:
+
+- Keystone까지 끝냈고
+- admin-openrc도 잘 먹는 상태여야 해.
+
+```
+source /root/admin-openrc.sh
+openstack token issue
+```
+
+여기서 토큰 정보가 잘 나오면 OK.
+
+---
+
+## **1. Glance용 DB 만들기 (MariaDB)**
+
+**공식 문서: Prerequisites → 1. To create the database**
+
+[어디서]
+
+- controller, root
+
+[명령]
+
+```
+mysql -u root -p
+```
+
+DB 안에서:
+
+```
+CREATE DATABASE glance;
+
+GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost'
+ IDENTIFIED BY 'GLANCE_DBPASS';
+
+GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%'
+ IDENTIFIED BY 'GLANCE_DBPASS';
+
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+- GLANCE_DBPASS → **Glance DB 전용 비밀번호**로 정한다. (예시 값 대신 실습 환경에서 정한 값을 사용하고 메모해 둔다)
+
+---
+
+## **2. Glance 서비스 계정/엔드포인트 만들기 (Keystone)**
+
+**공식 문서: Prerequisites 2~4번**
+
+### **2-1. admin 자격 로드**
+
+[어디서]
+
+- controller
+
+```
+source /root/admin-openrc.sh
+```
+
+---
+
+### **2-2. (필요하면) service 프로젝트 생성**
+
+Glance 문서에서는 service 프로젝트가 이미 있다고 가정하는데,
+
+keystone-users-ubuntu 문서에서 아직 생성하지 않았다면, 미리 생성해 두는 것이 안전하다.
+
+```
+openstack project show service || \
+openstack project create --domain default --description "Service Project" service
+```
+
+- 이미 있으면 show 결과가 나오고,
+- 없으면 create가 실행된다.
+
+---
+
+### **2-3. glance 유저 생성**
+
+```
+openstack user create --domain default --password-prompt glance
+```
+
+여기서 입력하는 비밀번호를 **GLANCE_PASS**라고 부를게.
+
+> 이는 “Keystone 내부에서 glance가 자기 자신을 인증할 때 사용하는 패스워드”이다.
+> 
+
+> DB 비번(GLANCE_DBPASS)랑은 **다른 값**
+> 
+
+---
+
+### **2-4. service 프로젝트에 admin 역할 부여**
+
+```
+openstack role add --project service --user glance admin
+```
+
+- 출력 안 나오면 정상.
+
+---
+
+### **2-5. glance 서비스 등록**
+
+```
+openstack service create --name glance \
+ --description "OpenStack Image" image
+```
+
+- type이 image인 서비스 엔트리 하나 생김.
+
+---
+
+### **2-6. Glance API 엔드포인트 3개 생성**
+
+```
+openstack endpoint create --region RegionOne \
+ image public http://controller:9292
+
+openstack endpoint create --region RegionOne \
+ image internal http://controller:9292
+
+openstack endpoint create --region RegionOne \
+ image admin http://controller:9292
+```
+
+- controller → /etc/hosts에 10.100.100.11로 묶여 있으므로 그대로 사용해도 된다.
+
+---
+
+(등록된 limit / [oslo_limit] 연동은 **초기 스터디 단계에서는 생략 가능**하므로, 여기서는 최소 구성으로 진행한다. 필요하면 이후 quota 연동을 추가하면 된다.)
+
+---
+
+## **3. Glance 패키지 설치**
+
+**공식 문서: Install and configure components → 1. Install the packages**
+
+[어디서]
+
+- controller, root
+
+[명령]
+
+```
+apt update
+apt install -y glance
+```
+
+---
+
+## **4. /etc/glance/glance-api.conf 설정**
+
+**공식 문서: Install and configure components → 2. Edit glance-api.conf**
+
+[어디서]
+
+- controller, root
+
+```
+vi /etc/glance/glance-api.conf
+```
+
+### **4-1. [database] – Glance DB 연결**
+
+[database] 섹션 찾아서 이렇게 맞춰:
+
+```
+[database]
+# ...
+connection = mysql+pymysql://glance:GLANCE_DBPASS@controller/glance
+```
+
+- GLANCE_DBPASS → 1단계에서 DB 만들 때 쓴 그 비번.
+
+---
+
+### **4-2. [keystone_authtoken], [paste_deploy] – Keystone 연동**
+
+문서 예시 그대로, 다만 GLANCE_PASS만 네 값으로:
+
+```
+[keystone_authtoken]
+# ...
+www_authenticate_uri = http://controller:5000
+auth_url = http://controller:5000
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = glance
+password = GLANCE_PASS
+
+[paste_deploy]
+# ...
+flavor = keystone
+```
+
+- GLANCE_PASS → 아까 openstack user create ... glance 때 입력한 비밀번호.
+- [keystone_authtoken] 안에 다른 기존 옵션들 있으면 **주석 처리하거나 삭제**하라고 문서에서 말함.
+
+---
+
+### **4-3. [DEFAULT], [glance_store], [fs] – 로컬 파일 스토어**
+
+**Epoxy 설치 가이드도 “로컬 파일 시스템에 저장”을 예제로 씀.**
+
+```
+[DEFAULT]
+# ...
+enabled_backends = fs:file
+
+[glance_store]
+# ...
+default_backend = fs
+
+[fs]
+filesystem_store_datadir = /var/lib/glance/images/
+```
+
+- 이렇게 하면 Glance 이미지가 컨트롤러 로컬 디렉터리 /var/lib/glance/images/에 저장된다.
+- [fs] 항목은 원문에서 누락된 것으로 보여, 실습 일관성을 위해 보완하여 추가하였다.
+
+---
+
+### **4-4. [oslo_limit] / quota는 일단 스킵 (선택)**
+
+공식 문서에 [oslo_limit] + registered limits 설정이 나오는데, 이건 **per-tenant quota**까지 쓰고 싶을 때 옵션이라 처음에는 안 건드려도 돼.
+
+- 지금은 [oslo_limit] / use_keystone_limits=True **안 넣고**
+- 나중에 Neutron/Nova까지 익숙해지면, quota/limit까지 같이 붙여보는 식으로 확장하면 좋을 듯.
+
+(현재 단계에서는 개념 과부하를 줄이기 위해 생략한다.)
+
+---
+
+## **5. Glance DB 마이그레이션**
+
+**공식 문서: 3. Populate the Image service database**
+
+[어디서]
+
+- controller, root
+
+[명령]
+
+```
+su -s /bin/sh -c "glance-manage db_sync" glance
+```
+
+[에러를 고쳐봐요!](ch2_4_26_lec.qmd)
+
+- 에러 없이 끝나면 OK.
+- Deprecation warning 같은 건 신경 안 써도 된다고 문서에 적혀 있음.
+
+---
+
+## **6. 서비스 재시작**
+
+**공식 문서: Finalize installation**
+
+```
+service glance-api restart
+```
+
+(혹은 systemctl restart glance-api)
+
+---
+
+## **7. Glance 동작 확인 (cirros 이미지 업로드)**
+
+**공식 문서: Verify operation**
+
+[어디서]
+
+- controller
+
+### **7-1. admin 자격 로드**
+
+```
+source /root/admin-openrc.sh
+```
+
+### **7-2. 테스트용 cirros 이미지 다운로드**
+
+```
+apt install -y wget # 안 깔려 있으면
+wget http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+```
+
+### **7-3. Glance에 이미지 등록**
+
+문서 예시는 glance CLI를 쓰니까 그대로 따라가면:
+
+```
+glance image-create --name "cirros" \
+ --file cirros-0.4.0-x86_64-disk.img \
+ --disk-format qcow2 --container-format bare \
+ --visibility=public
+```
+
+[오류를 고쳐봐욥!](ch2_4_27_lec.qmd)
+
+![image.png](images/ch2_4_img_05.png)
+
+- glance 명령이 없으면:
+
+```
+apt install -y python3-glanceclient
+```
+
+- 한 뒤 다시 실행.
+
+성공하면 표 형태로 이미지 정보가 주르륵 나온다.
+
+### **7-4. 이미지 리스트 확인**
+
+```
+glance image-list
+```
+
+![image.png](images/ch2_4_img_06.png)
+
+`cirros` 가 `active` 상태로 보이면 Glance 설치가 성공한 상태이다.
+
+---
+
+## **요약 체크리스트**
+
+컨트롤러에서:
+
+- glance DB + glance 유저/권한 (GLANCE_DBPASS)
+- source admin-openrc.sh 후
+- Keystone에
+ - glance 유저 생성 (GLANCE_PASS)
+ - service 프로젝트에 admin 롤 부여
+ - glance 서비스/엔드포인트 3개 생성 (9292)
+- apt install glance
+- /etc/glance/glance-api.conf
+ - [database].connection = mysql+pymysql://glance:GLANCE_DBPASS@controller/glance
+ - [keystone_authtoken] / [paste_deploy] → Keystone 연동
+ - [DEFAULT] / [glance_store] / [fs] → local 파일 스토어
+- glance-manage db_sync
+- service glance-api restart
+- cirros 업로드 + glance image-list 로 active 확인
+
+여기까지 완료되면 **이미지 서비스 레이어는 준비된 상태**이다.
+
+다음 단계는 **Placement → Nova → Neutron** 순서이다.
+
+원하면 Glance 끝난 시점 기준으로
+
+Placement도 동일하게 “어느 노드에서 / 어떤 명령 / 왜 수행하는지” 형식으로 이어서 정리한다.

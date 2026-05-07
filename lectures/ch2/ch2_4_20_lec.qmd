@@ -1,0 +1,1142 @@
+---
+title: "2-4장. Nova 설치"
+---
+
+# Nova
+
+ 이제 “오픈스택의 핵심 서비스”인 Nova 구성 단계이다. 
+
+문서 트리 기준으로 Nova install 가이드는 크게 네 파트다:
+
+1. **Overview** – 전체 OpenStack PoC 아키텍처 설명
+2. **Compute service overview** – Nova 내부 구조/컴포넌트 설명
+3. **Install and configure controller node** – 컨트롤러에서 nova-api/스케줄러 등 설치
+4. **Install and configure a compute node** – 컴퓨트 노드에서 nova-compute 설치
+
+지금 질문은 1–2번처럼 개요/아키텍처 위주라서, 거기부터 차근차근 풀어볼게.
+
+---
+
+## **1. Overview: 이 가이드 자체가 어떤 그림을 상정하냐**
+
+### **1-1. 이 설치 가이드의 목적**
+
+Overview 페이지가 먼저 강조하는 핵심은 다음과 같다:
+
+- 이 가이드는 **학습용 PoC**를 위한 거고
+- **프로덕션 아키텍처 그대로 따라 쓰라고 만든 게 아니다**
+- “리눅스 좀 만질 줄 아는 사람” 기준으로,
+ 
+ OpenStack 주요 서비스 하나씩 설치하면서 구조를 이해하게 하는 게 목적.
+ 
+
+따라서 현재 2노드 Proxmox 실습 환경과 정확히 대응된다:
+
+- 컨트롤러 1개 + 컴퓨트 1개 → 최소 VM 부팅 가능한 구조
+
+---
+
+### **1-2. 예제 아키텍처 – 어떤 노드들이 나오냐**
+
+Overview 페이지의 “Example architecture” 섹션에서 설명하는 기본 구조:
+
+1. **Controller 노드**
+ - Keystone (Identity)
+ - Glance (Image)
+ - Nova의 “관리 쪽 컴포넌트” (API, scheduler, conductor, novncproxy)
+ - Neutron의 “관리 + 에이전트”
+ - Horizon (Dashboard)
+ - 그리고 공통 인프라:
+ - MariaDB, RabbitMQ, Memcached, Etcd, NTP 등
+ - 현재 실습 랩: 해당 구성은 controller VM에 집중 배치되어 있다.
+2. **Compute 노드**
+ - Nova hypervisor 부분(nova-compute)
+ - Neutron 에이전트 (OVS/OVN/bridge agent)
+ - 인스턴스가 실제로 떠 있는 곳 (KVM/QEMU 하이퍼바이저)
+ - 현재 실습 랩: compute1 VM.
+3. **Block Storage 노드 (선택)**
+ - Cinder, Manila용 디스크 올려놓는 노드
+ - PoC에서는 컨트롤러에 같이 올리거나, 아예 안 쓸 수도 있음.
+4. **Object Storage 노드 (선택)**
+ - Swift용 오브젝트 디스크
+ - PoC 가이드에서도 “이건 별도 2노드 이상 필요”라고 말함.
+
+**중요:** 이 예제 아키텍처는 **프로덕션 미니멈**이 아니라, “개념 학습용 미니멈”이라고 강조함.
+
+프로덕션 가면 보통:
+
+- 네트워크 노드 따로,
+- 스토리지 노드 따로,
+- 컨트롤러 다중(HA),
+- overlay/스토리지 트래픽을 별도 네트워크로 분리
+
+이런 식으로 더 쪼개진다고 설명해.
+
+---
+
+### **1-3. 이 PoC 아키텍처가 프로덕션이랑 뭐가 다른지**
+
+Overview에서는 특히 두 가지를 강조한다:
+
+1. **네트워크 에이전트가 컨트롤러에 다 올라가 있다**
+ - 프로덕션: L3/DHCP/LBaaS 같은 Neutron 에이전트는 보통 “Network node” 로 분리
+ - PoC: 기능을 controller에 집중 배치한다. (현재 실습 방식)
+2. **Self-service overlay 트래픽이 management 네트워크를 같이 쓴다**
+ - 프로덕션: overlay(터널) 트래픽은 별도 “데이터 네트워크” 씀
+ - PoC: 관리망(10.x/172.x 같은) 하나에 관리+터널 같이 태움
+
+→ 현재 실습 랩은 management/provider를 Proxmox `vmbr0` 한 인터페이스에 통합했으므로,
+
+따라서 “진짜 PoC 아키텍처”에 해당한다고 볼 수 있다.
+
+---
+
+### **1-4. 네트워크 옵션 두 개**
+
+Overview 맨 아래 “Networking” 부분에서는 두 가지 옵션을 내놔:
+
+1. **Option 1: Provider networks**
+ - 가장 단순한 구성
+ - Neutron은 사실상 L2 VLAN/bridge만 담당
+ - 라우팅(L3), NAT 같은 건 **물리 네트워크 장비/외부 라우터**에 맡김
+ - 특징:
+ - 인스턴스 네트워크 = 거의 그대로 물리망
+ - self-service(테넌트 private) 네트워크 X
+ - LBaaS, FWaaS 같은 advanced 기능 X
+ - PoC에서 “외부 네트워크에 직접 연결된 VM을 빠르게 검증”하려는 경우 이 방식을 사용하기도 한다.
+2. **Option 2: Self-service networks**
+ - Provider 위에 **self-service(tenant) 네트워크**를 하나 더 올리는 옵션
+ - VXLAN 같은 overlay + L3 라우터 네임스페이스로
+ 
+ private 네트워크 만들고, 라우터 통해 외부(provider)로 NAT.
+ 
+ - 특징:
+ - 사용자가 자체 네트워크/Subnet/Router 생성 가능
+ - LBaaS/FWaaS 같은 고급 서비스 가능
+ - 현실적인 OpenStack 느낌이 나는 구성
+
+지금 네 스터디 목적(“OpenStack를 제대로 배우고 싶다”)이면,
+
+**Option 2 (self-service)** 까지 진행하는 구성을 권장한다.
+
+Nova 설치 자체는 두 옵션 공통이고, Neutron 설정에서 갈라져.
+
+---
+
+## **2. Compute service overview: Nova 내부 구조**
+
+이제 Nova 자체 아키텍처를 설명하는 페이지.
+
+### **2-1. Nova가 OpenStack에서 맡는 역할**
+
+한 문장으로:
+
+> Nova = “Compute(인스턴스) 관리 서비스”
+> 
+
+> → IaaS에서 VM을 어디에/어떻게 띄울지 결정하고, 하이퍼바이저를 제어하는 핵심.
+> 
+
+그리고 Nova는 다른 서비스랑 이렇게 얽힌다고 문서에 나온다:
+
+- Keystone: 인증/권한
+- Placement: **자원 인벤토리 + 스케줄링 대상 선택**
+- Glance: 인스턴스 부팅할 때 가져오는 image 저장소
+- Neutron: 인스턴스 NIC/네트워크/VIP 등 네트워킹
+- Horizon: 사용자가 Nova를 조작하는 GUI
+
+즉, “Nova 혼자만” 있는 건 아니고
+
+**Nova가 orchestration 중심에서 나머지 서비스들을 묶어준다** 느낌.
+
+---
+
+### **2-2. Nova 컴포넌트들**
+
+문서에서 나오는 주요 데몬들 정리:
+
+1. **nova-api**
+ - 역할: 외부에서 오는 Compute API 요청(인스턴스 생성/삭제 등)을 받아서 처리 시작
+ - 하는 일:
+ - Keystone 토큰 검증
+ - 정책(enforce policy)
+ - 인스턴스 생성 요청을 메시지 큐로 보내고, orchestration 시작
+2. **nova-api-metadata**
+ - 역할: 인스턴스 내부에서 오는 metadata 요청 응답
+ - cloud-init이 부팅할 때 사용자 데이터/메타데이터 받아갈 때 여기로 옴.
+3. **nova-compute**
+ - 역할: **각 compute 노드에서 하이퍼바이저를 직접 제어**하는 워커
+ - 하는 일:
+ - 메시지 큐에서 “이 인스턴스 여기서 띄워라” 명령을 받아서
+ - KVM(libvirt)/VMware 등 하이퍼바이저 API 호출
+ - 인스턴스 상태를 DB/Placement에 업데이트
+4. **nova-scheduler**
+ - 역할: 인스턴스를 “어느 compute 노드에서 띄울지” 결정
+ - Placement에서 자원 사용량/가용성을 보고 적절한 호스트를 골라줌.
+5. **nova-conductor**
+ - 역할: nova-compute ↔ DB 사이의 미들맨
+ - 이유:
+ - compute 노드가 DB를 직접 때리지 않게 해서 보안/구조 개선
+ - 특징:
+ - 수평 스케일 가능 (컨트롤러 측에서 여러 개 띄울 수 있음)
+ - compute 노드에는 올리지 말라고 문서에서 강조.
+6. **nova-novncproxy**
+ - 역할: VNC 콘솔 프록시 (Horizon에서 “콘솔 열기” 할 때 중계)
+ - 브라우저 기반 noVNC 클라이언트가 여기에 연결 → 여기서 다시 하이퍼바이저 VNC로 튕김.
+7. **nova-spicehtml5proxy** (옵션)
+ - VNC 대신 SPICE 콘솔 쓸 때 사용하는 프록시.
+8. **메시지 큐 (RabbitMQ 등)**
+ - 역할: Nova 데몬끼리 메시지 주고받는 중앙 허브
+ - 예: nova-api → nova-scheduler → nova-compute 순서로 “인스턴스 생성 요청” 메시지가 큐를 통해 전달된다.
+9. **SQL 데이터베이스**
+ - 역할:
+ - 인스턴스 목록/상태
+ - flavor(인스턴스 타입)
+ - 프로젝트/네트워크 정보 등 Nova가 알아야 할 상태 저장
+ - 실제로는 nova_api DB / cell DB로 나뉘는데, 그건 설치 섹션에서.
+
+이를 합치면 “인스턴스 1개를 생성하는 흐름”은 다음과 같다:
+
+1. 유저: Horizon or CLI → nova-api에 “VM 하나 만들어줘”
+2. nova-api: 요청 유효성 검증 → 메시지 큐에 job 넣음
+3. nova-scheduler: placement 보고 적절한 compute 노드를 골라서 큐에 “이 호스트에 배치”라고 올림
+4. 해당 nova-compute: job 받아서
+ - 이미지(Glance) 다운로드
+ - 네트워크(Neutron) 포트 셋업
+ - 하이퍼바이저(KVM)에 실제 VM 생성
+ - 상태를 DB/Placement에 업데이트
+5. 유저가 콘솔 보고 싶으면 nova-novncproxy 통해 접속
+
+이런 구조라고 보면 돼.
+
+---
+
+## **3. Install & configure controller node (Ubuntu) – Nova 컨트롤러 쪽 설계**
+
+이제 설치 가이드 본편에서 “컨트롤러에 Nova를 어떻게 올릴지” 부분.
+
+(현재는 구조 설명 중심으로 이해하고, 이후 실습에서 명령어를 단계별로 분리해 적용하면 된다.)
+
+### **3-1. 컨셉: 컨트롤러에서 Nova가 하는 역할**
+
+컨트롤러에는 보통 이런 Nova 프로세스들이 올라간다고 가이드에서 가정해:
+
+- nova-api
+- nova-scheduler
+- nova-conductor
+- nova-novncproxy
+- (환경에 따라 `nova-api-metadata`를 사용하거나 Neutron metadata proxy만 사용하는 구성도 있다.)
+
+즉:
+
+- **API/스케줄링/상태 관리/콘솔 프록시**는 컨트롤러
+- **실제 VM 생성/삭제(nova-compute)는 compute 노드**
+
+로 분리.
+
+---
+
+### **3-2. 설치 가이드에서 실제로 하는 일(컨트롤러)**
+
+대략적인 단계:
+
+1. **nova용 DB 2개 생성**
+ - nova_api DB
+ - nova (cell0/cell1) DB
+ 
+ → Nova Cell v2 구조 때문에 DB가 둘로 나뉨.
+ 
+2. **Keystone에 nova 유저/서비스/엔드포인트 등록**
+ - openstack user create nova
+ - openstack role add --project service --user nova admin
+ - openstack service create --name nova compute
+ - openstack endpoint create ... nova public/internal/admin http://controller:8774/v2.1
+3. **패키지 설치**
+ - nova-api, nova-conductor, nova-scheduler, nova-novncproxy 패키지들.
+4. **/etc/nova/nova.conf 설정**
+ - [DEFAULT]
+ - transport_url = rabbit://... (RabbitMQ 연결)
+ - my_ip = 10.100.100.11 (컨트롤러 IP)
+ - use_neutron = True, firewall_driver = nova.virt.firewall.NoopFirewallDriver (네트워크는 Neutron에게)
+ - [api_database] / [database]
+ - connection = mysql+pymysql://nova:NOVA_DBPASS@controller/nova_api
+ - connection = mysql+pymysql://nova:NOVA_DBPASS@controller/nova
+ - [keystone_authtoken]
+ - Keystone 토큰 검증 정보 (auth_url, memcached, project_name=service, username=nova, password=NOVA_PASS)
+ - [glance], [neutron], [placement], [vnc], [oslo_messaging_rabbit] 등
+ 
+ Nova가 다른 서비스랑 이야기하는 설정들이 들어감.
+ 
+5. **DB & cell 초기화**
+ - nova-manage api_db sync
+ - nova-manage cell_v2 map_cell0
+ - nova-manage cell_v2 create_cell --name cell1
+ - nova-manage db sync
+ 
+ → 이 작업으로 “셀” 개념을 구성한다고 볼 수 있다. (여러 데이터센터/클러스터를 이후 cell로 분리할 수 있음)
+ 
+6. **서비스 enable + start**
+ - systemctl enable --now nova-api nova-scheduler nova-conductor nova-novncproxy
+7. **초기 상태 확인**
+ - nova-status upgrade check
+ - openstack compute service list (컨트롤러 쪽 서비스들이 up인지)
+
+---
+
+## **4. Install & configure a compute node (Ubuntu) – Nova 컴퓨트 쪽 설계**
+
+Compute install 가이드는 “각 컴퓨트 노드에서 nova-compute를 어떻게 세팅하냐” 설명.
+
+### **4-1. 컴퓨트 노드가 맡는 역할**
+
+- 하이퍼바이저(KVM/QEMU, 혹은 VMware 등)를 직접 제어
+- VM(인스턴스)의 라이프사이클(생성, 삭제, migrate)을 수행
+- Neutron 에이전트와 함께 인스턴스 네트워크 인터페이스를 연결
+
+컨트롤러는 **Control Plane**,
+
+컴퓨트 노드는 **Data Plane(실제 워크로드)** 으로 이해하면 된다.
+
+---
+
+### **4-2. 설치 가이드에서 하는 일 (컴퓨트 노드)**
+
+1. **패키지 설치**
+ - nova-compute (필수)
+ - libvirt/qemu-kvm 등 하이퍼바이저 패키지는 OS 쪽에서 설치.
+2. **/etc/nova/nova.conf 설정**
+ - [DEFAULT]
+ - my_ip = 10.100.100.31 (compute 노드 IP)
+ - use_neutron = True
+ - [oslo_messaging_rabbit]
+ - 컨트롤러 쪽 RabbitMQ에 붙도록 transport_url 지정
+ - [keystone_authtoken]
+ - controller와 동일하게 nova 유저로 Keystone 인증
+ - [vnc]
+ - enabled = True
+ - server_listen = 0.0.0.0
+ - server_proxyclient_address = 10.100.100.31 (자기 IP)
+ - novncproxy_base_url = http://controller:6080/vnc_auto.html (컨트롤러 novncproxy)
+ - [glance], [neutron], [placement] 도 컨트롤러와 유사하게 맞춤.
+ - [libvirt]
+ - virt_type = kvm 혹은 nested 문제 있으면 qemu
+ - CPU 모드 등 튜닝 옵션.
+3. **서비스 시작**
+ - systemctl enable --now nova-compute
+4. **컨트롤러에서 서비스 등록 확인**
+ - openstack compute service list 를 컨트롤러에서 실행하면:
+ - nova-compute@compute1 같은 항목이 up 으로 떠야 함.
+ - openstack hypervisor list 에도 compute 노드가 보일 것.
+
+---
+
+## **5. 전체 Nova 설치 페이지 구조 요약**
+
+Nova install 섹션 전체를 요약하면:
+
+1. **Overview**
+ - 이 가이드는 PoC용이다
+ - 최소 2노드 아키텍처(controller + compute)
+ - Block/Object storage는 선택
+ - 네트워크 옵션: Provider vs Self-service
+2. **Compute service overview**
+ - Nova가 IaaS에서 맡는 역할
+ - 주요 컴포넌트(nova-api, scheduler, conductor, compute, novncproxy 등)와 메시지 큐/DB 구조
+ - Keystone/Placement/Glance/Neutron과의 연계
+3. **Install & configure controller node (Ubuntu/RHEL 별도 문서)**
+ - nova DB 생성
+ - Keystone에 nova 유저/서비스/엔드포인트 등록
+ - nova-api, nova-scheduler, nova-conductor, nova-novncproxy 설치 및 설정
+ - cell v2 DB 초기화
+ - 서비스 시작
+4. **Install & configure compute node (Ubuntu/RHEL)**
+ - 각 compute 노드에서 nova-compute 설치
+ - /etc/nova/nova.conf 에 my_ip / hypervisor / RabbitMQ / Keystone / Placement / VNC / Neutron 등 설정
+ - 서비스 시작 → 컨트롤러에서 인식되는지 확인
+5. **Verify operation** (별 페이지)
+ - nova-status upgrade check
+ - openstack compute service list, openstack hypervisor list
+ - 나중에는 Neutron까지 붙여서 실제 인스턴스 부팅까지 확인
+
+---
+
+ 이제 Nova 컨트롤러 구성까지 한 번에 정리한다. 
+
+아래는 **공식 문서 controller-install-ubuntu(Flamingo/32.1.1)를 기준으로, 실습 환경(컨트롤러 IP 10.100.100.11, 앞서 구성한 Keystone/Glance/Placement/RabbitMQ 구조)**에 맞게 정리한 실행 순서 버전이다.
+
+> 전제
+> 
+- 노드: **controller**
+- 유저: root (sudo -i 상태)
+- IP: 10.100.100.11
+- RabbitMQ: openstack / RABBIT_PASS 이미 만들어 둔 상태
+- Keystone admin: /root/admin-openrc.sh 정상 작동
+
+아래 순서를 위에서부터 차례대로 진행하면 된다.
+
+---
+
+## **1. Nova용 DB 3개 만들기 (nova_api, nova, nova_cell0)**
+
+**공식: Prerequisites 1번**
+
+```
+mysql -u root -p
+```
+
+SQL:
+
+```
+CREATE DATABASE nova_api;
+CREATE DATABASE nova;
+CREATE DATABASE nova_cell0;
+
+GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'localhost'
+ IDENTIFIED BY 'NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'%'
+ IDENTIFIED BY 'NOVA_DBPASS';
+
+GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'localhost'
+ IDENTIFIED BY 'NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%'
+ IDENTIFIED BY 'NOVA_DBPASS';
+
+GRANT ALL PRIVILEGES ON nova_cell0.* TO 'nova'@'localhost'
+ IDENTIFIED BY 'NOVA_DBPASS';
+GRANT ALL PRIVILEGES ON nova_cell0.* TO 'nova'@'%'
+ IDENTIFIED BY 'NOVA_DBPASS';
+
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+- NOVA_DBPASS 는 **Nova DB 전용 비밀번호**로 하나 정해 사용하면 된다.
+- 나중에 /etc/nova/nova.conf 의 DB connection이랑 반드시 같아야 함.
+
+---
+
+## **2. admin 권한 불러오기**
+
+**공식: Prerequisites 2번**
+
+```
+source /root/admin-openrc.sh
+```
+
+이제부터 나오는 openstack ... 커맨드는 전부 admin 권한으로 실행된다.
+
+---
+
+## **3. Keystone에 nova 유저/서비스/엔드포인트 만들기**
+
+**공식: Prerequisites 3~4번**
+
+### **3-1. nova 유저 생성 (Identity)**
+
+```
+openstack user create --domain default --password-prompt nova
+```
+
+→ 여기서 입력하는 비밀번호 = **NOVA_PASS** (Keystone용 nova 계정 비번).
+
+이건 DB 비번(NOVA_DBPASS)과 달라도 된다. 
+
+### **3-2. service 프로젝트에 admin 역할 부여**
+
+```
+openstack role add --project service --user nova admin
+```
+
+(출력 없음이 정상)
+
+### **3-3. nova 서비스 등록**
+
+```
+openstack service create --name nova \
+ --description "OpenStack Compute" compute
+```
+
+### **3-4. nova API 엔드포인트 3개 생성**
+
+```
+openstack endpoint create --region RegionOne \
+ compute public http://controller:8774/v2.1
+
+openstack endpoint create --region RegionOne \
+ compute internal http://controller:8774/v2.1
+
+openstack endpoint create --region RegionOne \
+ compute admin http://controller:8774/v2.1
+```
+
+이제 service catalog에 compute 타입의 nova API가 등록된다.
+
+*(문서 5번 “Placement 설치”는 이미 끝냈으니까 스킵)*
+
+---
+
+## **4. Nova 컨트롤러 컴포넌트 패키지 설치**
+
+**공식: Install and configure components 1번**
+
+```
+apt update
+apt install -y nova-api nova-conductor nova-novncproxy nova-scheduler
+```
+
+이 네 개가 컨트롤러에서 돌아가는 Nova의 핵심 프로세스들.
+
+---
+
+## **5.**
+
+## **/etc/nova/nova.conf**
+
+## **설정**
+
+**공식: Install and configure components 2번**
+
+```
+vi /etc/nova/nova.conf
+```
+
+아래 섹션들을 차례대로 맞추면 된다.
+
+---
+
+### **5-1. [api_database], [database] – Nova DB 연결**
+
+```
+[api_database]
+# ...
+connection = mysql+pymysql://nova:NOVA_DBPASS@controller/nova_api
+
+[database]
+# ...
+connection = mysql+pymysql://nova:NOVA_DBPASS@controller/nova
+```
+
+- NOVA_DBPASS = 1단계에서 DB 만들 때 썼던 그 비번.
+
+---
+
+### **5-2. [DEFAULT] – RabbitMQ / my_ip 등**
+
+RabbitMQ는 이미 openstack 유저 + RABBIT_PASS 로 만들어둔 상태라고 가정:
+
+```
+[DEFAULT]
+# ...
+transport_url = rabbit://openstack:RABBIT_PASS@controller:5672/
+my_ip = 10.100.100.11
+use_neutron = True
+firewall_driver = nova.virt.firewall.NoopFirewallDriver
+```
+
+- RABBIT_PASS = RabbitMQ에서 openstack 계정 만들 때 쓴 비번.
+- my_ip 는 **controller 관리 IP** 인 10.100.100.11 로 바꿈. (문서 기본은 10.0.0.11)
+
+> 문서에 있는 log_dir = /var/log/nova 옵션은
+> 
+> 
+> **패키징 버그 때문에 지우라고**
+> 
+
+> 만약 [DEFAULT] 안에 log_dir 가 있다면 그 줄은 삭제/주석 처리.
+> 
+
+---
+
+### **5-3. [keystone_authtoken] – Keystone 인증 정보**
+
+```
+[keystone_authtoken]
+# ...
+www_authenticate_uri = http://controller:5000/
+auth_url = http://controller:5000/
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = nova
+password = NOVA_PASS
+```
+
+- NOVA_PASS = 3-1에서 nova 유저 만들 때 썼던 비번.
+- 기존 [keystone_authtoken] 안에 잡다한 옵션 많으면 **다 지우고 위 블록만 남기는 느낌**으로.
+
+---
+
+### **5-4. [service_user] – 서비스 토큰**
+
+Flamingo 문서 기준으로 새로 들어간 부분: Nova가 다른 서비스 호출할 때 “service user token”을 같이 보내도록 설정.
+
+HTTPS 예제지만, 우리 환경은 HTTP라 auth_url만 맞춰서 쓰자:
+
+```
+[service_user]
+send_service_user_token = true
+auth_url = http://controller:5000/v3
+auth_type = password
+project_domain_name = Default
+project_name = service
+user_domain_name = Default
+username = nova
+password = NOVA_PASS
+```
+
+- 역시 `NOVA_PASS` 값을 그대로 사용한다.
+
+---
+
+### **5-5. [vnc] – VNC 프록시 설정**
+
+컨트롤러에서 novncproxy가 떠 있고, $my_ip = 10.100.100.11 이므로:
+
+```
+[vnc]
+enabled = true
+# ...
+server_listen = $my_ip
+server_proxyclient_address = $my_ip
+```
+
+- 컴퓨트 노드는 나중에 novncproxy_base_url = http://controller:6080/vnc_auto.html 까지 넣을 건데,
+ 
+ 컨트롤러 쪽은 문서처럼 listen 주소만 맞추면 된다.
+ 
+
+---
+
+### **5-6. [glance] – 이미지 서비스 위치**
+
+```
+[glance]
+# ...
+api_servers = http://controller:9292
+```
+
+- 앞에서 Glance를 http://controller:9292 로 열었으니 그대로 사용.
+
+---
+
+### **5-7. [oslo_concurrency] – 락 경로**
+
+```
+[oslo_concurrency]
+# ...
+lock_path = /var/lib/nova/tmp
+```
+
+디렉터리는 패키지 설치 시 자동 생성되어 있을 가능성이 높으며, 없으면 만들어도 된다.
+
+---
+
+### **5-8. [placement] – Placement 서비스 연결**
+
+앞에서 설치한 Placement(8778) + Keystone placement 유저 정보:
+
+```
+[placement]
+# ...
+region_name = RegionOne
+project_domain_name = Default
+project_name = service
+auth_type = password
+user_domain_name = Default
+auth_url = http://controller:5000/v3
+username = placement
+password = PLACEMENT_PASS
+```
+
+- PLACEMENT_PASS = Placement 설치 때 openstack user create placement 에서 썼던 비번.
+- 기존 [placement]에 다른 옵션 있으면 다 지우고 위만 남김.
+
+---
+
+### **5-9. [neutron] – Neutron 연동 (지금은 TODO 표시 해두고, Neutron 설치 때 채우기)**
+
+문서는 여기서 Neutron 섹션도 채우라고 하는데,
+
+실제 내용은 Neutron 설치 가이드에 맞춰야 하므로 **우선 뼈대만 구성하고, Neutron 파트에서 함께 보완하는 방식**을 권장한다.
+
+예를 들면:
+
+```
+[neutron]
+# 나중에 Neutron 설치할 때 여기 채움
+```
+
+(상세 설정은 `url = http://controller:9696`, `auth_url`, `username = neutron` 등 Neutron 가이드에서 다룬다.)
+
+---
+
+## **6. Nova Cell v2 DB 초기화 작업들**
+
+**공식: Install and configure components 3~6번**
+
+모두 controller에서 root로 실행:
+
+### **6-1. nova-api DB 동기화**
+
+```
+su -s /bin/sh -c "nova-manage api_db sync" nova
+```
+
+→ nova_api DB에 스키마 생성.
+
+### **6-2. cell0 매핑**
+
+```
+su -s /bin/sh -c "nova-manage cell_v2 map_cell0" nova
+```
+
+→ nova_cell0 DB를 cell0로 등록.
+
+### **6-3. cell1 생성**
+
+```
+su -s /bin/sh -c "nova-manage cell_v2 create_cell --name=cell1 --verbose" nova
+```
+
+→ 실제 compute 자원들이 들어갈 기본 cell.
+
+### **6-4. nova 메인 DB 동기화**
+
+```
+su -s /bin/sh -c "nova-manage db sync" nova
+```
+
+→ nova DB에 스키마/데이터 생성.
+
+### **6-5. cell 목록 확인**
+
+```
+su -s /bin/sh -c "nova-manage cell_v2 list_cells" nova
+```
+
+![image.png](images/ch2_4_img_10.png)
+
+---
+
+## **7. Nova 컨트롤러 서비스 재시작**
+
+**공식: Finalize installation**
+
+```
+service nova-api restart
+service nova-scheduler restart
+service nova-conductor restart
+service nova-novncproxy restart
+```
+
+혹은:
+
+```
+systemctl restart nova-api nova-scheduler nova-conductor nova-novncproxy
+```
+
+여기까지가 **“컨트롤러의 Nova 측 구성이 준비 완료된 상태”**이다.
+
+---
+
+## compute1 노드 Nova 구성
+아래는 **공식 문서 compute-install-ubuntu(2025.1 Epoxy) 내용을 실습 환경에 맞게 순서대로 정리한 버전**이다.
+
+전제 다시 정리:
+
+- 컨트롤러: controller / **10.100.100.11**
+- 컴퓨트: compute1 / **10.100.100.31**
+- RabbitMQ: openstack / RABBIT_PASS
+- Keystone nova 유저: NOVA_PASS
+- Keystone placement 유저: PLACEMENT_PASS
+- Glance/Placement/Nova 컨트롤러 쪽은 이미 OK 상태
+
+---
+
+## **0. 이 장에서 어디서 뭘 치는지**
+
+- **compute1 노드**
+ - 패키지 설치, /etc/nova/nova.conf 편집
+ - nova-compute 재시작, libvirt 타입 설정
+- **controller 노드**
+ - cell에 compute 호스트 등록 (nova-manage cell_v2 discover_hosts)
+
+이거만 머리에 두고, 순서대로 진행하면 된다.
+
+---
+
+## **1. compute1에 Nova 컴퓨트 패키지 설치**
+
+**공식: “Install the packages”**
+
+**어디서?** compute1 (루트 or sudo)
+
+```
+sudo -i # 아직 root 아니면
+apt update
+apt install -y nova-compute
+```
+
+- 이 패키지가 nova-compute 서비스 + 기본 설정 파일(/etc/nova/nova.conf, /etc/nova/nova-compute.conf) 을 깔아줌.
+- 아직 서비스가 완전히 동작하는 단계는 아니며, 설정 완료 후 재시작한다.
+
+---
+
+## **2.**
+
+## **/etc/nova/nova.conf**
+
+## **설정 (compute1)**
+
+**공식: “Edit /etc/nova/nova.conf and…”**
+
+```
+vi /etc/nova/nova.conf
+```
+
+### **2-1. [DEFAULT] – RabbitMQ + my_ip**
+
+문서 기준:
+
+```
+[DEFAULT]
+# ...
+transport_url = rabbit://openstack:RABBIT_PASS@controller
+my_ip = MANAGEMENT_INTERFACE_IP_ADDRESS
+```
+
+이를 **우리 환경 기준으로** 이렇게 맞춰:
+
+```
+[DEFAULT]
+# ...
+transport_url = rabbit://openstack:RABBIT_PASS@controller
+my_ip = 10.100.100.31
+use_neutron = True
+firewall_driver = nova.virt.firewall.NoopFirewallDriver
+```
+
+- RABBIT_PASS → 컨트롤러에서 RabbitMQ openstack 계정 만들 때 썼던 비번.
+- my_ip → compute1 관리 IP (10.100.100.31)
+- `use_neutron = True`, `firewall_driver` 는 컨트롤러와 일관되게 맞추는 구성을 권장한다.
+
+---
+
+### **2-2. [api] + [keystone_authtoken] – Keystone 연동**
+
+문서 예제:
+
+```
+[api]
+# ...
+auth_strategy = keystone
+
+[keystone_authtoken]
+# ...
+www_authenticate_uri = http://controller:5000/
+auth_url = http://controller:5000/
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = nova
+password = NOVA_PASS
+```
+
+우리도 그대로 쓰되, NOVA_PASS만 실제 값으로 넣자:
+
+```
+[api]
+# ...
+auth_strategy = keystone
+
+[keystone_authtoken]
+# ...
+www_authenticate_uri = http://controller:5000/
+auth_url = http://controller:5000/
+memcached_servers = controller:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = nova
+password = NOVA_PASS
+```
+
+- NOVA_PASS = 컨트롤러에서 openstack user create nova 했을 때 입력한 비번.
+
+**중요:** 기존 [keystone_authtoken] 안에 있던 잡다한 옵션들은 **주석 처리하거나 지우라고** 문서에서 말함.
+
+---
+
+### **2-3. [service_user] – 서비스 토큰**
+
+Flamingo/Epoxy에서 추가된 “서비스 유저 토큰” 부분.
+
+문서는 HTTPS 예제를 쓰지만, 우리는 HTTP 환경이라 아래처럼 쓰면 됨:
+
+```
+[service_user]
+send_service_user_token = true
+auth_url = http://controller:5000/v3
+auth_strategy = keystone
+auth_type = password
+project_domain_name = Default
+project_name = service
+user_domain_name = Default
+username = nova
+password = NOVA_PASS
+```
+
+- 여기서도 NOVA_PASS 동일.
+
+---
+
+### **2-4. [neutron] – 나중에 Neutron 설치하면서 채울 자리**
+
+compute-install 문서에선 [neutron]도 채우라고 하는데,
+
+실제 내용은 **Neutron 설치 가이드**에 맞춰야 하니까 지금은 TODO로 비워두자.
+
+예를 들어:
+
+```
+[neutron]
+# TODO: Neutron 설치할 때 url/auth_url/username=neutron 등 채우기
+```
+
+나중에 Neutron 파트 들어갈 때 여기 다시 돌아오자.
+
+---
+
+### **2-5. [vnc] – 콘솔 설정**
+
+문서 예제:
+
+```
+[vnc]
+# ...
+enabled = true
+server_listen = 0.0.0.0
+server_proxyclient_address = $my_ip
+novncproxy_base_url = http://controller:6080/vnc_auto.html
+```
+
+우리도 그대로:
+
+```
+[vnc]
+# ...
+enabled = true
+server_listen = 0.0.0.0
+server_proxyclient_address = $my_ip
+novncproxy_base_url = http://controller:6080/vnc_auto.html
+```
+
+- server_listen = 0.0.0.0 → compute1에서 모든 IP로 VNC 듣기
+- server_proxyclient_address = $my_ip → 내부적으로는 10.100.100.31
+- novncproxy_base_url → 컨트롤러에 있는 nova-novncproxy 위치
+
+---
+
+### **2-6. [glance] – 이미지 서비스 위치**
+
+```
+[glance]
+# ...
+api_servers = http://controller:9292
+```
+
+Glance 컨트롤러 설치 때와 동일.
+
+---
+
+### **2-7. [oslo_concurrency] – 락 경로**
+
+```
+[oslo_concurrency]
+# ...
+lock_path = /var/lib/nova/tmp
+```
+
+문서에서도 그대로 쓰라고 되어 있음.
+
+---
+
+### **2-8. [placement] – Placement API 연동**
+
+문서 예제:
+
+```
+[placement]
+# ...
+region_name = RegionOne
+project_domain_name = Default
+project_name = service
+auth_type = password
+user_domain_name = Default
+auth_url = http://controller:5000/v3
+username = placement
+password = PLACEMENT_PASS
+```
+
+- PLACEMENT_PASS = Placement 설치 때 openstack user create placement 에서 쓴 비번.
+- 기존 [placement] 옵션 있으면 **지우고 이걸로 교체**하라고 나와 있음.
+
+---
+
+## **3. 하드웨어 가상화 지원 여부에 따라 libvirt 설정**
+
+**공식: “Finalize installation” 1번**
+
+compute1에서:
+
+```
+egrep -c '(vmx|svm)' /proc/cpuinfo
+```
+
+- **결과 ≥ 1**: CPU가 VT-x/AMD-V 지원
+ 
+ → 보통 KVM을 그대로 쓸 수 있고, virt_type = kvm (기본값)이라 **추가 설정 필요 없음**.
+ 
+- **결과 0**: 하드웨어 가상화 미지원 or Proxmox에서 nested 안 켜짐
+ 
+ → libvirt 를 QEMU 모드로 바꿔야 함.
+ 
+
+하드웨어 가속 안 되는 경우:
+
+```
+vi /etc/nova/nova-compute.conf
+```
+
+```
+[libvirt]
+# ...
+virt_type = qemu
+```
+
+→ 이렇게 설정하면 pure QEMU로 돌아가는데, **느리긴 해도 PoC/랩엔 충분**함.
+
+(너네 Proxmox에서 nested KVM 켜놨으면 아마 1 이상 뜰 가능성이 큼.)
+
+---
+
+## **4. nova-compute 서비스 재시작 (compute1)**
+
+**공식: “Restart the Compute service”**
+
+```
+systemctl restart nova-compute
+systemctl enable nova-compute
+systemctl status nova-compute
+```
+
+- active (running) 이면 일단 OK.
+- 만약 failed 상태면 /var/log/nova/nova-compute.log 에서 에러 확인.
+ - 문서 예시 에러: AMQP server on controller:5672 is unreachable
+ 
+ → RabbitMQ 포트/방화벽/비번 체크.
+ 
+
+---
+
+## **5. controller에서 cell에 compute 호스트 등록**
+
+**공식: “Add the compute node to the cell database”**
+
+> 주의:
+> 
+> 
+> **꼭 controller에서**
+> 
+
+### **5-1. nova-compute 서비스 올라왔는지 확인**
+
+컨트롤러에서:
+
+```
+source /root/admin-openrc.sh
+
+openstack compute service list --service nova-compute
+```
+
+예상 결과(비슷한 형식):
+
+![image.png](images/ch2_4_img_11.png)
+
+- Host 가 compute
+- State = up, Status = enabled 이면 잘 붙은 것.
+
+---
+
+### **5-2. cell_v2 에 compute1 등록**
+
+컨트롤러에서 root:
+
+```
+su -s /bin/sh -c "nova-manage cell_v2 discover_hosts --verbose" nova
+```
+
+문서 예시 출력:
+
+```
+Found 2 cell mappings.
+Skipping cell0 since it does not contain hosts.
+Getting compute nodes from cell 'cell1': ad5a5985-a719-4567-98d8-8d148aaae4bc
+Found 1 computes in cell: ad5a5985-a719-4567-98d8-8d148aaae4bc
+Checking host mapping for compute host 'compute1': fe58ddc1-...
+Creating host mapping for compute host 'compute1': fe58ddc1-...
+```
+
+![image.png](images/ch2_4_img_12.png)
+
+이와 같이 “host mapping 생성” 로그가 출력되면 cell 등록이 완료된 상태이다.
+
+> 새 compute 노드를 추가할 때마다 이 명령을 다시 실행해야 하며, 자동화를 원하면 `/etc/nova/nova.conf` 의 `[scheduler]` 섹션에 `discover_hosts_in_cells_interval = 300` 을 설정해 주기적으로 discover 하도록 구성할 수 있다.
+> 
+
+```
+[scheduler]
+discover_hosts_in_cells_interval = 300
+```
+
+(이건 선택 옵션)
+
+---
+
+## **6. 현재 구성 상태 요약**
+
+지금까지 한 걸 한 줄로 요약하면:
+
+- 컨트롤러:
+ - Nova API/스케줄러/컨덕터/novncproxy + Placement + Glance + Keystone 정상
+ - cell1 설정 완료
+- 컴퓨트:
+ - nova-compute@compute1 가 up 상태
+ - Placement에 자원 보고할 준비 완료
+- controller에서:
+
+```
+source /root/admin-openrc.sh
+openstack compute service list
+openstack hypervisor list
+```
+
+이 두 출력에 `compute1` 이 보이면 **Nova 레벨 준비가 완료된 상태**이다.
+
+https://docs.openstack.org/nova/2025.1/install/verify.html
+
+문서 기준으로 Nova 설치를 확인한다.
+
+다음 핵심 단계는 **Neutron 설치 + 네트워크 구성(Provider / Self-service)** 이다.
+
+그게 끝나면:
+
+1. 네트워크 만들고
+2. flavor / keypair 만들고
+3. 우리가 Glance에 올린 cirros 이미지로
+4. `openstack server create ...` 를 실행해 실제 인스턴스 부팅까지 진행한다.

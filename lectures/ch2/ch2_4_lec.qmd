@@ -1,0 +1,256 @@
+---
+title: "2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기"
+---
+
+# 2-4장. 오픈스택 필수 컴포넌트 수동 설치해보기
+
+## 학습 목표
+- 3노드(`controller`, `compute1`, `storage1`) 기반 실습 환경을 구성한다.
+- NIC 3개(MGMT/Tenant/Provider) 네트워크를 분리해 고정 IP로 설계한다.
+- OpenStack 본설치 전에 필수 컴포넌트(NTP, DB, MQ, 캐시, Etcd)를 수동으로 준비한다.
+
+## 2.4.1 실습 범위
+
+이 장은 OpenStack 서비스(Keystone/Glance/Nova/Neutron/Cinder)를 설치하기 전에,
+"환경 챕터"를 완성하는 것을 목표로 한다.
+
+핵심은 다음 2가지다.
+
+1. 노드 간 이름 해석과 시간 동기화를 안정화한다.
+2. controller 중심의 공통 인프라(DB/MQ/Cache/Etcd)를 미리 준비한다.
+
+## 2.4.2 노드 사양 및 역할
+
+실습 VM은 총 3개다.
+
+| 노드 | 호스트명 | 주요 역할 | 권장 리소스 |
+|---|---|---|---|
+| Control | `controller` | API/스케줄러/DB/MQ/캐시/Etcd | vCPU 4, RAM 8GB, Disk 32GB+ |
+| Compute | `compute1` | Nova Compute, 하이퍼바이저 | vCPU 4, RAM 4GB+, Disk 32GB+ |
+| Storage | `storage1` | Cinder Volume(블록 스토리지) | vCPU 4, RAM 4GB+, Disk 32GB+ |
+
+## 2.4.3 네트워크 요구사항 (사용자 기준)
+
+- 모든 노드는 NIC 3개를 사용한다.
+
+| 역할 | 대역 | 인터넷 | DHCP | 비고 |
+|---|---|---|---|---|
+| MGMT | `10.100.100.0/24` | O | X | 관리/API/SSH 네트워크 |
+| Tenant (VXLAN) | `10.100.200.0/24` | X | X | 오버레이 내부 통신 네트워크 |
+| Provider | `10.200.100.0/24` | O | X | 노드 NIC는 무IP(인터페이스만 유지) 가능 |
+
+권장 IP 계획:
+
+| 노드 | MGMT | Tenant (VXLAN) | Provider |
+|---|---|---|---|
+| controller | `10.100.100.11/24` | `10.100.200.11/24` | 무IP(권장) |
+| compute1 | `10.100.100.31/24` | `10.100.200.31/24` | 무IP(권장) |
+| storage1 | `10.100.100.41/24` | `10.100.200.41/24` | 무IP(권장) |
+
+참고:
+
+- 기본 게이트웨이는 MGMT NIC에만 둔다.
+- Provider는 노드 자체 IP 없이 브리지/물리 경로 용도로만 사용할 수 있다.
+
+## 2.4.4 Security 단계
+
+공식 문서의 Security 단계는 "필수는 아니지만" 실제 운영에서는 매우 중요하다.
+
+- 서비스 비밀번호 정책을 미리 정한다.
+- 노드별 공통 환경변수 파일(예: `admin-openrc.sh`)에 민감정보를 정리한다.
+
+공식 참고:
+
+- <https://docs.openstack.org/install-guide/environment-security.html>
+
+## 2.4.5 호스트명 설정
+
+먼저 3개 노드의 호스트명을 고정한다.
+
+```bash
+# controller
+sudo hostnamectl set-hostname controller
+
+# compute
+sudo hostnamectl set-hostname compute1
+
+# storage
+sudo hostnamectl set-hostname storage1
+```
+
+적용 확인:
+
+```bash
+hostname
+```
+
+## 2.4.6 `/etc/hosts` 통일
+
+OpenStack는 서비스 간 통신이 많기 때문에,
+DNS가 불안정한 실습 환경에서는 `/etc/hosts` 고정 매핑이 안정적이다.
+
+모든 노드에 동일하게 아래 내용을 반영한다.
+
+```text
+127.0.0.1 localhost
+
+10.100.100.11 controller
+10.100.100.31 compute1
+10.100.100.41 storage1
+
+::1 ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+```
+
+주의:
+
+- `127.0.1.1 <옛 호스트명>` 항목은 제거 또는 주석 처리한다.
+- 세 노드에서 `ping controller`, `ping compute1`, `ping storage1` 결과가 동일해야 한다.
+
+## 2.4.7 Netplan 고정 IP 설정 (NIC 3개)
+
+실제 NIC 이름은 환경마다 다르므로 먼저 확인한다.
+
+```bash
+ip -br a
+```
+
+이 문서에서는 다음으로 가정한다.
+
+- `ens18`: MGMT
+- `ens19`: Tenant
+- `ens20`: Provider
+
+### 2.4.7.1 controller
+
+```yaml
+network:
+ version: 2
+ renderer: networkd
+ ethernets:
+ ens18: # MGMT
+ addresses:
+ - 10.100.100.11/24
+ routes:
+ - to: 0.0.0.0/0
+ via: 10.100.100.1
+ nameservers:
+ addresses: [8.8.8.8, 1.1.1.1]
+
+ ens19: # Tenant (VXLAN)
+ addresses:
+ - 10.100.200.11/24
+ dhcp4: false
+
+ ens20: # Provider
+ dhcp4: false
+ dhcp6: false
+ optional: true
+```
+
+### 2.4.7.2 compute1
+
+```yaml
+network:
+ version: 2
+ renderer: networkd
+ ethernets:
+ ens18: # MGMT
+ addresses:
+ - 10.100.100.31/24
+ routes:
+ - to: 0.0.0.0/0
+ via: 10.100.100.1
+ nameservers:
+ addresses: [8.8.8.8, 1.1.1.1]
+
+ ens19: # Tenant (VXLAN)
+ addresses:
+ - 10.100.200.31/24
+ dhcp4: false
+
+ ens20: # Provider
+ dhcp4: false
+ dhcp6: false
+ optional: true
+```
+
+### 2.4.7.3 storage1
+
+```yaml
+network:
+ version: 2
+ renderer: networkd
+ ethernets:
+ ens18: # MGMT
+ addresses:
+ - 10.100.100.41/24
+ routes:
+ - to: 0.0.0.0/0
+ via: 10.100.100.1
+ nameservers:
+ addresses: [8.8.8.8, 1.1.1.1]
+
+ ens19: # Tenant (VXLAN)
+ addresses:
+ - 10.100.200.41/24
+ dhcp4: false
+
+ ens20: # Provider
+ dhcp4: false
+ dhcp6: false
+ optional: true
+```
+
+### 2.4.7.4 적용 및 검증
+
+```bash
+sudo netplan apply
+ip -br a
+
+ping -c 2 controller
+ping -c 2 compute1
+ping -c 2 storage1
+ping -c 2 8.8.8.8
+```
+
+
+## 2.4.8 이후 학습 페이지
+
+초기 세팅(2.4.7.4 적용 및 검증) 이후 내용은 하위 페이지로 분리했다.
+
+### 환경 컴포넌트 준비
+
+- [2.4.8 NTP(Chrony) 동기화](ch2_4_8_lec.qmd)
+- [2.4.9 OpenStack 패키지 저장소 활성화](ch2_4_9_lec.qmd)
+- [2.4.10 SQL Database (MariaDB)](ch2_4_10_lec.qmd)
+- [2.4.11 Message Queue (RabbitMQ)](ch2_4_11_lec.qmd)
+- [2.4.12 Memcached](ch2_4_12_lec.qmd)
+- [2.4.13 Etcd](ch2_4_13_lec.qmd)
+- [2.4.14 사전 점검 체크리스트](ch2_4_14_lec.qmd)
+- [2.4.15 OpenStack 서비스 설치 순서](ch2_4_15_lec.qmd)
+- [2.4.16 공통 비밀번호 변수 예시](ch2_4_16_lec.qmd)
+
+### OpenStack 서비스 설치
+
+- [2.4.17 Keystone 설치](ch2_4_17_lec.qmd)
+- [2.4.18 Glance 설치](ch2_4_18_lec.qmd)
+- [2.4.19 Placement 설치](ch2_4_19_lec.qmd)
+- [2.4.20 Nova 설치](ch2_4_20_lec.qmd)
+- [2.4.21 Neutron 설치](ch2_4_21_lec.qmd)
+- [2.4.22 Horizon 설치](ch2_4_22_lec.qmd)
+- [2.4.23 Horizon 대시보드에서 인스턴스 생성](ch2_4_23_lec.qmd)
+- [2.4.24 트러블슈팅 모음](ch2_4_24_lec.qmd)
+
+### 트러블슈팅 상세
+
+- [2.4.25 Keystone 트러블슈팅](ch2_4_25_lec.qmd)
+- [2.4.26 Glance 트러블슈팅 (DB 권한)](ch2_4_26_lec.qmd)
+- [2.4.27 Glance 트러블슈팅 (Quota)](ch2_4_27_lec.qmd)
+- [2.4.28 Neutron OVS 스위치 설정](ch2_4_28_lec.qmd)
+- [2.4.29 Horizon 트러블슈팅 (접속/설정)](ch2_4_29_lec.qmd)
+- [2.4.30 외부 접근 IP 대역 설정 가이드](ch2_4_30_lec.qmd)
+- [2.4.31 Horizon 인스턴스 생성 오류 해결](ch2_4_31_lec.qmd)
